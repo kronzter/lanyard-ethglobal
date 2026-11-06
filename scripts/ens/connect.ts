@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import {
   createPublicClient,
   createWalletClient,
-  getAddress,
   http,
   type Address,
   type Hex,
@@ -15,7 +14,7 @@ import {
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { eventConfig } from "../../src/shared/event.config";
-import { assertLoopbackUrl, redactUrls } from "./safety";
+import { assertLoopbackUrl, chooseOrganizer, redactUrls } from "./safety";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -33,7 +32,8 @@ export const sameAddress = (a: string, b: string): boolean => a.toLowerCase() ==
 
 /**
  * `SEPOLIA_RPC_URL` (or `FORK_RPC_URL`, default a local anvil, with `fork`) and `ORGANIZER_PRIVATE_KEY`.
- * A live run requires the key to belong to `authorities.organizer`; a fork run accepts any key.
+ * A live run requires the key to belong to `authorities.organizer`, or to LANYARD_LIVE_ORGANIZER when
+ * set (see chooseOrganizer); a fork run accepts any key.
  */
 export async function connect(opts: { fork: boolean; needKey: boolean }): Promise<Connection> {
   const rpcUrl = opts.fork
@@ -45,12 +45,13 @@ export async function connect(opts: { fork: boolean; needKey: boolean }): Promis
   if (opts.needKey && !key) throw new Error("ORGANIZER_PRIVATE_KEY is not set");
 
   const account = key ? privateKeyToAccount(key as Hex) : null;
-  const organizer = account?.address ?? getAddress(eventConfig.authorities.organizer);
-  if (!opts.fork && account && !sameAddress(account.address, eventConfig.authorities.organizer)) {
-    throw new Error(
-      "ORGANIZER_PRIVATE_KEY does not match authorities.organizer in src/shared/event.config.ts",
-    );
-  }
+  const { organizer, warning } = chooseOrganizer({
+    fork: opts.fork,
+    key: account?.address ?? null,
+    config: eventConfig.authorities.organizer,
+    override: process.env.LANYARD_LIVE_ORGANIZER,
+  });
+  if (warning) console.warn(`warning: ${warning}`);
 
   const transport = http(rpcUrl);
   const publicClient = createPublicClient({ chain: sepolia, transport });
