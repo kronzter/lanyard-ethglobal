@@ -14,7 +14,7 @@ Read `00-CONTEXT.md`, then the authoritative [evidence and shared contracts](01-
 - **One repo, one dApp.** A single Expo project at the repo root: one `package.json`, one lockfile, no workspace packages and no git submodules. Domain code lives in plain folders (`src/shared`, `src/arkiv`, `src/rules`, `src/ens`, `src/venue`, `src/shell`), the Node CLI in `cli/` (run with `tsx`, importing `src/`), and one Foundry project in `contracts/` whose dependencies come from Soldeer. Track boundaries are ESLint import rules plus `CODEOWNERS`.
 - **Expo + Expo Router**, TypeScript, at the repo root. Targets **Android and web**. The code stays iOS-compatible, but iOS is never built, tested or demoed.
 - **Dev builds only.** Reown AppKit's native modules don't run in Expo Go.
-- **Every APK build runs locally**: `eas build --platform android --profile <development|preview> --local`. Never queue a cloud EAS build.
+- **APK builds run on EAS cloud**: `eas build --platform android --profile <development|preview>` (`--local` optional on a Linux/macOS/WSL host). Builds get only public `EXPO_PUBLIC_*` values.
 - **Wallets: Reown AppKit.** The native SDK on Android, the wagmi adapter on web. Users connect their own wallet (MetaMask, Rainbow, …). If the P0.6 spike shows external wallets can't write to Arkiv, the fallback is AppKit's email/social-login wallet.
 - **No server signer.** Users sign their own actions. Deploy, seed, capture and freeze are local CLIs. Retained signed evidence bundles are downloadable and usable from local files. Read-only, app-restricted RPC keys ship in the app as public values (rotated if abused). A declared read-only RPC proxy is only a fallback if P0 shows those limits can't be lived with; it may hold RPC credentials, but no signing/decryption keys. Final network acceptance uses the actual P0-selected profile, including wallet relay/login services.
 - **Screen split.** Field roles (hacker, volunteer, lead, judge, team) use phones. Organizer screens, ENS consoles and the venue editor are web-only screens.
@@ -175,7 +175,7 @@ The other person reads the findings when they get to them and can add rows. They
 - **Pinned versions.** Exact versions in `package.json` for `@arkiv-network/sdk`, the Expo SDK, Reown AppKit and viem. ENSv2 contracts are pinned by commit as a Soldeer git dependency in `contracts/foundry.toml` (no submodules). No upgrades during the build.
 - **Addresses** live in `deployments/sepolia.json` and `deployments/rabdi.json`. Nothing is hard-coded.
 - **Secrets.** The organizer key, results key and score-decryption key live only in the local `.env` of whoever runs the deploy, seed or freeze scripts. They never ship in the app. Users' keys never leave their wallets. `.env` is git-ignored; `.env.example` is committed.
-- **APK builds** always use `--local`.
+- **APK builds** run on EAS cloud; no secret is ever stored in EAS.
 - **Requirements style.** EARS: `WHEN <trigger>, THE <component> SHALL <response>`. IDs are per spec, e.g. `A1.2-R3`.
 - **Teams** have at most 4 people, written Person A, Person B, Person C, Person D in fixtures and the demo. (Not to be confused with the two builders.)
 - **Seats.** Everyone has an assigned seat. No QR stickers.
@@ -184,4 +184,4 @@ The other person reads the findings when they get to them and can add rows. They
 
 All decisions taken, and the ones still open, are listed in `00-CONTEXT.md` §13–14.
 
-The approved evidence/publication repair is specified in `01-evidence-and-interfaces.md`. Version pins, confirmation depths, cipher package/encoding and local build host are measured P0 deliverables; until recorded, the dependent capability remains blocked rather than being silently assumed.
+The approved evidence/publication repair is specified in `01-evidence-and-interfaces.md`. Version pins, confirmation depths, cipher package/encoding and the APK build route are measured P0 deliverables; until recorded, the dependent capability remains blocked rather than being silently assumed.

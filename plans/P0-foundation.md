@@ -40,7 +40,7 @@ Any real ENS, Arkiv or routing logic. Only the spike's throwaway code, shapes, s
 Prove the stack works before anyone builds on it. Throwaway code goes in `spike/` and is deleted at the end of P0. The results are recorded in `TRACKER.md › Spike`.
 
 **Checks**
-- **S1** A local dev APK (`eas build --platform android --profile development --local`) with Reown AppKit installs on a real Android phone and connects MetaMask mobile over WalletConnect. Record a working Linux/macOS build host; Windows builders must prove the WSL route (not officially supported by Expo) or use an available Linux/macOS host. No cloud build fallback.
+- **S1** A dev-client APK built on EAS cloud (`eas build --platform android --profile development`) with Reown AppKit installs on a real Android phone and connects MetaMask mobile over WalletConnect. Record the EAS build ID and confirm the build received no non-public env values.
 - **S2** The connected wallet adds Rabdi (chain `7794095`) with `wallet_addEthereumChain` and switches to it.
 - **S3** The Arkiv SDK runs on Hermes, using AppKit's EIP-1193 provider as the signer: create one entity, read it back, and check `$owner` == the connected address. Record the exact polyfills needed.
 - **S4** One `executeBatch` with two creates needs exactly one wallet approval.
@@ -166,7 +166,7 @@ Uses the wallet setup proven in P0.6, or its fallback.
 
 **Requirements**
 - **P0.5-R1** THE app SHALL be Expo (pinned SDK) + Expo Router + TypeScript at the repo root, with route folders created for each owner as in `00-README.md`, each holding a placeholder screen that says which phase fills it.
-- **P0.5-R2** THE `eas.json` SHALL define a `development` profile (dev client APK) and a `preview` profile (installable APK). `pnpm app:apk` and `pnpm app:dev-apk` SHALL run `eas build --platform android --profile <p> --local`. No script runs a cloud build.
+- **P0.5-R2** THE `eas.json` SHALL define a `development` profile (dev client APK) and a `preview` profile (installable APK). `pnpm app:apk` and `pnpm app:dev-apk` SHALL run `eas build --platform android --profile <p>` on EAS cloud; `pnpm app:apk:local` and `pnpm app:dev-apk:local` SHALL add `--local`. No build profile or EAS env holds a non-public value.
 - **P0.5-R3** THE shell SHALL wrap Reown AppKit (native SDK on Android, wagmi adapter on web) behind one `useWallet()` hook that exposes the address, the chain, a viem wallet client, and an EIP-1193 provider for Sepolia and Rabdi.
 - **P0.5-R4** THE `flags.ts` SHALL read `EXPO_PUBLIC_LANYARD_ENS` and `EXPO_PUBLIC_LANYARD_ROUTER`, and `providers.ts` SHALL return the mock or real implementation for each.
 - **P0.5-R5** THE stub `<VenueMap>` SHALL draw the floor-plan image, seat dots and a straight path with `react-native-svg`, with the props A3.3 will keep: `venue`, `highlight`, `path`, `onSeatTap`.
@@ -196,7 +196,7 @@ Uses the wallet setup proven in P0.6, or its fallback.
 - [ ] `CODEOWNERS` assigns every path in the ownership table, and nothing is unowned
 - [ ] Fresh clone: `pnpm i && pnpm ci:local` passes with no `.env`
 - [ ] The web export and the preview APK contain no `.env` value other than `EXPO_PUBLIC_*` ones
-- [ ] `pnpm app:apk` builds locally on both laptops; nothing ever calls a cloud build
+- [ ] `pnpm app:apk` produces an installable preview APK on EAS cloud; the EAS project holds no secret and no non-public env value
 - [ ] A web-only route opened on Android shows "Open on web"
 - [ ] The shell connects on Android/web, discovers ownership-checked roles and shows the selected mock role
 - [ ] An owner/address disagreement cannot grant a role; a wallet with multiple roles can select one

@@ -14,7 +14,7 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| S1 Local dev APK + AppKit connects MetaMask mobile | todo | **A.** Needs an Android SDK + eas-cli build host, a Reown project ID and MetaMask on a phone |
+| S1 Dev APK (EAS cloud) + AppKit connects MetaMask mobile | todo | **A.** Needs an Expo account + eas-cli, a Reown project ID and MetaMask on a phone |
 | S2 Wallet adds and switches to Rabdi | todo | **A**, with B pairing |
 | S3 Arkiv SDK on Hermes with AppKit signer (record polyfills) | todo | **A + B** pair (phone). Hermes needs `crypto.getRandomValues`: the SDK's random entity salt throws `NoRandomSourceError` without it |
 | S4 `executeBatch` = one approval | todo | **A + B** pair (phone wallet) |
@@ -29,7 +29,7 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 
 **Fallbacks chosen:** none yet.
 
-**Capability evidence:** SDK package/declarations, exact versions, confirmation depths, archive log limits, build host, cipher package/encoding and linked-create prediction/custody or sequential fallback remain unmeasured until P0.6 records them. Revised requirements do not count as passed spike checks.
+**Capability evidence:** SDK package/declarations, exact versions, confirmation depths, archive log limits, APK build route, cipher package/encoding and linked-create prediction/custody or sequential fallback remain unmeasured until P0.6 records them. Revised requirements do not count as passed spike checks.
 
 ### Approved plan repair · 2026-11-06
 
@@ -91,6 +91,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 | S1 | 8-package pnpm monorepo and ENSv2 git submodules add Expo/Metro/EAS friction | One Expo project at the repo root, plain `src/` folders, `cli/`, one `contracts/` Foundry project with Soldeer deps; ESLint import boundaries + CODEOWNERS; all plan paths rewritten | revised |
 | S2 | P0 blocked on both builders | Track B slice (P0.1, P0.2, P0.4a, P0.5a, P0.6a S6/S9/S10/S12) merges first; P0.3, remaining fixtures, AppKit/Android and ENSv2 deferred to before the phase that needs them (`P0-foundation.md`) | revised |
 | S3 | One commit per spec; agents never push | Several small commits per spec ending in a `docs(tracker)` commit; titles describe the change, with the spec ID only in a `Refs:` footer, and no assistant attribution. Agents push non-`main` branches, never `main`. PRs target the phase branch directly: stacked PRs #2–#4 merged into their stacked bases before retargeting, so #5 brought the same commits into `phase/P0-foundation`, and stacking is no longer used | revised |
+| S4 | No local Android build host (Windows, no WSL/SDK); `--local` blocked S1 | APKs build on EAS cloud (`pnpm app:dev-apk`, `pnpm app:apk`); `--local` scripts kept as optional; builds receive only public `EXPO_PUBLIC_*` values and EAS holds no secret; P0/I3/I4/CONTEXT/README/workflow | revised |
 
 ### Specs
 
@@ -101,7 +102,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 | P0.2 Shared types, config, deployments | B | blocked | 9ad0618 | Implemented in `src/shared/` (186 tests): canonical labels (ENSIP-15 + strict policy), RFC 8785 canonical JSON + keccak + strict parser, event config (placeholder Dec 2026 IST times; mock authority wallets from the public test mnemonic), freeze window and `namespaceExpiry`, venue/routing shapes, mock/live deployments schema, team-page content and URL helper. **Blocked only on measured values:** Sepolia confirmations/reset ID (S7), Rabdi confirmations/reset ID (S10), score cipher (S11), `shiftWriteProfile` (S12), funding profile (S6). They are `unmeasured`, so `configHash` and `requireLive` throw `BlockedCapabilityError` |
 | P0.3 Interfaces, mocks, conformance | B (A reviews) | done | 7954c00 | `EnsReader`, `IdentityDirectory`, `EvaluationContext`, `Router` and `ResultsPublisher` interfaces; registration-ID hash and registration-bound `lanyard.perms` envelope; `MockEnsReader`, `MockIdentityDirectory`, `StubRouter` (Manhattan mm, straight paths, walls ignored) and `MockResultsPublisher` (stored mock transactions with success/revert/pending/crash receipts, reconcile, atomic lock); `runEnsReaderConformance` (13 checks), `runRouterConformance` (12) and `runResultsPublisherConformance` (11), each scenario- or harness-driven so the real implementations reuse them, each with a broken-mock self-test that is caught; evidence schemas: `CapturedObservation`, signed `EvidenceBody`/envelope with `verifyEnvelope`, `resultsBody`/`resultsHash`, 128 KiB summary check, `RULES_VERSION` manifest; app providers serve the ENS mocks and stub router, and `cli/providers.ts` serves the fixture reader plus a file-backed mock publisher that survives restarts; 12 canonical vectors match on Node and headless Chromium (CI uses Chrome). **Hermes vectors** run with spike S11 |
 | P0.4 Fixtures | B | done | c5cbe67 | `personas.json` (46, R1), `timeline.json` (R4), `ens-history.json` (R3 plus R5 ENS cases), `venue.small.json` (R2: 20×12, 12 seats, 2 zones, help desk per zone + stage, walled-in seat unreachable by BFS), `team-pages.json`, and `evidence-scenarios.json` (R5 Arkiv/publication cases: deleted captured and uncaptured finals, expired lease with retained claim, publication restart, out-of-window cutoffs). Stories in `fixtures/README.md` |
-| P0.5 App shell | A (web slice by B) | doing | 7c41578 | **P0.5a done (web):** route folders with phase placeholders (R1), `flags.ts` + `providers.ts` composition root (R4; mock mode serves the fixture `EnsReader` and `IdentityDirectory` since `08b2cdd` and the `StubRouter` since `893e1ee`; the `sepolia`/`grid` modes fail loudly until their integrations), web-only guard (R7, unit-tested; Android check pending), public `/teams/[team]` with no wallet gate, `output: "single"`, static-host rewrites (`public/serve.json`, `_redirects`), and `smoke:web` proving direct navigation/reload in CI plus a headless-Chromium render locally (R8). Intended public origin **not chosen yet** (mock `http://localhost:8081`); record it before A2 writes live ENS `url` records. **Pending (Person A / phone):** `eas.json` and local APK scripts (R2), AppKit `useWallet()` (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selection (R6) |
+| P0.5 App shell | A (web slice by B) | doing | 7c41578 | **P0.5a done (web):** route folders with phase placeholders (R1), `flags.ts` + `providers.ts` composition root (R4; mock mode serves the fixture `EnsReader` and `IdentityDirectory` since `08b2cdd` and the `StubRouter` since `893e1ee`; the `sepolia`/`grid` modes fail loudly until their integrations), web-only guard (R7, unit-tested; Android check pending), public `/teams/[team]` with no wallet gate, `output: "single"`, static-host rewrites (`public/serve.json`, `_redirects`), and `smoke:web` proving direct navigation/reload in CI plus a headless-Chromium render locally (R8). Intended public origin **not chosen yet** (mock `http://localhost:8081`); record it before A2 writes live ENS `url` records. **R2 config (A):** `eas.json` `development`/`preview` APK profiles, `pnpm app:dev-apk`/`app:apk` on EAS cloud plus `:local` variants, `expo-dev-client` 58.0.18, EAS project linked (`owner: kronzter`); the first cloud APK build is still pending. **Pending (Person A / phone):** AppKit `useWallet()` (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selection (R6) |
 
 **Bug hunt:** deferred: it runs once over all of P0 after the P0.5 shell and the P0.6 spike are complete · **Merged:** no (`phase/P0-foundation` merges into `main` after the bug hunt)
 
@@ -123,7 +124,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 **Person A · `@kronzter`**
 
 1. Review the merged P0 work (PRs #1, #5, #6, #7): repo layout, CODEOWNERS, shared types, the ENS, router and publisher mocks and their conformance suites, and the `roleOfLabel` role names.
-2. Set up a local Android build host (Android SDK, JDK, eas-cli) and get a Reown project ID and an archive Sepolia RPC key.
+2. Set up an Expo account and eas-cli for EAS cloud builds, and get a Reown project ID and an archive Sepolia RPC key.
 3. Phone half of the spike: S1–S5, S7, S8 (S3/S4 paired with B).
 4. Rest of the app shell: `eas.json` and the local APK scripts (R2), AppKit `useWallet()` on Android and web (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selector (R6), and the "Open on web" check on a real Android build.
 5. Then A1: add ENSv2 as a Soldeer git dependency (candidate `ensdomains/contracts-v2` tag `sepolia-deployment-2026-09-15` = `f2f0a05`) and verify ABI and on-chain implementation compatibility.

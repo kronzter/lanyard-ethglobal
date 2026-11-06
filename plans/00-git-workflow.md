@@ -68,14 +68,14 @@ If an integration finds a track bug, its owner prepares a narrow fix and regress
 
 ## APK builds
 
-Always local:
+On EAS cloud by default:
 
 ```bash
-eas build --platform android --profile development --local   # dev client
-eas build --platform android --profile preview --local       # installable APK for demos
+eas build --platform android --profile development   # dev client  (pnpm app:dev-apk)
+eas build --platform android --profile preview       # installable APK for demos  (pnpm app:apk)
 ```
 
-Never run `eas build` without `--local`.
+Add `--local` on a Linux/macOS/WSL host (`pnpm app:dev-apk:local`, `pnpm app:apk:local`). Cloud builds receive only public `EXPO_PUBLIC_*` values; never add a signing, operator or decryption key as an EAS secret or env var. The upload follows `.gitignore`, so `.env` never leaves the machine.
 
 ## Never
 
