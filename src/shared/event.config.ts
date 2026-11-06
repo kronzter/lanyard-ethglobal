@@ -84,6 +84,8 @@ export const eventConfigInput = {
   // Rabdi refuses contract creation ("contract creation is disabled (no-EVM Arkiv executor)"), so
   // no Faucet contract: a desk wallet sends tGLM and writes a readonly `drip` record (B1.1-R7–R9).
   fundingProfile: measured("desk-wallet", "P0.6-S6 2026-11-06: Rabdi has no EVM; native tGLM transfer works"),
+  // 0.5 tGLM per new wallet: about 3,000 writes at the measured ~0.00016 tGLM per create.
+  funding: { dripWei: 500_000_000_000_000_000n },
   evidenceSchemaVersion: 1,
 } satisfies EventConfigInput;
 
