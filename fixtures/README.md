@@ -75,6 +75,15 @@ A hand-made 20×12 hall with 1 m cells, used until A3.1 exports the real Mumbai 
 - `e6-walled` at (16, 9) is surrounded on all eight sides by walls. Grid routing must report it
   unreachable; the stub router, which ignores walls, still gives it a distance.
 
-## Deferred
+## `evidence-scenarios.json`
 
-The evidence edge-case scenarios land before B4 (`plans/P0-foundation.md` › Track B slice).
+Edge cases for capture, rules and the freeze pipeline, on a mock Rabdi chain (2 s blocks). The
+observations use the `CapturedObservation` format from `src/shared/evidence/observation.ts`.
+
+| Scenario                    | What it proves                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deletedCapturedFinal`      | Ana's final score was captured and later deleted by its owner. The retained readonly bytes remain usable evidence                                                   |
+| `deletedUncapturedFinal`    | Chen's final score key entered the inventory but vanished before its bytes were retained: a capture gap that stops automatic freeze, never a silently missing score |
+| `expiredLeaseRetainedClaim` | Ravi's claim on Person B's ticket was made 20 minutes before evaluation; its physical expiry was extended, but the logical 15-minute lease has lapsed               |
+| `publicationRestart`        | The freeze CLI broadcast the event results and crashed before journaling the receipt; a restarted CLI reconciles and adopts it without resending                    |
+| `cutoffs`                   | Cutoffs at `results − 1` and `freezeDeadline` are rejected; `results` and `freezeDeadline − 1` are accepted                                                         |
