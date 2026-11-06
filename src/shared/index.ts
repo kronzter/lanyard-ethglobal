@@ -11,3 +11,4 @@ export * from "./config/schema";
 export * from "./config/validate";
 export * from "./config/hash";
 export * from "./event.config";
+export * from "./types/venue";
