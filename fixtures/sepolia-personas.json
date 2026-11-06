@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "network": "sepolia",
+  "edition": "mumbai2026",
+  "organizer": "0x36b7c556c584d65bd44ae57656b64b68bb88e2cf",
+  "organizerDrip": {
+    "tx": "0x4d451acaacf58fb20d1d1dc15c178a34a448314e96d913317bc3ed78d8de067f",
+    "record": "0xece3037b8702eb9b1a3d2b0b5681f90dc5fc0df1e40449336d2cb123072775e1"
+  },
+  "personas": [
+    {
+      "id": "zkpay-a",
+      "by": "zkpay-a.hackers",
+      "keyEnv": "LANYARD_KEY_ZKPAY_A",
+      "address": "0xac7401a611e18cbd0b5085fc5634211b46f45178",
+      "names": [
+        {
+          "label": "zkpay-a.hackers",
+          "tx": "0x3fdaf29211fad386f06745ad30c8530ab4c57fdccd325a41830fdc5f06935307",
+          "block": "12079154"
+        },
+        {
+          "label": "zkpay",
+          "tx": "0x513de75c2d0c5331fdb568ae5a4d5939b95bb7e8a0cd015c3c8df9fbb4f123c2",
+          "block": "12079156"
+        }
+      ],
+      "drip": {
+        "tx": "0xf7cdad52b7e6f40a2328a87cbf1d73b4a312d386cbfa5661b3e5f55e138ec32c",
+        "record": "0x7d2513b57c4cef0680ef65f452fcc13a71f8fa4a304fd730f3720d0c2767a14b"
+      }
+    },
+    {
+      "id": "zkpay-b",
+      "by": "zkpay-b.hackers",
+      "keyEnv": "LANYARD_KEY_ZKPAY_B",
+      "address": "0x7940282f8dcef6c746a98c971395d145aeebd199",
+      "names": [
+        {
+          "label": "zkpay-b.hackers",
+          "tx": "0x9cdae4811c22793bb97bbfa941b06a27866e36f4654675b6a6603ecae87e4a6c",
+          "block": "12079159"
+        }
+      ],
+      "drip": {
+        "tx": "0x8b36965bca0614022623e85c889585625ab3f4e86ba683e09223ffc16540db6b",
+        "record": "0x7f96c88495c4162aa9787e949cce775f9616499a3c3a6d58c35554483b87c42e"
+      }
+    },
+    {
+      "id": "zkpay-c",
+      "by": "zkpay-c.hackers",
+      "keyEnv": "LANYARD_KEY_ZKPAY_C",
+      "address": "0xc1fc24192ef4a8586477ac39a5ffbd415d276396",
+      "names": [
+        {
+          "label": "zkpay-c.hackers",
+          "tx": "0xd275d332cc302fd0e5aee2c45d7ebc97df8e5a6784eb9bef6d1a464ecd239ff7",
+          "block": "12079160"
+        }
+      ],
+      "drip": {
+        "tx": "0x3cd7dc936734456c71c69570f349cae501bfe36bd6d3469c26decc784b70f0f2",
+        "record": "0x52eafb32081a7db2f58741c2622e1df61c8f7c1a8d1fcb350d026bfa9cf8d42a"
+      }
+    },
+    {
+      "id": "zkpay-d",
+      "by": "zkpay-d.hackers",
+      "keyEnv": "LANYARD_KEY_ZKPAY_D",
+      "address": "0xba81430fbef5ce16accfcbe6bf7e911d23b87be2",
+      "names": [
+        {
+          "label": "zkpay-d.hackers",
+          "tx": "0xec7ea543bb25203b5c63574f8aed95a6e0e295e4d26dddc40993b80d204182ce",
+          "block": "12079161"
+        }
+      ],
+      "drip": {
+        "tx": "0x0c111ee9119983a2c41a5a3fe0d8ea8a07bee75f10e8efee9d9e8deecbce5cf7",
+        "record": "0x7ab8bfe3888eadcb76b485720a99f954090dfb81da988fad77f3990ffbb2f8bd"
+      }
+    },
+    {
+      "id": "priya",
+      "by": "priya.volunteers",
+      "keyEnv": "LANYARD_KEY_PRIYA",
+      "address": "0x20fdfcfd31eb43d5426343b8dd49f2e42e4dd5bc",
+      "names": [
+        {
+          "label": "priya.volunteers",
+          "tx": "0x9e3306e250ab084229256f0f5d132fc88b242d5dd33395b8caa34d49ad0c9af4",
+          "block": "12079162"
+        }
+      ],
+      "drip": {
+        "tx": "0x4c12cb38f820065b2f85e7540069e4bd7cd80fabb3520d0f3163e5736e4f1d4b",
+        "record": "0x5ed5f36047907adf7fac07faedf4c073a400088125327a4e72c93bd4615fa98a"
+      }
+    },
+    {
+      "id": "ravi",
+      "by": "ravi.volunteers",
+      "keyEnv": "LANYARD_KEY_RAVI",
+      "address": "0x509ffd0fc5941bc14010b02245dd288eb723c0f2",
+      "names": [
+        {
+          "label": "ravi.volunteers",
+          "tx": "0xf0e92db6468ad1a7de844c8939a3233e9876f43159cd5443928ad07f35b96a85",
+          "block": "12079163"
+        }
+      ],
+      "drip": {
+        "tx": "0x88895a9c0bbbab7fbc13ea75876254d8dce9315f7be95b22558ec6ee3d53da95",
+        "record": "0x240e0094d64b59020489744afecfdc58041d7dc19932313680bd550b4153e5e6"
+      }
+    }
+  ]
+}
