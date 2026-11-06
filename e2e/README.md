@@ -2,6 +2,19 @@
 
 Integration scenarios (`pnpm e2e:i1` … `e2e:i4`) are maintained on integration branches.
 
+## I1 · A1/B1 integration (live)
+
+Seed once, then run the smoke:
+
+1. `pnpm e2e:i1:seed` gives the live cast (team `zkpay`, Person A–D with `hackers` badges and A owning `zkpay`, plus volunteers `priya` and `ravi`) fresh wallets. A missing persona key is generated into the git-ignored `.env` under its `LANYARD_KEY_*` name and never printed. Names are issued on live Sepolia through A1's own `issue-badge.ts` / `register-team.ts` with `ORGANIZER_PRIVATE_KEY` (the deployed organizer in `src/shared/live-event.config.ts`). Each persona and the organizer then get first-time tGLM through B1's `lanyard drip` (desk-wallet profile). Every step re-plans from chain state, so a rerun sends nothing new. Public addresses and transactions go to `fixtures/sepolia-personas.json`.
+2. `pnpm e2e:i1` needs `SEPOLIA_RPC_URL` (archive) and the seeded keys in `.env`.
+   - **Step 3** traverses the A1 registries directly (`lanyard` → `mumbai2026` → book/team → holder) at each name's issuance block and at head. Owner, status, expiry and every ancestor must hold, the name must not hold one block earlier, and A2's reader (CLI composition root) must agree.
+   - **Step 4** writes a venue (organizer), a shift (Priya), a clock-in (Ravi), a ticket (`zkpay-b`) and a project draft (`zkpay-a`) to live Rabdi. Each record's native creator, owner, flags and attributes are read back. Its creation timestamp maps to the latest Sepolia block at or before it, where the `by_label` registry owner must equal the creator; the venue checks the frozen organizer authority instead. Ravi's batch also carries a duty pass labelled `priya.volunteers`, and the check must flag it.
+
+Each step-4 run writes new records into the live `mumbai2026` event (cents of tGLM). No submission is written, so I1 never becomes `zkpay`'s earliest submission. Global judges are not seeded because only the head judge's wallet issues them.
+
+Artifacts under `.lanyard/i1/` (git-ignored): `ownership.json`, `records.json` (each record's timestamp → Sepolia block → owner check), and `observations.jsonl` (retained readonly observations in capture format, for the later bundle). This is not historical Arkiv fetching, and it evaluates no B2/B3/B4 verdicts. The Android/AppKit write (plan step 5) and the cross bug hunt were skipped at the user's request on 2026-11-07.
+
 ## I2 · A2/B2 integration
 
 Run `pnpm e2e:i2`. It requires `anvil` on PATH and a headless Chromium binary (`BROWSER` overrides `chromium`). `SEPOLIA_RPC_URL` selects an archive RPC; without it the test uses the public Sepolia PublicNode endpoint. It checks the upstream chain ID and genesis hash, then forks its finalized block on a temporary local port. No signing key is needed. All test transactions target that local fork.

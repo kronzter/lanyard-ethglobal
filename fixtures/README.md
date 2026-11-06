@@ -31,6 +31,13 @@ A persona's `by` field is the value its Arkiv records carry in the `by_label` at
 reserves `by` as a query keyword, so records (and `evidence-scenarios.json`) use `by_label`; the
 persona field keeps its short fixture name.
 
+## `sepolia-personas.json` (I1)
+
+The live I1 cast, written by `pnpm e2e:i1:seed`: each persona's fresh Sepolia/Rabdi address, its
+`keyEnv` (the key itself lives only in the seeding machine's `.env`), the transaction and block that
+issued each A1 name, and its desk-wallet drip (transfer and `drip` record). `personas.json` keeps
+its public-mnemonic addresses, because mock mode and the rules vectors commit to them.
+
 ## `team-pages.json` (P0.2)
 
 The four public team-page states: `populated` (zkpay, published), `awaitingSubmission`

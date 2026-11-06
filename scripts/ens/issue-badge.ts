@@ -4,26 +4,18 @@
 // The registrar fixes roles and expiry per book, so this script chooses neither. Re-running with the same
 // arguments does nothing; a label held by someone else is never overwritten. Organizer only: set
 // SEPOLIA_RPC_URL (or FORK_RPC_URL with --fork) and ORGANIZER_PRIVATE_KEY in the environment.
-// The registrar address comes from .lanyard/edition-*.json, written by deploy-edition.ts.
-import { readFileSync } from "node:fs";
-import { keccak256, toHex, type Address } from "viem";
+// The registrar comes from .lanyard/edition-*.json (deploy-edition.ts), else the live deployments/sepolia.json.
+import { keccak256, toHex } from "viem";
 import { BadgeArgError, bookHash, decideBadge, parseBadgeArgs, USAGE } from "../../src/ens/badge-plan";
 import { lanyardRegistrarAbi, permissionedRegistryAbi } from "../../src/ens/ensv2-abi";
-import { connect, fail } from "./connect";
+import { connect, fail, loadRegistrar } from "./connect";
 
 async function main(): Promise<void> {
   const request = parseBadgeArgs(process.argv.slice(2));
   const ctx = await connect({ fork: request.fork, needKey: !request.dryRun });
   const { publicClient: pc, walletClient: wc, account } = ctx;
 
-  let registrar: Address;
-  try {
-    const state = JSON.parse(readFileSync(ctx.statePath, "utf8")) as { registrar?: Address };
-    if (!state.registrar) throw new Error("no registrar");
-    registrar = state.registrar;
-  } catch {
-    throw new Error(`no registrar recorded in ${ctx.statePath}; run deploy-edition.ts first`);
-  }
+  const registrar = loadRegistrar(ctx);
 
   const book = bookHash(request.book);
   const registry = await pc.readContract({
