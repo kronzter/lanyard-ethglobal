@@ -4,7 +4,7 @@
 
 ## Goal
 
-Partners judge their own tracks, teams own their submissions, scores stay hidden until freeze, and anyone can recompute the results. The freeze CLI calls `ResultsPublisher` so winners get `winner.<team>.<edition>.<base>` (mocked until I4).
+Partners judge their own tracks, global judges judge the non-partner `main` track, teams own their submissions, scores stay hidden until freeze, and anyone can recompute the results. The freeze CLI calls `ResultsPublisher` so winners get `winner.<team>.<edition>.<base>` (mocked until I4).
 
 Use [the shared evidence, evaluation, routing and recovery contract](01-evidence-and-interfaces.md). Rankings are shown only after freeze. Capture is operator-attested; earliest means earliest valid candidate in the retained captured set, not a provably complete first-ever chain history.
 
@@ -24,10 +24,10 @@ The winner-name contract and the resolver lock (A4). Issuing partner judges (A4.
 - **B4.1-R3** Count the earliest valid captured submission per team before deadline by creation block/key, showing duplicates. Deleting a captured submission does not replace it; an earlier candidate deleted before observation cannot be ruled out and is disclosed as a limitation.
 - **B4.1-R4** WHEN the organizer tries to patch a team's project, THE write SHALL fail, because only the owner can patch.
 - **B4.1-R5** THE team screen SHALL show the creator, owner and block for the project and the submission, and SHALL disable "Submit" once a valid submission exists.
-- **B4.1-R6** THE rules SHALL accept a `judge_assignment` from the organizer, or from a partner for its own track only.
+- **B4.1-R6** THE rules SHALL accept a `judge_assignment` from the organizer (any track), from a partner for its own track only, or from the head judge for the `main` track only. The assigned judge must match the track: a global judge (`judges` book) for `main`, that partner's judge for a partner track.
 - **B4.1-R7** THE team screen SHALL render the winner badge through `providers.winnerBadge`, a no-op component until I4 wires in A4.3's `<WinnerBadge>`.
 - **B4.1-R8** Submission bytes SHALL contain the canonical immutable content, project key, team/track IDs and lead address, bound by `content_hash`. Acceptance, assignment, final and recusal references SHALL use the submission key; a mutable project's current contents never determine results. Copies of external linked code/media are not implicitly archived: commit to their hashes and disclose any unavailable external bytes.
-- **B4.1-R9** A track's earliest valid captured rubric created before submission deadline is the frozen rubric (block/key tie-break); later rubrics are ignored with a reason. Weights must be positive integers with nonzero total, criteria unique and scales bounded. Every assignment/final references that rubric. Only accepted, timely submissions and assignments made before judging end can supply scores.
+- **B4.1-R9** A track's earliest valid captured rubric created before submission deadline is the frozen rubric (block/key tie-break); later rubrics are ignored with a reason. The `main` track's rubric can only come from the organizer. Weights must be positive integers with nonzero total, criteria unique and scales bounded. Every assignment/final references that rubric. Only accepted, timely submissions and assignments made before judging end can supply scores.
 
 **Commit:** `feat(rules): B4.1 projects, single submission, acceptance and assignments`
 
@@ -36,11 +36,11 @@ The winner-name contract and the resolver lock (A4). Issuing partner judges (A4.
 ### B4.2 · Judge flow
 
 **Requirements**
-- **B4.2-R1** THE caller SHALL map each submission's frozen lead address to the latest valid seat assignment in the evaluation venue, pass `LocatedStop[]` to `judgeRoute`, and list missing locations separately. The router has no Arkiv imports or hidden project lookup.
+- **B4.2-R1** THE caller SHALL map each submission's frozen lead address to the latest valid seat assignment with that `hacker_address` in the evaluation venue (every lead holds a `hackers` badge), pass `LocatedStop[]` to `judgeRoute`, and list missing locations separately. The router has no Arkiv imports or hidden project lookup.
 - **B4.2-R2** THE judge SHALL edit a durable device-local draft and mirror it to an encrypted Arkiv `score_sheet`, following the shared draft contract. Native AsyncStorage/browser IndexedDB save editable values before showing "Saved on this device"; remote sync status is separate. Restore by wallet/event/submission/assignment/rubric/key ID after restart, hide other wallets' drafts, and seal a readonly `final_score` from local values. On another device or after storage loss, require explicit score re-entry; ciphertext is not a recoverable editable draft and missing values are never replaced with zero. Reconcile existing finals before a new seal.
 - **B4.2-R3** Remote score drafts and finals SHALL use the pinned P0.6-S11 authenticated sealed-envelope implementation and public key/key ID in frozen config. Bind event, submission, judge, rubric and assignment as authenticated associated data; use fresh secure randomness. Apply metadata/authority/reference/deadline/recusal eligibility before decryption. Validate the operator key against the configured public key and cipher test vector, then decrypt eligible candidates and validate criterion shape/ranges. Malformed envelopes, wrong context, failed authentication or invalid values reject that candidate with a deterministic reason; they do not halt valid results. Unavailable/mismatched operator keys, broken cipher implementation or missing/corrupt required evidence stop freeze. The event private key stays only with the freeze operator until intentionally published inside an allowed freeze; local editable drafts do not require it. It is never a wallet signing key.
 - **B4.2-R4** A judge-authored `recusal {submission, judge}` counts only when the creator owns the target judge badge at creation and is assigned to that submission: judges may recuse only themselves. The configured organizer may recuse any assigned judge. Reject a different target, invalid assignment or cross-track reference with a reason. A valid captured recusal before the evaluation cutoff excludes that judge/submission pair.
-- **B4.2-R5** WHEN a judge scores a project in another partner's track, THE rules SHALL reject it.
+- **B4.2-R5** WHEN a partner judge scores a project outside its own partner's track, or a global judge scores a project outside the `main` track, THE rules SHALL reject it.
 - **B4.2-R6** At freeze, a judge needs valid badge ownership at final creation and continuous registration through the frozen Sepolia cutoff. An unregister/re-registration invalidates that registration's earlier scores, even if reissued to the same address. Renewal without unregister follows the shared eligibility policy. Revocations after cutoff cannot alter frozen results.
 - **B4.2-R7** The earliest eligible, successfully decrypted and range-valid captured final per judge/submission counts; later valid finals show duplicates, invalid ones retain rejection reasons. A final's timestamp must be before `judgingEnd`, after its referenced submission/assignment, and its creator must be that assigned judge. A captured deleted final remains evidence; deletion before observation is not detectable completeness. Preserve raw ciphertext separately from derived plaintext/rejection entries so verification can regenerate every decision.
 
@@ -77,7 +77,7 @@ The winner-name contract and the resolver lock (A4). Issuing partner judges (A4.
 **Tasks**
 - [ ] Freeze pipeline with a persisted step log for resume
 - [ ] E2E: freeze, then verify prints `MATCH` on mocks
-- [ ] Seed 2 partners, 15 projects, 6 judges, one revocation, one recusal, and a placeholder `fixtures/prizes.json`
+- [ ] Seed 2 partners plus the `main` track, 3 projects (the three demo teams), 6 partner judges and 3 global judges, one revocation, one recusal, and a placeholder `fixtures/prizes.json`
 - [ ] Local capture runner, canonical signed bundle export/download check and scoped reproduction tests on a second machine
 - [ ] Device-local draft persistence and recovery on native/web; account/context isolation, storage-loss messaging and separate remote-sync status
 
@@ -92,6 +92,8 @@ The winner-name contract and the resolver lock (A4). Issuing partner judges (A4.
 - [ ] The organizer patches a project: fails
 - [ ] A team member who isn't the lead submits: rejected
 - [ ] A judge from partner A scores partner B's project: rejected
+- [ ] A global judge scores a partner-track project, or a partner judge scores a `main` project: rejected
+- [ ] The head judge assigns a judge to a partner track, or a partner writes a `main` rubric: rejected
 - [ ] A judge targets another judge in a recusal: rejected; self-recusal and organizer-authored recusal of an assigned judge count
 - [ ] A judge revoked before cutoff: all their captured scores are excluded; reissue does not restore that registration's scores; post-cutoff revocation leaves published rankings unchanged
 - [ ] Two finals from one judge for one project: only the earliest counts

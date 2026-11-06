@@ -13,8 +13,9 @@ Implement [the identity and publication contracts](01-evidence-and-interfaces.md
 | Account | Where | Permission |
 | --- | --- | --- |
 | Organizer | Every managed book's root | Register, unregister, renew, set resolver |
-| Head judge | `judges` book root | Register and unregister judges only |
-| Each partner | Its own sub-books `judges.<partner>.partners…` and `staff.<partner>.partners…` | Register and unregister in those two sub-books only |
+| `LanyardRegistrar` | Every book root and each partner's `judges`/`staff` sub-book roots | Register and renew; enforces fixed badge policy on every issue path |
+| Head judge | `judges` book root; `LanyardRegistrar` | Unregister judges only; issues global judges through `registerJudge` (no raw register role) |
+| Each partner | Its own sub-books `judges.<partner>.partners…` and `staff.<partner>.partners…`; `LanyardRegistrar` | Unregister in those two sub-books only; issues through `registerPartnerBadge` (no raw register role) |
 | Volunteer coordinator | Staff resolver | `setText` on key `lanyard.perms` only |
 | Results key | `WinnerRegistrar` (A4) | Authorized publication caller; no direct resolver setter/admin grants |
 | `WinnerRegistrar` | Publication resolver (edition + winners) | Sole text writer and setter/link/upgrade admin until atomic lock; assigned at A4 deployment |
@@ -32,7 +33,7 @@ The consoles that call these grants (A4.3). Any rule about what a note *means* (
 **Requirements**
 - **A2.1-R1** THE deploy script SHALL create three Permissioned Resolvers: **staff**, **hackers**, and dedicated **publication** (edition + winner names). The publication resolver is sealed to the A4 contract before live freeze, not split into separately lockable event/results resolvers.
 - **A2.1-R2** THE staff resolver SHALL serve only staff names (judges, volunteers, partner names and both partner sub-books), because a key-scoped role reaches every name on a resolver.
-- **A2.1-R3** WHEN a badge is issued through the registrar, THE transaction SHALL set the book's fixed resolver and explicitly set its address record to the holder via authorized resolver setters (hackers → hackers; staff books/sub-books → staff). Badge registrar address-write grants are separate from coordinator text grants. Direct issuer paths must initialize address records too. Neither setting a resolver nor owning a token automatically creates an address record.
+- **A2.1-R3** WHEN a badge is issued through the registrar (`registerBadge`, `registerJudge` or `registerPartnerBadge`), THE transaction SHALL set the book's fixed resolver and explicitly set its address record to the holder via authorized resolver setters (hackers → hackers; staff books/sub-books → staff). Badge registrar address-write grants are separate from coordinator text grants. The organizer's remaining raw book path must initialize address records too. Neither setting a resolver nor owning a token automatically creates an address record.
 - **A2.1-R4** THE team registration SHALL point each team name at the hackers resolver by default; the team lead can repoint it (A1.3 gave them `ROLE_SET_RESOLVER`).
 - **A2.1-R5** THE edition and winners SHALL use the same publication resolver. A1's one-shot edition setup path sets this pointer then removes its setter/admin; `LanyardRegistrar` stores the same fixed address for winner promotions. Deployment records include a complete resolver grant/resource inventory for the A4 handoff.
 - **A2.1-R6** THE organizer SHALL receive the `url`-scoped text setter on the hackers resolver and publish each team's deterministic Lanyard page URL from P0's shared helper/deployment origin. `set-team-url.ts` SHALL validate the registered team and expected resolver, write `url`, and verify it through the Universal Resolver. Apply it to existing A1 teams and every later team onboarding. Team leads receive no shared-resolver text grant. Report a changed resolver or mismatching URL for explicit repair; no arbitrary redirect is inferred from the ENS name.
@@ -46,13 +47,14 @@ The consoles that call these grants (A4.3). Any rule about what a note *means* (
 **Requirements**
 - **A2.2-R1** WHEN the coordinator is appointed, THE organizer SHALL call `grantSetterRoles(encode(setText(0x,'lanyard.perms','')), coordinator)` on the staff resolver.
 - **A2.2-R2** WHEN a volunteer is made a lead, THE coordinator SHALL read its current `registrationId` and owner, then set `lanyard.perms` to the shared canonical JSON envelope binding those values to `permissions: ["shift-manager"]`. Unmaking a lead writes an empty permissions list for the current binding. Re-read the binding after receipt; a concurrent reissue makes the note ineffective and requires a fresh grant, never permission inheritance. Legacy comma lists are invalid.
-- **A2.2-R3** WHEN a partner is onboarded, THE organizer SHALL create `<partner>.partners`, and under it the `judges` and `staff` sub-books, and SHALL grant the partner `ROLE_REGISTRAR` and `ROLE_UNREGISTER` on those two sub-book roots only. These structural names and every ancestor SHALL cover `namespaceExpiry`; child judge badges expire at `freezeDeadline`, while staff badges expire at event end. Validate actual expiries on-chain, not only seed parameters.
-- **A2.2-R4** THE head judge SHALL hold register and unregister on the `judges` book root only.
+- **A2.2-R3** WHEN a partner is onboarded, THE organizer SHALL create `<partner>.partners`, and under it the `judges` and `staff` sub-books, SHALL grant `LanyardRegistrar` register and renew on those two sub-book roots, and SHALL grant the partner `ROLE_UNREGISTER` on those two sub-book roots only (no raw `ROLE_REGISTRAR`). The partner issues badges through `LanyardRegistrar.registerPartnerBadge(partner, sub, label, owner)`, callable only by that partner's configured wallet and only for its own `judges`/`staff` sub-books; the registrar enforces the A1.2 expiry/role policy, fixed staff resolver and address record. These structural names and every ancestor SHALL cover `namespaceExpiry`; child judge badges expire at `freezeDeadline`, while staff badges expire at event end. Validate actual expiries on-chain, not only seed parameters.
+- **A2.2-R4** THE head judge SHALL hold `ROLE_UNREGISTER` on the `judges` book root only, and SHALL issue global judges through `LanyardRegistrar.registerJudge(label, owner)`, callable only by the configured head judge, under the A1.2 judge policy (expiry `freezeDeadline`, staff resolver, address record, no transfer roles).
 - **A2.2-R5** THE system SHALL never call `setApprovalForAll` on badge tokens.
-- **A2.2-R6** THE plan SHALL disclose that raw `ROLE_REGISTRAR` holders (organizer/head judge/partners) can choose registration bitmaps, including transferable badges. App-issued badges use the fixed policy; issuer honesty is a trust assumption, not a registry-enforced universal guarantee. Verify demo issuance bitmaps directly in deployment checks. A stricter guarantee against issuers requires restricted issuance contracts in a separate design.
+- **A2.2-R6** THE plan SHALL disclose that the organizer, the only remaining raw `ROLE_REGISTRAR` holder on books, can choose registration bitmaps, including transferable badges. Head-judge and partner issuance has no raw path. App-issued badges use the fixed policy; issuer honesty is a trust assumption, not a registry-enforced universal guarantee. Verify demo issuance bitmaps directly in deployment checks. A stricter guarantee against issuers requires restricted issuance contracts in a separate design.
 
 **Tasks**
-- [ ] `grant-roles.ts`: coordinator, head judge, partners (loops over `event.config.ts` partners)
+- [ ] `grant-roles.ts`: coordinator, head judge, partners (loops over `event.config.ts` partners), including registrar register/renew on partner sub-books
+- [ ] `registerJudge` and `registerPartnerBadge` in `LanyardRegistrar`, with caller checks against configured head-judge/partner wallets
 - [ ] `set-perms.ts` (make/unmake lead), used by seeds now and by the coordinator console in A4.3; compute the binding using P0's shared hash helper and direct pinned-registry reads, so this script does not depend on the later A2.4 reader
 - [ ] Foundry and script tests: each grant works, and each forbidden neighbour reverts
 
@@ -64,8 +66,8 @@ The consoles that call these grants (A4.3). Any rule about what a note *means* (
 
 **Requirements**
 - **A2.3-R1** WHEN a badge must be revoked, THE holder of `ROLE_UNREGISTER` on that book or sub-book SHALL call `unregister(labelhash)`; the name stops resolving from that block on.
-- **A2.3-R2** WHEN an expired badge must be restored with its previous owner and roles, THE organizer SHALL call the registrar's `renew` (the registrar holds `ROLE_RENEW` on the book root).
-- **A2.3-R3** THE scripts SHALL print the Sepolia block of each revoke, revive and note change, and append it to `fixtures/sepolia-history.json` so I2 can replay it.
+- **A2.3-R2** WHEN an expired badge must be restored with its previous owner and roles, THE organizer SHALL call the registrar's `renew` (the registrar holds `ROLE_RENEW` on every book root and partner sub-book root).
+- **A2.3-R3** THE scripts SHALL print the Sepolia block of each revoke, revive and note change, and append it to a local `fixtures/sepolia-history.json` so I2 can replay it. Because it records real-chain blocks, the file is committed on the I2 integration branch, not on this phase branch.
 - **A2.3-R4** Badge reissue SHALL never inherit effective `lanyard.perms`: resolver text may survive, but its registration/holder binding must match the new badge before it authorizes an action. Renewal of the same registration preserves its binding. Test reissue to both the same and a different wallet, with historical old-note reads intact.
 
 **Commit:** `feat(ens): A2.3 revoke and revive with recorded blocks`
@@ -93,7 +95,10 @@ The consoles that call these grants (A4.3). Any rule about what a note *means* (
 - [ ] The coordinator sets `avatar` or any key other than `lanyard.perms`: reverts
 - [ ] The coordinator sets `lanyard.perms` on a name served by a different resolver: fails
 - [ ] A partner registers in another partner's sub-book, or in `volunteers`: reverts
-- [ ] A partner registers in its own `staff` and `judges` sub-books: works
+- [ ] A partner issues in its own `staff` and `judges` sub-books through `registerPartnerBadge`: works, with the policy expiry, staff resolver and address record
+- [ ] A partner or the head judge calls raw `register` on a sub-book or the `judges` book: reverts (no raw register role)
+- [ ] `registerPartnerBadge` for another partner's sub-book, or `registerJudge` from a non-head-judge wallet: reverts
+- [ ] An expired partner staff badge is revived through registrar `renew`
 - [ ] The head judge unregisters a volunteer: reverts
 - [ ] After `unregister`, `owner` returns null later and the old owner earlier; a deliberately different address record grants no ownership
 - [ ] After revival with `renew`, the owner and roles come back; a name-scoped renew grant fails on an expired name
@@ -107,7 +112,7 @@ The consoles that call these grants (A4.3). Any rule about what a note *means* (
 - [ ] Kill the RPC mid-read: the error surfaces
 - [ ] The reader returns identical results on Node and inside the Android app for 10 (label, block) pairs
 - [ ] No demo badge holder has `setApprovalForAll` set for any account
-- [ ] A raw authorized issuer can violate the app's transfer policy: disclose that boundary and verify every demo badge's actual bitmap
+- [ ] The organizer's raw book role can violate the app's transfer policy: disclose that boundary and verify every demo badge's actual bitmap
 - [ ] Unknown/multi-role wallet discovery, bounded log errors, unregister/re-register continuity and ancestor expiry all match the shared mock contract
 
 ## Phase done when

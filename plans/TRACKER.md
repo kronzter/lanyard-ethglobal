@@ -17,9 +17,9 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 | S3 Arkiv SDK on Hermes with AppKit signer (record polyfills) | todo | |
 | S4 `executeBatch` = one approval | todo | |
 | S5 S2–S4 on Expo web (wagmi adapter) | todo | |
-| S6 Deploy + call a contract on Rabdi | todo | |
-| S7 Archive Sepolia read at a past block from the phone | todo | |
-| S8 Public Rabdi RPC load + ENS read volume | todo | |
+| S6 Deploy + call a contract on Rabdi (decides Faucet vs desk-wallet `drip` fallback) | todo | |
+| S7 Archive Sepolia read at a past block from the phone (public read-only app key) | todo | |
+| S8 Rabdi RPC load (keyless, then public app key if needed) + ENS read volume | todo | |
 | S9 Installed SDK/schema/index/access/gas evidence | todo | |
 | S10 Capture/deletion/reset/confirmation evidence | todo | |
 | S11 Cross-runtime cipher and canonical test vectors | todo | |
@@ -55,6 +55,30 @@ Scope approved in conversation: repair evidence, interfaces, ENS grants/lock, ju
 | Follow-up review: partner ancestor expires before freeze | Structural namespace lifetime covers supported window; judge/staff expiry separated and on-chain ancestor checks; P0/A1/A2/B4/I4 | revised |
 
 **Remaining product limitations:** capture completeness is operator-attested; issuer-controlled raw badge bitmaps and ancestor-name authority remain trusted; prize selection is manual until specified. Editable score recovery is device-local; the sequential shift fallback takes two approvals with an inactive interval. A stronger archival/inclusion or restricted-issuer design is outside this MVP. P0 feasibility gates must pass before dependent capabilities are implemented.
+
+### Approved plan repair · 2026-11-06 (consistency pass)
+
+Scope approved in conversation: a pass over A1–A4, B1–B4, I1–I4 and the shared files, with the user's answers to each open question. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| D1 | Partner/head-judge raw issuance bypassed badge expiry, address records and revival | Issued only through `LanyardRegistrar.registerJudge` / `registerPartnerBadge`; registrar holds register/renew on `judges` and partner sub-books; partners/head judge keep unregister only; A1/A2/A4/CONTEXT | revised |
+| D2 | No head-judge console | A4.3 head-judge console (issue via registrar, revoke via unregister) | revised |
+| D3 | No-contract funding fallback had no repeat protection; wallet unclear | Faucet contract stays primary; fallback = dedicated desk wallet sends tGLM and writes readonly `drip` record, refusing repeats; P0/B1/I1/CONTEXT/README | revised |
+| D4 | `seat_assignment.hacker` was ambiguous; leads' badge unclear | Stores `hacker_address` + `hacker_label`, checked by owner; every team member incl. lead holds a `hackers` badge; P0.4/A1/A4/B1/B2/B3/B4/CONTEXT | revised |
+| D5 | Global judges had no track scope | New non-partner `main` track; global judges score `main` only, partner judges own track only; `main` rubric by organizer, assignments by organizer or head judge; 3 global judge personas; P0/B2/B4/CONTEXT/README | revised |
+| D6 | Late volunteers couldn't self-start | Self clock-in window `[starts_at-3600, starts_at+900]`, else "Ask a lead"; B3/CONTEXT | revised |
+| D7 | Tickets didn't require a badge | Ticket counts only if creator holds a valid `hackers` badge at creation; B3/CONTEXT | revised |
+| D8 | Seed sizes disagreed (3 teams vs 15 projects) | 3 teams / 3 projects; B4 | revised |
+| D9 | I3 ENS mode undefined | I3 requires I2 complete and runs with ENS = `sepolia`; I3/README/CONTEXT | revised |
+| D10 | RPC-key rules contradicted each other | Read-only, app-restricted RPC keys may ship in `EXPO_PUBLIC_*` as public values (rotated if abused); never signing/operator/decryption keys; proxy only as fallback; P0/B1/I4/CONTEXT/README | revised |
+| M1–M3 | A1 gas wording, history-fixture branch, A1.1 requirement order | A1 wording; `sepolia-history.json` committed on I2; A1.1 R1–R5 in order | revised |
+| M4–M5 | CONTEXT said decryption key goes in results record; faucet shown as fixed | Published in the evidence bundle; faucet decision lists fallback | revised |
+| M6 | `OpenTicket` vs `RoutingTicket` | P0.2 uses `RoutingTicket` and `LocatedStop` from `01` | revised |
+| M7 | `/teams/[team]` route unowned | `apps/app/app/teams/**` owned by Track B | revised |
+| M8 | Partner POIs had no partner ID | POI `partner-table` kind with `partner` ID; A3.1-R7 blocks export without one per partner | revised |
+| M9 | P0.1 CI ran `expo export` before the app existed | Runs once P0.5 creates `apps/app` | revised |
+| M10 | Bug-hunt prompt skipped the authoritative contract | Prompt also reads `01-evidence-and-interfaces.md` | revised |
 
 ### Specs
 
@@ -94,7 +118,7 @@ Scope approved in conversation: repair evidence, interfaces, ENS grants/lock, ju
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
 | A2.1 Resolvers | todo | | |
-| A2.2 Scoped grants | todo | | |
+| A2.2 Scoped grants, `registerJudge` / `registerPartnerBadge` | todo | | |
 | A2.3 Revoke and revive | todo | | |
 | A2.4 SepoliaEnsReader | todo | | |
 
@@ -122,7 +146,7 @@ Scope approved in conversation: repair evidence, interfaces, ENS grants/lock, ju
 | --- | --- | --- | --- |
 | A4.1 WinnerRegistrar | todo | | |
 | A4.2 Results lock and publisher | todo | | |
-| A4.3 ENS consoles | todo | | |
+| A4.3 ENS consoles (desk, coordinator, partner, head judge, permission map) | todo | | |
 
 **Bug hunt:** todo · **Merged:** no
 
@@ -137,7 +161,7 @@ Scope approved in conversation: repair evidence, interfaces, ENS grants/lock, ju
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| B1.1 Chain and faucet | todo | | |
+| B1.1 Chain and faucet (or desk-wallet `drip` fallback) | todo | | |
 | B1.2 Record kinds and writers | todo | | |
 | B1.3 Queue, batches, readers, watcher | todo | | |
 
@@ -206,7 +230,7 @@ Scope approved in conversation: repair evidence, interfaces, ENS grants/lock, ju
 
 ### I3 · Real venue and router
 
-**Two-phone smoke:** todo · **Merged:** no
+**Requires I2 complete.** **Two-phone smoke:** todo · **Merged:** no
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |

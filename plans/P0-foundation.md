@@ -27,8 +27,8 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 - **S4** One `executeBatch` with two creates needs exactly one wallet approval.
 - **S5** S2–S4 pass on Expo web too, through AppKit's wagmi adapter.
 - **S6** A trivial contract deploys to Rabdi and can be called (this is what decides whether the faucet is feasible).
-- **S7** From the phone, `getEnsText` works at a past Sepolia block through the archive RPC, using an app-restricted key.
-- **S8** Load test from one device: 10 parallel `watchEntityEvents` subscriptions and 200 reads/min on the public Rabdi RPC. Also count the ENS reads `prepare` would need for 500 fixture records, with an on-device cache. Record any rate-limit errors and the ceiling found.
+- **S7** From the phone, `getEnsText` works at a past Sepolia block through the archive RPC, using a read-only app-restricted key shipped as `EXPO_PUBLIC_SEPOLIA_RPC_URL` (treated as public). Record which restrictions the provider actually enforces.
+- **S8** Load test from one device: 10 parallel `watchEntityEvents` subscriptions and 200 reads/min on the public Rabdi RPC, keyless first and then with a dedicated read-only public app key if keyless is too limited. Also count the ENS reads `prepare` would need for 500 fixture records, with an on-device cache. Record any rate-limit errors and the ceiling found.
 - **S9** Inspect and pin the installed SDK 1.0.x declarations, indexed schema/query API, native flags, expiry and gas behavior. Measure access with explicit `rabdi({ accessKey: "" })`; never infer that a key is unavailable because the app has no backend. If a proxy is needed it holds only an RPC access key, never wallet or decryption keys.
 - **S10** Capture recent creation timestamps and page observation blocks/hashes on Rabdi, persist a readonly entity, delete it and show that ordinary reads cannot reconstruct it. Demonstrate an operator-attested bundle that survives deletion, and a scan gap that fails closed. Record network/reset identity, concrete confirmation depths and a bounded scan/watch reconciliation policy. Do not claim historical reads or complete capture of unseen entities.
 - **S11** Prove the chosen score cipher and canonical hashing on Node, web and Hermes, including authenticated decryption failure and a fixed test vector. Pin a maintained X25519 + HKDF-SHA256 + AES-256-GCM sealed-envelope implementation and its exact envelope encoding; stop before judging work if no audited compatible implementation is available. The spike may not invent a cipher.
@@ -40,8 +40,8 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 | --- | --- |
 | S1–S5 fail with external wallets | Use AppKit's email/social-login wallet (stays on Reown) |
 | S3 fails on Hermes even with polyfills | Stop and decide jointly before going further |
-| S6 fails | The desk sends tGLM straight from the organizer wallet; the `Faucet` contract is dropped from B1.1 |
-| S7 or S8 hit limits | Record a read-only cache/proxy profile and host allowlist; it may hold an operator RPC access key, holds no signing/decryption keys and signs no user actions. Bundle verification bypasses its cached ENS answers |
+| S6 fails | A dedicated desk wallet (funded by the organizer) sends tGLM and writes a readonly Arkiv `drip` record; the desk refuses a second send to an address with a desk-wallet `drip`. The `Faucet` contract is dropped from B1.1 |
+| S7 or S8 hit limits | First use a dedicated read-only app key shipped as a public value. If limits still bite, record a read-only cache/proxy profile and host allowlist; it may hold an operator RPC access key, holds no signing/decryption keys and signs no user actions. Bundle verification bypasses its cached ENS answers |
 | S9–S11 lack required evidence | Leave the affected capability blocked; no guessed API, fabricated archive, confirmation value or cipher is allowed |
 | S12 cannot prove linked creates under actual signer custody | Use `confirmed-sequential`: confirmed replacement shift, then clock/pass batch; two approvals and a visible inactive interval. Validate this fallback before B1/B3 work |
 
@@ -56,7 +56,7 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 **Requirements**
 - **P0.1-R1** THE repo SHALL be a pnpm workspace with `packages/{shared,contracts,ens,venue,arkiv,faucet,rules,cli}`, `apps/app`, `fixtures`, `deployments`, `arkiv`, `e2e`, `plans`.
 - **P0.1-R2** WHEN staged files contain a private key or mnemonic pattern, THE `pre-commit` hook SHALL reject the commit.
-- **P0.1-R3** WHEN a pull request or a push to `main` happens, THE CI SHALL run lint, typecheck, `vitest`, `forge test` (both Foundry projects) and `expo export --platform web`.
+- **P0.1-R3** WHEN a pull request or a push to `main` happens, THE CI SHALL run lint, typecheck, `vitest`, `forge test` (both Foundry projects) and, once P0.5 creates `apps/app`, `expo export --platform web` (skipped while no app exists).
 - **P0.1-R4** THE `CODEOWNERS` file SHALL encode the path-ownership table in `00-README.md`.
 
 **Tasks**
@@ -78,16 +78,16 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 ### P0.2 · Shared types, event config, deployments schema · *Person B*
 
 **Requirements**
-- **P0.2-R1** THE `event.config.ts` SHALL hold the base name, edition, partners, event start/end, submission deadline, judging end, earliest publication `results` and exclusive `freezeDeadline` as Unix seconds; independent organizer/results/partner authority addresses; concrete chain confirmation policies and reset identities; integer venue scale; public score key/key ID/cipher suite from S11; `shiftWriteProfile` from S12; and evidence schema version. Hash the frozen config as defined in `01-evidence-and-interfaces.md`. Enforce its exact time ordering, cutoff window and derived `namespaceExpiry`; reject a config whose required ancestor lifetimes cannot be deployed.
-- **P0.2-R2** THE shared `Venue` types SHALL describe the image size, cell size, walkable cells (run-length encoded), seats, points of interest (with a `kind`, including `help-desk`) and zones, matching the `venue.json` format A3.1 exports.
-- **P0.2-R3** THE deployment schema SHALL distinguish `mode: "mock"` placeholders from `mode: "live"` addresses. Live providers SHALL reject missing/zero addresses, wrong chain/reset IDs and a faucet address when the selected funding profile is direct transfer. Mock mode requires no secrets or real deployments.
+- **P0.2-R1** THE `event.config.ts` SHALL hold the base name, edition, partners, tracks (one per partner plus the non-partner `main` track), event start/end, submission deadline, judging end, earliest publication `results` and exclusive `freezeDeadline` as Unix seconds; independent organizer/results/partner authority addresses; concrete chain confirmation policies and reset identities; integer venue scale; public score key/key ID/cipher suite from S11; `shiftWriteProfile` from S12; and evidence schema version. Hash the frozen config as defined in `01-evidence-and-interfaces.md`. Enforce its exact time ordering, cutoff window and derived `namespaceExpiry`; reject a config whose required ancestor lifetimes cannot be deployed.
+- **P0.2-R2** THE shared `Venue` types SHALL describe the image size, cell size, walkable cells (run-length encoded), seats, points of interest (with a `kind`, including `help-desk` and `partner-table`, and an optional `partner` ID that `partner-table` POIs require) and zones, matching the `venue.json` format A3.1 exports.
+- **P0.2-R3** THE deployment schema SHALL distinguish `mode: "mock"` placeholders from `mode: "live"` addresses. Live providers SHALL reject missing/zero addresses, wrong chain/reset IDs and a faucet address when the selected funding profile is the desk-wallet fallback (which requires a desk wallet address instead). Mock mode requires no secrets or real deployments.
 - **P0.2-R4** THE shared `labels.ts` SHALL convert between relative labels (`priya.volunteers`) and full names (`priya.volunteers.mumbai2026.lanyard.eth`), normalizing with ENSIP-15.
 - **P0.2-R5** THE shared package SHALL import nothing Node-only, so it runs on Hermes, in the browser, and on Node.
 - **P0.2-R6** THE shared package SHALL define `TeamPageContent`, its bounds/link validation and `teamPageUrl(teamLabel, publicAppOrigin)` from the shared contract. Live deployment config SHALL require an edition-specific HTTPS `publicAppOrigin`; mock mode may use localhost. The ENS `url` target is the Lanyard page; the ETHGlobal showcase is a separate content link. P0 provides fixtures for a populated page, a registered team awaiting submission, an unknown team and failed reads.
 
 **Tasks**
 - [ ] `packages/shared/src/event.config.ts`
-- [ ] `types/venue.ts`: `Venue`, `Cell`, `CellRef`, `Seat`, `Poi`, `Zone`, `OpenTicket`
+- [ ] `types/venue.ts`: `Venue`, `Cell`, `CellRef`, `Seat`, `Poi`, `Zone`, `RoutingTicket`, `LocatedStop` (as named in `01-evidence-and-interfaces.md`)
 - [ ] `deployments/schema.ts` (zod), plus explicitly mock-mode `deployments/sepolia.json` and `deployments/rabdi.json`; fixtures never masquerade as live deployments
 - [ ] `labels.ts` with tests (mixed case, trailing space and emoji rejected)
 - [ ] `types/team-page.ts`, URL helper/validation, public origin in deployment schema and shared page-state fixtures
@@ -128,7 +128,7 @@ Implement the exact `EnsReader`, `EvaluationContext`, `Router`/located-stop and 
 ### P0.4 · Shared fixtures · *Person B*
 
 **Requirements**
-- **P0.4-R1** THE `fixtures/personas.json` SHALL list every demo actor with their label, book, address, and the env var holding their key for local seed and e2e scripts: organizer, results key, volunteer coordinator, head judge, two partners (`arkiv`, `ens`) with two staff each, four leads, ten volunteers, six judges (three per partner), and teams of up to four (Person A–D).
+- **P0.4-R1** THE `fixtures/personas.json` SHALL list every demo actor with their label, book, address, and the env var holding their key for local seed and e2e scripts: organizer, results key, desk wallet, volunteer coordinator, head judge, two partners (`arkiv`, `ens`) with two staff each, four leads, ten volunteers, six partner judges (three per partner), three global judges (`judges` book, `main` track), and three teams of up to four (Person A–D). Every team member, including the lead, has a `hackers` badge label.
 - **P0.4-R2** THE `fixtures/venue.small.json` SHALL be a hand-made 20×12 grid with 12 seats, 2 zones, 3 points of interest (one `help-desk` per zone, plus a stage) and one walled-in seat.
 - **P0.4-R3** THE `fixtures/ens-history.json` SHALL script a day of ENS events at Sepolia blocks, including: badges issued; Priya made lead; Priya's lead note removed at a known block; one judge unregistered mid-judging; one badge reaching expiry; one expired badge revived.
 - **P0.4-R4** THE `fixtures/timeline.json` SHALL map the event's key times to mock Sepolia blocks (12 s per block from a fixed genesis).

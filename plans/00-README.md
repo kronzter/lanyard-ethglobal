@@ -15,7 +15,7 @@ Read `00-CONTEXT.md`, then the authoritative [evidence and shared contracts](01-
 - **Dev builds only.** Reown AppKit's native modules don't run in Expo Go.
 - **Every APK build runs locally**: `eas build --platform android --profile <development|preview> --local`. Never queue a cloud EAS build.
 - **Wallets: Reown AppKit.** The native SDK on Android, the wagmi adapter on web. Users connect their own wallet (MetaMask, Rainbow, …). If the P0.6 spike shows external wallets can't write to Arkiv, the fallback is AppKit's email/social-login wallet.
-- **No server signer.** Users sign their own actions. Deploy, seed, capture and freeze are local CLIs. Retained signed evidence bundles are downloadable and usable from local files. An optional declared read-only RPC proxy may hold RPC credentials, but no signing/decryption keys. Final network acceptance uses the actual P0-selected profile, including wallet relay/login services.
+- **No server signer.** Users sign their own actions. Deploy, seed, capture and freeze are local CLIs. Retained signed evidence bundles are downloadable and usable from local files. Read-only, app-restricted RPC keys ship in the app as public values (rotated if abused). A declared read-only RPC proxy is only a fallback if P0 shows those limits can't be lived with; it may hold RPC credentials, but no signing/decryption keys. Final network acceptance uses the actual P0-selected profile, including wallet relay/login services.
 - **Screen split.** Field roles (hacker, volunteer, lead, judge, team) use phones. Organizer screens, ENS consoles and the venue editor are web-only screens.
 
 ## Who pays gas
@@ -23,7 +23,7 @@ Read `00-CONTEXT.md`, then the authoritative [evidence and shared contracts](01-
 | Chain | Who sends transactions | How they get gas |
 | --- | --- | --- |
 | Sepolia | Organizer (badges, teams, revoke, revive), volunteer coordinator, head judge, partners, results key (freeze CLI) | Staff wallets are funded with Sepolia ETH by hand |
-| Rabdi | Everyone who writes an Arkiv record | Desk funds them through P0's proven faucet-contract or direct-transfer profile (B1.1) |
+| Rabdi | Everyone who writes an Arkiv record | The desk calls the `Faucet` contract if P0.6-S6 proves it; otherwise a dedicated desk wallet sends tGLM and writes a readonly `drip` record, refusing repeats (B1.1) |
 
 Field-role app flows only read ENS. Team leads' optional direct name-management capabilities exist on Sepolia, but are not required by those flows.
 
@@ -55,7 +55,7 @@ Freeze cutoffs must be in `[results, freezeDeadline)` and namespace lifetimes co
 - Every phase depends only on **P0** and on **the same track's earlier phases**. A never waits for B, and B never waits for A.
 - Each track codes against **interfaces in `packages/shared`**, with **mocks** standing in for the other track's work, behind **feature flags**.
 - **Integration checkpoints (I1–I4)** are a separate, third kind of dependency. One starts when **both** matching phases are merged. It flips one flag from mock to real, runs a smoke test, and runs a **cross bug hunt**.
-- **Integrations never gate the next phase.** When your phase is merged, start your next phase straight away. The checkpoint happens whenever both of you are ready.
+- **Integrations never gate the next phase.** When your phase is merged, start your next phase straight away. The checkpoint happens whenever both of you are ready. One ordering rule between integrations: **I3 requires I2 complete**, because its on-duty and partner-staff checks run on real ENS.
 - **Final acceptance is different:** I4 requires I1–I3 completed plus A4/B4, and explicitly checks ENS/router/results are all live. Lagging integrations do not block phase development, but cannot be skipped at sign-off.
 
 ## Phases and specs
@@ -90,7 +90,7 @@ Disjoint paths mean merges don't conflict.
 | `packages/contracts/**`, `packages/ens/**`, `packages/venue/**` | A |
 | `apps/app/app/admin/ens/**`, `apps/app/app/venue/**`, `apps/app/src/components/venue/**` | A |
 | `packages/arkiv/**`, `packages/faucet/**`, `packages/rules/**`, `packages/cli/**`, `arkiv/**` | B |
-| `apps/app/app/{volunteer,lead,tickets,judge,team,organizer}/**` | B |
+| `apps/app/app/{volunteer,lead,tickets,judge,team,teams,organizer}/**` | B |
 | `deployments/sepolia.json` | A writes; B only reads |
 | `deployments/rabdi.json` | B writes; A only reads |
 | `plans/TRACKER.md` | Each person edits only their own track's section; integration sections are edited on integration branches |
@@ -130,7 +130,7 @@ Rules for changing them:
 
 Defaults stay `mock`/`stub` on phase branches, so nobody's work depends on the other track being finished.
 
-Expo inlines every `EXPO_PUBLIC_*` variable into the app bundle. Use them for flags and app-restricted RPC URLs only, **never** for keys.
+Expo inlines every `EXPO_PUBLIC_*` variable into the app bundle, so every value is public. Use them for flags and read-only, app-restricted RPC URLs/keys only (treated as public, rotated if abused), **never** for signing, operator or decryption keys.
 
 ## Phase lifecycle
 
@@ -147,7 +147,7 @@ Every phase, every time:
 
 **Phase bug hunt (after every phase).** Run by someone who didn't write the code. So nobody has to wait for the other person, the default bug hunter is a **fresh AI agent session** with no memory of building it. Paste this prompt:
 
-> You are the bug hunter for phase `<ID>` of Lanyard. You did not write this code. Read `plans/<ID>-*.md` and `plans/00-README.md`. Then read the diff `git diff main...phase/<ID>-<slug>`. Work through the phase bug-hunt checklist item by item, actually running each check (tests, scripts, local chain, testnet calls, the app on an Android device or Expo web) rather than reasoning about it. Then try to break the phase's requirements in ways the checklist doesn't list. For every finding, add a row to this phase's findings table in `plans/TRACKER.md`: what you tried, what you expected, what happened, severity. Do not fix anything. Report the checklist items you could not run, and why.
+> You are the bug hunter for phase `<ID>` of Lanyard. You did not write this code. Read `plans/<ID>-*.md`, `plans/00-README.md` and `plans/01-evidence-and-interfaces.md`. Then read the diff `git diff main...phase/<ID>-<slug>`. Work through the phase bug-hunt checklist item by item, actually running each check (tests, scripts, local chain, testnet calls, the app on an Android device or Expo web) rather than reasoning about it. Then try to break the phase's requirements in ways the checklist doesn't list. For every finding, add a row to this phase's findings table in `plans/TRACKER.md`: what you tried, what you expected, what happened, severity. Do not fix anything. Report the checklist items you could not run, and why.
 
 The other person reads the findings when they get to them and can add rows. They re-run the riskiest items at the next integration checkpoint.
 
@@ -164,10 +164,11 @@ The other person reads the findings when they get to them and can add rows. They
 ## Shared conventions
 
 - **Networks.** ENS on Sepolia. Arkiv on Rabdi: chain ID `7794095`, RPC `https://rpc.rabdi.db-chain.testnet.arkiv.network`, 2 s blocks, tGLM gas.
-- **RPCs.** P0 measures explicit keyless Rabdi access or selects a declared read-only proxy with server-held RPC credentials. Sepolia needs an archive endpoint whose app/browser access policy is actually tested; a public mobile bundle cannot keep its URL secret. Operator signing/decryption credentials never ship in the app, and no raw keyed transport diagnostics are logged.
+- **RPCs.** P0 measures explicit keyless Rabdi access. If it's too limited, the app ships a dedicated read-only Arkiv access key as a public value; a declared read-only proxy with server-held credentials is the fallback only if that also fails. Sepolia uses an archive endpoint with a read-only key restricted to the app (Android package and web origin), shipped as `EXPO_PUBLIC_SEPOLIA_RPC_URL`; a public mobile bundle cannot keep it secret, so it's treated as public and rotated if abused. Scripts and the CLI use their own keys from the local `.env`. Operator signing/decryption credentials never ship in the app, and no raw keyed transport diagnostics are logged.
 - **Names.** Base `lanyard.eth`. Edition `mumbai2026.lanyard.eth`. Team `<team>.mumbai2026.lanyard.eth`. Winner `winner.<team>.mumbai2026.lanyard.eth`, created whenever a winner is declared.
 - **Labels in code** are relative to the edition: `priya.volunteers`, `zkpay`, `ana.judges.arkiv.partners`.
 - **Partners** are listed in `event.config.ts`: `arkiv` and `ens` for now. Adding one is a config and seed change, never a code change.
+- **Tracks.** One per partner plus the non-partner `main` track, listed in `event.config.ts`. Global judges (`judges` book) score `main` only; partner judges score their own partner's track only.
 - **Pinned versions.** Exact versions in `package.json` for `@arkiv-network/sdk`, the Expo SDK, Reown AppKit and viem. ENSv2 contracts are pinned by commit in `foundry.toml`. No upgrades during the build.
 - **Addresses** live in `deployments/sepolia.json` and `deployments/rabdi.json`. Nothing is hard-coded.
 - **Secrets.** The organizer key, results key and score-decryption key live only in the local `.env` of whoever runs the deploy, seed or freeze scripts. They never ship in the app. Users' keys never leave their wallets. `.env` is git-ignored; `.env.example` is committed.

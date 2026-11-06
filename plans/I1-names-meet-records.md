@@ -13,7 +13,7 @@ The A1-created names and B1 records agree on registry ownership. This checkpoint
 | Before | After |
 | --- | --- |
 | Placeholder persona addresses for A1 names | Seeded owner wallets for hackers, volunteers, global judges and teams already created in A1 |
-| Fixture-backed Rabdi writes | Writes by those wallets funded through P0's chosen faucet or direct-transfer profile |
+| Fixture-backed Rabdi writes | Writes by those wallets funded through the `Faucet` contract or, under the P0.6 fallback, the desk wallet + `drip` record |
 | Flags | Unchanged (the ENS flag stays `mock` until I2) |
 
 ## Steps (one commit each)
@@ -33,7 +33,7 @@ The A1-created names and B1 records agree on registry ownership. This checkpoint
 **A attacks B's code:**
 - [ ] Write a record with `by` set to a badge you don't own: B1 doesn't stop it (correct, that's B2's job), and the e2e check flags it
 - [ ] Use a persona wallet with zero tGLM: a clear error, no stuck queue
-- [ ] Contract profile: duplicate drip reverts. Direct-transfer profile: desk uses a persisted funding ledger and reconciles uncertain transfers before another send; do not claim on-chain once-per-wallet enforcement
+- [ ] Contract profile: duplicate drip reverts. Desk-wallet fallback: the desk refuses an address that already has a desk-wallet `drip` record and reconciles uncertain transfers before another send; do not claim on-chain once-per-wallet enforcement
 - [ ] Search the web export and the APK for any private key
 
 **B attacks A's code:**

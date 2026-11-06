@@ -46,7 +46,7 @@ Records that fail are kept and shown greyed out with a reason, never hidden.
 **Requirements**
 - **B2.2-R1** THE rules SHALL implement `evaluate(records, ensSnapshot, context, config, ruleVersion)` from the shared contract, with explicit cutoffs, frozen config/authorities and no clocks, randomness or network calls inside.
 - **B2.2-R2** THE engine SHALL apply steps 1–4 to every record, then call the kind's registered rule, returning `{ counts: boolean, reason?: string }` per record.
-- **B2.2-R3** THE engine SHALL ship the organizer-only kinds now: `venue`, `seat_assignment` and `acceptance` count only if written by the organizer; `rubric` only if written by the organizer or by a partner for its own track; `results` only by the results key.
+- **B2.2-R3** THE engine SHALL ship the organizer-only kinds now: `venue`, `seat_assignment` and `acceptance` count only if written by the organizer; a `seat_assignment` also requires `EnsReader.owner(hacker_label)` == `hacker_address` at creation; `rubric` only if written by the organizer (any track, and the only writer for `main`) or by a partner for its own track; `results` only by the results key; `drip` only by the configured desk wallet.
 - **B2.2-R4** THE engine SHALL use integer arithmetic, stable sorting, and deterministic tie-breaks (earliest block, then lowest record key).
 - **B2.2-R5** `prepare(records, ensReader, context, config)` SHALL deduplicate creation-time, action-time and evaluation-cutoff ownership/expiry/registration-ID/note reads and unregister intervals. Required read failures throw; current state is never a historical substitute. Permission notes require their shared registration/holder binding, not just the presence of a permission string. Pin continuous judge registration and every present-tense decision at the supplied cutoff. B4 extends preparation with authorization before score decryption and independently regenerated plaintext/rejection entries; raw captured bytes remain separate.
 - **B2.2-R6** THE package SHALL import nothing Node-only, so it runs unchanged on Hermes, in the browser and on Node.
@@ -86,6 +86,7 @@ Records that fail are kept and shown greyed out with a reason, never hidden.
 - [ ] A record at exactly a badge's expiry second: rejected
 - [ ] A timestamp between two Sepolia blocks: the earlier block is used
 - [ ] A `seat_assignment` written by a volunteer: rejected with a reason, still shown
+- [ ] An organizer `seat_assignment` whose `hacker_label` isn't owned by `hacker_address`: rejected with a reason
 - [ ] The same inputs on two laptops, and on the Android app: identical output hash
 - [ ] Grep the rules package for `Date.now`, `Math.random`, `fetch` and Node built-ins: none
 - [ ] Prepared 2,000-record evaluation/hash finishes under a minute; cold network preparation measured separately

@@ -1,8 +1,8 @@
 # I3 · Real venue and router
 
-**Joint integration** · **Branch:** `int/I3-real-venue` · **Starts when:** A3 and B3 are both merged · **Driver:** A
+**Joint integration** · **Branch:** `int/I3-real-venue` · **Starts when:** A3 and B3 are both merged **and I2 is complete** · **Driver:** A
 
-This doesn't block A4 or B4.
+This doesn't block A4 or B4. It needs I2 because the on-duty and partner-staff checks below run on real ENS: `EXPO_PUBLIC_LANYARD_ENS=sepolia` throughout.
 
 ## Goal
 
@@ -33,7 +33,7 @@ Build a fresh preview APK for both phones with `eas build --platform android --p
 2. Two on-duty volunteers in that zone claim within the same few seconds: exactly one wins on both phones, and the loser is offered another ticket.
 3. The winner walks the drawn path: it follows the aisles and never crosses a blocked cell.
 4. Resolve. The next ticket is offered from S014, and its path is drawn.
-5. A partner-help ticket ("Arkiv SDK") is visible only to holders of `staff.arkiv.partners` badges.
+5. A partner-help ticket ("Arkiv SDK") is visible only to holders of `staff.arkiv.partners` badges (issued through `registerPartnerBadge`), whose start position is the `arkiv` partner-table POI.
 
 Use explicit routing time and integer millimetres from `01-evidence-and-interfaces.md`. The caller supplies eligibility and seat/cell mapping. Ticket/claim evidence is retained beyond the 4 h/15 min logical deadlines; timely resolutions remain closed after lease expiry. Partner staff start at their configured partner POI/fallback, without a shift.
 

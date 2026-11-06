@@ -47,7 +47,7 @@ Before running the final demo, assert effective app ENS = `sepolia`, router = `g
 - [ ] "Anyone can reproduce the published captured set": a fresh machine with the committed bundle reproduces; tampered bytes/signature/config fail; the CLI explicitly says completeness is unproven
 - [ ] "Published winner records are locked": organizer/results paths cannot change the fixed resolver's text or transfer the winner token; ancestor redirection/base renewal are explicitly separate trusted limits
 - [ ] "No admin table": every permission shown in the permission map comes from chain reads
-- [ ] "No server signer": all actor writes use wallets; capture/freeze run locally. Inventory P0's actual allowed hosts: RPCs, wallet relay/login endpoints, static bundle hosting and optional read-only proxy. No service holds actor signing keys; RPC credentials stay out of app bundles/wallet chain URLs
+- [ ] "No server signer": all actor writes use wallets; capture/freeze run locally. Inventory P0's actual allowed hosts: RPCs, wallet relay/login endpoints, static bundle hosting and optional read-only proxy. No service holds actor signing keys. The only credentials in app bundles are the read-only, app-restricted RPC keys, listed as public; no operator, signing or decryption key appears in a bundle or wallet chain URL
 - [ ] Freeze run again: refuses
 - [ ] Two phones, one ticket, the same second: one winner
 - [ ] Bundle scan of the APK and the web export: no organizer key, results key or decryption key

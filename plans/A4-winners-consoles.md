@@ -55,9 +55,10 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 ### A4.3 · ENS consoles
 
 **Screens.** All of these are web-only, under `/admin/ens/*`, except `<WinnerBadge>`. Every transaction is signed by the connected staff wallet through AppKit; no key lives in the app.
-- **Onboarding desk** (organizer): scan the holder's address QR (camera) or paste it, pick a book, and send `registerBadge`; register teams to the lead's address, then set/read back their canonical Lanyard page `url` through A2's writer. Show separate registration and URL-linking status; if linking fails, resume it without registering the team again. Offer copy/open page actions. (Dripping tGLM is B's `/organizer/faucet` screen, linked from the desk.)
+- **Onboarding desk** (organizer): scan the holder's address QR (camera) or paste it, pick a book, and send `registerBadge`; issue a `hackers` badge to every team member, including the lead; register teams to the lead's address, then set/read back their canonical Lanyard page `url` through A2's writer. Show separate registration and URL-linking status; if linking fails, resume it without registering the team again. Offer copy/open page actions. (Dripping tGLM is B's `/organizer/faucet` screen, linked from the desk.)
 - **Coordinator:** make or unmake a lead (writes `lanyard.perms`, A2.2).
-- **Partner console:** issue and revoke that partner's judges and staff (A2.2, A2.3).
+- **Partner console:** issue that partner's judges and staff through `registerPartnerBadge`, and revoke them with `unregister` (A2.2, A2.3).
+- **Head-judge console:** issue global (`main` track) judges through `registerJudge`, and revoke them with `unregister` on the `judges` book (A2.2, A2.3).
 - **Permission map:** every grant, read live from `EACRolesChanged` events.
 - **Winner badge:** `<WinnerBadge label>`, on the team screen and hacker profile, read through the Universal Resolver. Works on Android and web. Exported for B's team screen.
 
@@ -68,7 +69,7 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 - **A4.3-R4** WHEN the connected wallet is on the wrong chain, THE console SHALL ask the wallet to switch to Sepolia before sending.
 - **A4.3-R5** Team onboarding SHALL not report the website link ready until the expected `url` is confirmed and read back. Reconcile uncertain URL writes before resending. The ETHGlobal URL and project buttons are edited by the team through B4's Arkiv-backed form; the organizer publishes the deterministic Lanyard page address, not arbitrary team content.
 
-**Commit:** `feat(app): A4.3 onboarding desk, coordinator, partner and permission consoles`
+**Commit:** `feat(app): A4.3 onboarding desk, coordinator, partner, head-judge and permission consoles`
 
 ---
 
@@ -85,6 +86,7 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 - [ ] Mixed-case or look-alike team labels are normalized before `declare`
 - [ ] Search the web export and the APK for the results key and the organizer key: absent; `apps/app` doesn't import `SepoliaResultsPublisher`
 - [ ] Coordinator console with a non-coordinator wallet connected: blocked before sending
+- [ ] Head-judge console with a non-head-judge wallet, or partner console used for another partner's sub-book: blocked before sending, and the contract reverts if sent anyway
 - [ ] Desk with a wallet on Rabdi instead of Sepolia: asks to switch, sends nothing on the wrong chain
 - [ ] Permission map vs direct `hasRoles` reads: identical
 - [ ] Missing setter/admin grants, unexpected scoped grants or missing parent renewal authority block deployment handoff

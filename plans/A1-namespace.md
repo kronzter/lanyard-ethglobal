@@ -19,7 +19,7 @@ lanyard.eth                                  base (organizer)
 
 **Why the edition registry is emancipated:** team names live directly in it. If the organizer held registry-wide unregister, set-resolver or set-subregistry roles there, it could take or redirect any team's name. Emancipated means the only registry-wide roles are register and renew, held by `LanyardRegistrar`. The organizer controls its book names through name-level roles on names it owns.
 
-**Who sends these transactions:** only the organizer, from local scripts for now and from the A4.3 onboarding desk later. Holders and team leads never pay Sepolia gas.
+**Who sends these transactions:** only the organizer, from local scripts for now and from the A4.3 onboarding desk later. No desk flow requires holders or team leads to pay Sepolia gas; a lead's direct name management (resolver, renewal, member names) is optional and at their own cost.
 
 ## Out of scope
 
@@ -33,8 +33,8 @@ Resolvers, partner sub-books and permission notes (A2). `WinnerRegistrar` itself
 - **A1.1-R1** THE deploy script SHALL explicitly create both hierarchy levels: attach a base `UserRegistry` to `lanyard.eth`, register `mumbai2026` inside that base registry, and attach the separate edition registry to that edition label. Set canonical parent pointers during setup and lock their setter/admin roles. Registering books directly in the base registry does not create the edition hierarchy.
 - **A1.1-R2** WHEN edition setup completes, THE edition registry SHALL report `isEmancipated() == true`, with only `ROLE_REGISTRAR` and `ROLE_RENEW` held on its root, both by `LanyardRegistrar`.
 - **A1.1-R3** WHEN the edition is created, THE deploy script SHALL reserve the protected labels `admin`, `staff`, `lanyard`, `ethglobal`, `winner` in the edition registry.
-- **A1.1-R5** Namespace bootstrap SHALL run through a one-shot registrar setup path that creates the protected reservations and book names before enabling team registration, then seals itself. The deploy script cannot assume its organizer EOA holds the final edition root registrar role. Bootstrap/regrant authority SHALL not survive sealing.
 - **A1.1-R4** Register the edition name to `LanyardRegistrar` with far-future expiry, its final subregistry, name-scoped renewal and temporary set-resolver/admin roles assigned at registration. Its organizer-only one-shot `setPublicationResolver(address)` sets the publication resolver in A2, stores the fixed winner-forwarding resolver, and atomically revokes its own edition set-resolver/admin. No edition set-subregistry or transfer authority is granted. Before A2 that bounded path is pending, not reported sealed. Base-owner ancestor authority/expiry remains disclosed.
+- **A1.1-R5** Namespace bootstrap SHALL run through a one-shot registrar setup path that creates the protected reservations and book names before enabling team registration, then seals itself. The deploy script cannot assume its organizer EOA holds the final edition root registrar role. Bootstrap/regrant authority SHALL not survive sealing.
 
 **Tasks**
 - [ ] Find the ENSv2 Sepolia addresses (verifiable factory, `UserRegistry` implementation, Permissioned Resolver implementation, Universal Resolver) and record them in `deployments/sepolia.json`
@@ -53,7 +53,7 @@ Resolvers, partner sub-books and permission notes (A2). `WinnerRegistrar` itself
 **Requirements**
 - **A1.2-R1** WHEN the edition is created, THE deploy script SHALL register the four book labels (`hackers`, `judges`, `volunteers`, `partners`) to the organizer **before** any team can register.
 - **A1.2-R2** WHEN a book name is registered, THE deploy script SHALL attach a managed `UserRegistry` in which the organizer holds register, unregister, renew and set-resolver on its root, and `LanyardRegistrar` holds register and renew.
-- **A1.2-R3** WHEN any badge is issued through `LanyardRegistrar`, THE contract SHALL hard-code its role/expiry policy, excluding transfer-admin, set-resolver and set-subregistry roles and their admins. A caller-supplied role bitmap or expiry cannot bypass this policy. Direct issuance by other registry-role holders remains issuer trust, explicitly tested and disclosed in A2.
+- **A1.2-R3** WHEN any badge is issued through `LanyardRegistrar`, THE contract SHALL hard-code its role/expiry policy, excluding transfer-admin, set-resolver and set-subregistry roles and their admins. A caller-supplied role bitmap or expiry cannot bypass this policy. The same policy applies to the head-judge and partner issue paths added in A2.2 (`registerJudge`, `registerPartnerBadge`). Direct issuance through the organizer's remaining raw book role is issuer trust, explicitly tested and disclosed in A2.
 - **A1.2-R4** THE registrar SHALL set expiries per book:
 
   | Book | Expiry |
@@ -70,6 +70,7 @@ Resolvers, partner sub-books and permission notes (A2). `WinnerRegistrar` itself
 
 **Design**
 - `registerBadge(bytes32 book, string label, address owner)`: organizer only; expiry and roles come from frozen book policy. Resolver/address initialization is added in A2, not assumed in I1.
+- The `hackers` badge is issued to every team member, including the team lead (the lead also owns the team name from A1.3).
 - `renew(bytes32 book, string label, uint64 newExpiry)`: used by A2.3 for revival.
 - App reads always use the label hash, never token IDs (token IDs change whenever roles change).
 
@@ -99,7 +100,7 @@ Resolvers, partner sub-books and permission notes (A2). `WinnerRegistrar` itself
 - [ ] `registerTeam(string label, address lead)` in `LanyardRegistrar`
 - [ ] Label validator with a fuzz test
 - [ ] One-shot winner/resolver configuration and narrowly scoped promotion/parent-renewal forwarders
-- [ ] `register-team.ts` CLI; seed three demo teams (Person A–D each)
+- [ ] `register-team.ts` CLI; seed three demo teams (Person A–D each), each member also issued a `hackers` badge
 
 **Commit:** `feat(contracts): A1.3 team names with reserved winner slot`
 

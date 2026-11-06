@@ -17,7 +17,7 @@ Making someone a lead (an ENS write: the A4.3 coordinator console; seeds use A2.
 - **Badge (ENS):** `priya.volunteers.mumbai2026.lanyard.eth`, valid for the whole event.
 - **Lead (ENS):** a volunteer whose canonical `lanyard.perms` envelope grants `shift-manager` and matches the badge's current registration ID and holder. There can be several leads at once; a stale note from an earlier registration grants nothing.
 - **Shift (Arkiv):** a lead writes `shift {volunteer, zone, starts_at, ends_at}`. Changes are new shifts with `supersedes`.
-- **Clock (Arkiv):** `clock {volunteer, shift, action}`, written by a lead, or a self `in` within 60 minutes before that shift starts. Effective action time is creation block time; `stated_at` is display only.
+- **Clock (Arkiv):** `clock {volunteer, shift, action}`, written by a lead, or a self `in` from 60 minutes before until 15 minutes after that shift starts. Effective action time is creation block time; `stated_at` is display only.
 - **Duty pass (Arkiv):** lead-written display evidence with a logical `ends_at` equal to shift end, physically retained until event end + 7 d. Self clock-ins derive the same countdown from the shift; no lead-owned pass is forged by the volunteer. Retention extension cannot extend duty.
 
 **On duty at T** = badge valid at T **and** at least one valid current shift covering T whose latest valid clock action for that exact shift before or at T is `in`. A scheduled shift alone does not activate duty. A clock-in before shift start is accepted only in the self-start window but does not activate duty until the start. An unmatched clock-out is ignored; each session ends at shift end even without a clock-out. For a zone query, only covering sessions in that zone count. Order equal-time clocks by creation block then key and apply in that order.
@@ -29,10 +29,10 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 ### B3.1 · On-duty rules, shifts and clocks
 
 **Requirements**
-- **B3.1-R1** THE rules SHALL register these kinds using explicit evaluation/action context and `EnsReader.owner`. A lead needs a volunteer badge and a valid `shift-manager` note bound to that registration ID and holder at creation. Stale, malformed and legacy comma-list notes grant nothing. A self clock is `in`, references that volunteer's valid shift and occurs in `[starts_at-3600, starts_at]`, with no open session for that shift. A lead may clock in during a covering shift; no action can make duty effective before creation.
+- **B3.1-R1** THE rules SHALL register these kinds using explicit evaluation/action context and `EnsReader.owner`. A lead needs a volunteer badge and a valid `shift-manager` note bound to that registration ID and holder at creation. Stale, malformed and legacy comma-list notes grant nothing. A self clock is `in`, references that volunteer's valid shift and occurs in `[starts_at-3600, starts_at+900]`, with no open session for that shift. A lead may clock in during a covering shift; no action can make duty effective before creation.
 - **B3.1-R2** THE rules SHALL export `onDuty(volunteer, at, zone?)`.
 - **B3.1-R3** WHEN a lead clocks a volunteer in, THE app SHALL write `clock in` and a new `duty_pass` in one batch (one wallet approval).
-- **B3.1-R4** WHEN a volunteer taps "Start shift" within 60 min before a shift, THE app SHALL write a self `clock in`. Outside that window, it SHALL show "Ask a lead".
+- **B3.1-R4** WHEN a volunteer taps "Start shift" from 60 min before until 15 min after a shift's start, THE app SHALL write a self `clock in`. Outside that window, it SHALL show "Ask a lead".
 - **B3.1-R5** An active shift extension SHALL follow the selected B1/P0-S12 profile: one linked batch only with proven prediction/custody, otherwise a confirmed replacement followed by the clock/pass batch. The UI SHALL explain two approvals and the inactive interval before starting the sequential flow. Persist the replacement key and resume only the missing step after reconciliation; rejected or uncertain second writes never activate the replacement. Historical rows stay visible, supersession acts prospectively.
 - **B3.1-R6** WHEN a lead enters a late clock-in with a stated time, THE app SHALL show both the stated time and the real block time.
 - **B3.1-R7** THE volunteer screen SHALL show status/countdown from the valid bounded session and its shift end, with a matching lead pass when present. Self-started sessions show the same deadline without a fabricated pass; sync the displayed time to observed block time.
@@ -53,7 +53,7 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 **Categories:** Wi-Fi, power, hardware, furniture, food, lost item, other → on-duty volunteers in that zone. **Medical or safety: not a ticket.** The app shows the staff phone number and the help-desk location instead.
 
 **Flow**
-1. **Raise.** The hacker writes readonly `ticket {seat, category}`. Logical close is creation time + 4 h; physical retention is event end + 7 d.
+1. **Raise.** The hacker writes readonly `ticket {seat, category}`. It counts only if the creator holds a valid `hackers` badge at creation. Logical close is creation time + 4 h; physical retention is event end + 7 d.
 2. **See.** The caller filters eligibility, maps seats to cells and supplies explicit chain-derived time to `router.nextTicket`. General helpers start at their zone help desk; partner staff start at their partner-table POI (or its configured help-desk fallback). Position is an application estimate, not live tracking.
 3. **Claim.** The helper writes readonly `ticket_claim {ticket}`, retained through event end + 7 d. The earliest eligible claim starts a 15 min logical lease; equal-block ties use lowest key. Claims created during that winning lease are losers permanently, not queued future winners. After its deadline, only a newly created claim can start the next attempt. Losers get a derived next offer after receipt/reconciliation.
 4. **Walk.** `router.path` from the helper's position to the seat.
@@ -64,7 +64,7 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 **Score:** integer walking millimetres minus `5_000 × floor(minutes waiting)`, using the router's explicit `atSeconds`. Lowest wins; this is equivalent to a 5 m/min waiting discount without float-dependent ordering.
 
 **Requirements**
-- **B3.2-R1** THE rules SHALL register tickets, claims, resolutions and confirmations. At any evaluation time, the earliest three otherwise-valid open tickets per hacker count; later extras are ignored until capacity frees. General claim/resolution creators must be on duty in the ticket zone at each action time; resolutions must belong to the exact winning claim. Confirmations require the ticket's hacker creator. Partner eligibility follows B3.3 instead of the shift requirement.
+- **B3.2-R1** THE rules SHALL register tickets, claims, resolutions and confirmations. A ticket counts only if `EnsReader.owner` of a `hackers` badge matches its creator, unexpired, at creation; otherwise it is greyed out with a reason and never offered. At any evaluation time, the earliest three otherwise-valid open tickets per hacker count; later extras are ignored until capacity frees. General claim/resolution creators must be on duty in the ticket zone at each action time; resolutions must belong to the exact winning claim. Confirmations require the ticket's hacker creator. Partner eligibility follows B3.3 instead of the shift requirement.
 - **B3.2-R2** WHEN two helpers claim one ticket, THE rules SHALL award it to the earliest claim by block, ties broken by lowest key, identically on every device.
 - **B3.2-R3** Logical leases use half-open `[createdAt, createdAt+900)` intervals, and tickets use `[createdAt, createdAt+14400)`. Physical retention/extension never changes those boundaries. Reopening follows the attempt model above.
 - **B3.2-R4** WHEN a helper resolves a ticket, THE app SHALL offer the router's next ticket and draw the path to it.
@@ -79,8 +79,8 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 ### B3.3 · Seats and partner tickets
 
 **Requirements**
-- **B3.3-R1** THE organizer screen (web-only) SHALL write readonly `seat_assignment {hacker, seat}` records from a CSV, signed by the organizer's wallet, with seat IDs taken from the current venue.
-- **B3.3-R2** WHEN a hacker raises a ticket, THE form SHALL prefill their assigned seat and allow overriding it by tapping the map.
+- **B3.3-R1** THE organizer screen (web-only) SHALL write readonly `seat_assignment {hacker_address, hacker_label, seat, venue}` records from a CSV, signed by the organizer's wallet, with seat IDs taken from the current venue.
+- **B3.3-R2** WHEN a hacker raises a ticket, THE form SHALL prefill their assigned seat (looked up by the connected wallet's `hacker_address`) and allow overriding it by tapping the map.
 - **B3.3-R3** Partner categories require the same partner's staff badge ownership/expiry at both claim and resolution time. Staff need no shifts; judges/general volunteers cannot substitute. Initial position comes from the partner POI/fallback. Category IDs come from config, not free-text parsing.
 - **B3.3-R4** THE organizer screen SHALL publish a `venue.json` file as a readonly `venue` record (used at I3 with the real venue).
 - **B3.3-R5** THE partner-help categories SHALL be generated from the `event.config.ts` partner list.
@@ -93,6 +93,7 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 ## Phase bug hunt
 
 - [ ] A volunteer clocks themselves in 61 minutes early: rejected
+- [ ] A volunteer clocks themselves in 15 minutes after start: accepted; 16 minutes after: rejected, app shows "Ask a lead"
 - [ ] A non-lead clocks someone else in: rejected
 - [ ] Two leads clock the same volunteer in within one block: one "on duty", no errors
 - [ ] `clock out` with no prior `clock in`: harmless, ignored
@@ -108,6 +109,7 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 - [ ] A general volunteer claims a partner ticket: ignored
 - [ ] A partner judge (not staff) claims a partner ticket: ignored
 - [ ] A hacker raises 5 tickets: only 3 count
+- [ ] A wallet with no valid `hackers` badge raises a ticket: greyed out with a reason, never offered to helpers
 - [ ] A ticket from a seat in another zone: that zone's volunteers see it
 - [ ] A helper who just clocked in sees tickets ordered from their zone's help desk
 - [ ] The screens import nothing from `packages/venue`
