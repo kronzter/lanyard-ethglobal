@@ -33,7 +33,15 @@ The four public team-page states: `populated` (zkpay, published), `awaitingSubmi
 (chainchat registered, no submission yet), `unknownTeam` (not registered) and `unavailable`
 (evidence could not be read). Errors must never look like an empty team.
 
+## `timeline.json`
+
+A mock Sepolia chain: block `9000000` is genesis, three days before the event starts, with one
+block every 12 s. Every key time in `src/shared/event.config.ts` (`eventStart` … `freezeDeadline`)
+is listed with the latest block at or before it. `head` sits 75 days after the freeze deadline,
+past the edition's expiry, so readers can be asked about late blocks. A timestamp between two
+blocks maps to the earlier one.
+
 ## Deferred
 
-`ens-history.json` and `timeline.json` land before B2, `venue.small.json` before B3, and the
+`ens-history.json` lands before B2, `venue.small.json` before B3, and the
 evidence edge-case scenarios before B4 (`plans/P0-foundation.md` › Track B slice).
