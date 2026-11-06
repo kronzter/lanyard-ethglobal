@@ -21,7 +21,9 @@
     "forge:install": "cd contracts && forge soldeer install",
     "forge:fmt": "forge fmt --root contracts --check",
     "forge:test": "forge test --root contracts",
-    "lanyard": "tsx cli/index.ts"
+    "lanyard": "tsx cli/index.ts",
+    "web:export": "expo export --platform web --output-dir dist",
+    "ci:local": "pnpm secret-scan:all && pnpm lint && pnpm typecheck && pnpm test && pnpm forge:install && pnpm forge:fmt && pnpm forge:test && pnpm web:export"
   },
   "dependencies": {
     "@expo/metro-runtime": "58.0.17",
