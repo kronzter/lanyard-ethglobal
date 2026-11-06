@@ -2,6 +2,8 @@
 pragma solidity 0.8.25;
 
 import {IEnhancedAccessControl} from "ens-v2/access-control/interfaces/IEnhancedAccessControl.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IPermissionedResolver} from "ens-v2/resolver/interfaces/IPermissionedResolver.sol";
 import {IPermissionedRegistry} from "ens-v2/registry/interfaces/IPermissionedRegistry.sol";
 import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
 import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.sol";
@@ -9,12 +11,27 @@ import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.
 import {LanyardRegistrar} from "../../src/ens/LanyardRegistrar.sol";
 import {EnsFixture} from "./helpers/EnsFixture.sol";
 
-contract Resolver {}
+contract Resolver is IERC165 {
+    function supportsInterface(bytes4 id) external pure returns (bool) {
+        return id == type(IPermissionedResolver).interfaceId || id == type(IERC165).interfaceId;
+    }
+}
+
+/// Answers ERC-165 but is not a permissioned resolver.
+contract NotAResolver is IERC165 {
+    function supportsInterface(bytes4) external pure returns (bool) {
+        return false;
+    }
+}
+
+/// Has code but no ERC-165.
+contract Plain {}
 
 /// A1.1-R1..R5 against the real ENSv2 contracts (pinned in foundry.toml).
 contract EditionBootstrapTest is EnsFixture {
     LanyardRegistrar internal registrar;
     string internal constant EDITION = "mumbai2026";
+    bytes4 internal immutable CANNOT_GRANT = IEnhancedAccessControl.EACCannotGrantRoles.selector;
     bytes4 internal immutable UNAUTHORIZED = IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector;
 
     function setUp() public {
@@ -245,24 +262,34 @@ contract EditionBootstrapTest is EnsFixture {
             )
         );
         base.setSubregistry(id(EDITION), IRegistry(address(0)));
-        vm.expectRevert(); // ROLE_CAN_TRANSFER_ADMIN is not held: both transfer paths revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                IPermissionedRegistry.TransferDisallowed.selector, tokenId, address(registrar)
+            )
+        );
         base.unsafeTransfer(stranger, tokenId, "");
         vm.stopPrank();
     }
 
     function test_R4_setPublicationResolverSetsItAndDropsTheRegistrarsResolverRoles() public {
         _sealed();
+        uint256 expectedBefore = R.ROLE_RENEW | R.ROLE_SET_RESOLVER | R.ROLE_SET_RESOLVER_ADMIN;
+        assertEq(base.roleCount(id(EDITION)), expectedBefore, "one holder of each, before");
         address resolver = address(new Resolver());
         vm.prank(organizer);
         registrar.setPublicationResolver(resolver);
+        assertEq(base.roleCount(id(EDITION)), R.ROLE_RENEW, "only renew is held, after");
 
         assertEq(registrar.publicationResolver(), resolver);
         assertEq(base.getResolver(EDITION), resolver);
         assertEq(base.roles(id(EDITION), address(registrar)), R.ROLE_RENEW);
         assertEq(base.getOwner(id(EDITION)), address(registrar), "token regenerated to the same owner");
 
+        uint256 resource = base.getResource(id(EDITION));
         vm.prank(address(registrar));
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(UNAUTHORIZED, resource, R.ROLE_SET_RESOLVER, address(registrar))
+        );
         base.setResolver(id(EDITION), address(0xbeef));
     }
 
@@ -301,10 +328,13 @@ contract EditionBootstrapTest is EnsFixture {
     function test_R4_baseRegistryOnlyMintsTheEditionNameToTheRegistrar() public {
         vm.prank(stranger);
         vm.expectRevert(LanyardRegistrar.UnexpectedToken.selector);
+        registrar.onERC1155Received(stranger, address(0), 1, 1, "");
+        vm.prank(address(base));
+        vm.expectRevert(LanyardRegistrar.UnexpectedToken.selector); // not a mint
         registrar.onERC1155Received(stranger, stranger, 1, 1, "");
         vm.prank(address(base));
         assertEq(
-            registrar.onERC1155Received(stranger, stranger, 1, 1, ""), registrar.onERC1155Received.selector
+            registrar.onERC1155Received(stranger, address(0), 1, 1, ""), registrar.onERC1155Received.selector
         );
         vm.expectRevert(LanyardRegistrar.UnexpectedToken.selector);
         registrar.onERC1155BatchReceived(stranger, stranger, new uint256[](0), new uint256[](0), "");
@@ -362,10 +392,10 @@ contract EditionBootstrapTest is EnsFixture {
         assertEq(edition.roles(0, organizer), 0);
         assertEq(edition.roles(0, address(registrar)), R.ROLE_REGISTRAR | R.ROLE_RENEW);
         vm.prank(address(registrar));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(CANNOT_GRANT, 0, R.ROLE_SET_PARENT, address(registrar)));
         edition.grantRootRoles(R.ROLE_SET_PARENT, address(registrar));
         vm.prank(address(registrar));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(CANNOT_GRANT, 0, R.ROLE_UNREGISTER, address(registrar)));
         edition.grantRootRoles(R.ROLE_UNREGISTER, address(registrar));
     }
 
@@ -373,5 +403,91 @@ contract EditionBootstrapTest is EnsFixture {
         IPermissionedRegistry edition = _bootstrap();
         assertEq(uint8(edition.getStatus(id("winner"))), uint8(IPermissionedRegistry.Status.RESERVED));
         assertEq(base.getExpiry(id(EDITION)), 0, "edition name is not registered yet");
+    }
+
+    address internal alice = makeAddr("alice");
+
+    function test_R4_aBaseNameHolderCannotTransferATokenInToTheRegistrar() public {
+        // Mints and regenerations only: a holder pushing a base name into the registrar is refused.
+        vm.prank(organizer);
+        base.register(
+            "loose", alice, IRegistry(address(0)), address(0), R.ROLE_CAN_TRANSFER_ADMIN, FAR_FUTURE
+        );
+        uint256 tokenId = base.getTokenId(id("loose"));
+        vm.prank(alice);
+        vm.expectRevert(LanyardRegistrar.UnexpectedToken.selector);
+        base.unsafeTransfer(address(registrar), tokenId, "");
+        assertEq(base.getOwner(id("loose")), alice);
+    }
+
+    function test_R4_setPublicationResolverRejectsAnAddressThatIsNotAPermissionedResolver() public {
+        _sealed();
+        address plain = address(new Plain());
+        address notResolver = address(new NotAResolver());
+        vm.startPrank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.UnsupportedResolver.selector, plain));
+        registrar.setPublicationResolver(plain);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.UnsupportedResolver.selector, notResolver));
+        registrar.setPublicationResolver(notResolver);
+        vm.stopPrank();
+        assertEq(registrar.publicationResolver(), address(0), "nothing was set");
+        assertEq(base.getResolver(EDITION), address(0));
+    }
+
+    function test_R4_sealRevertsWhenTheNameRolesAreNotTheExpectedSet() public {
+        IPermissionedRegistry edition = _bootstrap();
+        vm.prank(organizer);
+        base.register(
+            EDITION,
+            address(registrar),
+            IRegistry(address(edition)),
+            address(0),
+            R.ROLE_RENEW | R.ROLE_SET_RESOLVER, // no set-resolver admin
+            FAR_FUTURE
+        );
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LanyardRegistrar.EditionNotAttached.selector, "name roles are not the expected set"
+            )
+        );
+        vm.prank(organizer);
+        registrar.seal();
+    }
+
+    function test_R4_sealRevertsWhenAnotherAccountHoldsARoleOnTheName() public {
+        IPermissionedRegistry edition = _bootstrap();
+        _attach(edition);
+        // The registrar holds the set-resolver admin on its name, so a compromised path could delegate it.
+        vm.prank(address(registrar));
+        base.grantRoles(id(EDITION), R.ROLE_SET_RESOLVER, stranger);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LanyardRegistrar.EditionNotAttached.selector, "name has unexpected role holders"
+            )
+        );
+        vm.prank(organizer);
+        registrar.seal();
+    }
+
+    function test_R4_sealRevertsWhenTheNameWasReservedBeforeItWasRegistered() public {
+        // A base registry where the organizer may also promote reserved names.
+        IPermissionedRegistry base2 =
+            deployRegistry(organizer, R.ROLE_REGISTRAR | R.ROLE_RENEW | R.ROLE_REGISTER_RESERVED, 0xbad);
+        LanyardRegistrar r2 = new LanyardRegistrar(
+            organizer, factory, address(userRegistryImpl), base2, EDITION, EVENT_END, FREEZE_DEADLINE
+        );
+        vm.startPrank(organizer);
+        r2.bootstrapEdition();
+        uint256 roles = r2.editionNameRoles();
+        IRegistry sub = IRegistry(address(r2.edition()));
+        base2.register(EDITION, address(0), IRegistry(address(0)), address(0), 0, FAR_FUTURE); // reserve
+        base2.register(EDITION, address(r2), sub, address(0), roles, 0); // promote
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LanyardRegistrar.EditionNotAttached.selector, "name was reserved before registration"
+            )
+        );
+        r2.seal();
+        vm.stopPrank();
     }
 }

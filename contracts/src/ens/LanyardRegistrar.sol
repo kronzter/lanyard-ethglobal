@@ -4,6 +4,8 @@ pragma solidity 0.8.25;
 import {IVerifiableFactory} from "@ensdomains/verifiable-factory/IVerifiableFactory.sol";
 import {Grant, IEACGrantInitializable} from "ens-v2/access-control/interfaces/IEACGrantInitializable.sol";
 import {IPermissionedRegistry} from "ens-v2/registry/interfaces/IPermissionedRegistry.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IPermissionedResolver} from "ens-v2/resolver/interfaces/IPermissionedResolver.sol";
 import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
 import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.sol";
 
@@ -50,7 +52,12 @@ contract LanyardRegistrar {
     /// @dev The partners book issues no badges until A2.2 defines its policy.
     error BookNotOpen(bytes32 book);
     error InvalidBadgeLabel();
-    error ExpiryAbovePolicy(uint64 requested, uint64 policy);
+    error RenewalNotInFuture(uint64 requested, uint64 nowTimestamp);
+    error ExpiryAboveNamespace(uint64 requested, uint64 namespaceExpiry);
+    error RenewalNotLonger(uint64 requested, uint64 current);
+    /// @dev The label was never issued, or was unregistered or is only reserved: nobody to revive.
+    error NoBadgeToRevive(string label);
+    error UnsupportedResolver(address resolver);
 
     event EditionBootstrapped(address indexed edition, string label);
     event BookCreated(bytes32 indexed book, string label, address registry);
@@ -206,8 +213,14 @@ contract LanyardRegistrar {
         if (base.getExpiry(labelId) < namespaceExpiry) {
             revert EditionNotAttached("name expires before namespaceExpiry");
         }
-        if (base.roles(labelId, address(this)) != EDITION_NAME_ROLES) {
-            revert EditionNotAttached("name roles are not the expected set");
+        uint256 held = base.roles(labelId, address(this));
+        if (held & R.ROLE_WAS_RESERVED != 0) {
+            revert EditionNotAttached("name was reserved before registration");
+        }
+        if (held != EDITION_NAME_ROLES) revert EditionNotAttached("name roles are not the expected set");
+        // Nobody else may hold any role on the name: the assignee counts equal exactly one holder per role.
+        if (base.roleCount(labelId) != EDITION_NAME_ROLES) {
+            revert EditionNotAttached("name has unexpected role holders");
         }
 
         edition_.setParent(IRegistry(address(base)), label);
@@ -228,6 +241,11 @@ contract LanyardRegistrar {
         if (publicationResolver != address(0)) revert PublicationResolverAlreadySet();
         if (resolver == address(0)) revert ZeroAddress();
         if (resolver.code.length == 0) revert ResolverHasNoCode(resolver);
+        try IERC165(resolver).supportsInterface(type(IPermissionedResolver).interfaceId) returns (bool ok) {
+            if (!ok) revert UnsupportedResolver(resolver);
+        } catch {
+            revert UnsupportedResolver(resolver);
+        }
         publicationResolver = resolver;
 
         uint256 labelId = uint256(keccak256(bytes(editionLabel)));
@@ -287,16 +305,30 @@ contract LanyardRegistrar {
         emit BadgeIssued(book, label, owner, expiry);
     }
 
-    /// @notice Extends (or revives) a badge, never beyond the book's policy expiry. Organizer only.
+    /// @notice Extends a badge, or revives an expired one with its previous owner (A2.3). The new expiry must
+    ///         be in the future, later than the current one, and no later than `namespaceExpiry` (the tree's
+    ///         lifetime, deliberately not the issue policy, so a lapsed badge can be restored for a later
+    ///         event window). The label must still have an owner: unregistered or merely reserved labels
+    ///         revert. Organizer only, after sealing; the partners book stays closed until A2.2.
     function renew(bytes32 book, string calldata label, uint64 newExpiry)
         external
         onlyOrganizer
         inPhase(Phase.Sealed)
     {
-        uint64 policy = badgeExpiry(book);
-        if (newExpiry > policy) revert ExpiryAbovePolicy(newExpiry, policy);
+        if (book == PARTNERS) revert BookNotOpen(book);
+        IPermissionedRegistry registry = bookRegistry[book];
+        if (address(registry) == address(0)) revert UnknownBook(book);
         _checkBadgeLabel(label);
-        bookRegistry[book].renew(uint256(keccak256(bytes(label))), newExpiry);
+        if (newExpiry <= block.timestamp) revert RenewalNotInFuture(newExpiry, uint64(block.timestamp));
+        if (newExpiry > namespaceExpiry) revert ExpiryAboveNamespace(newExpiry, namespaceExpiry);
+
+        uint256 labelId = uint256(keccak256(bytes(label)));
+        if (registry.latestOwnerOf(registry.getTokenId(labelId)) == address(0)) {
+            revert NoBadgeToRevive(label);
+        }
+        uint64 current = registry.getExpiry(labelId);
+        if (newExpiry <= current) revert RenewalNotLonger(newExpiry, current);
+        registry.renew(labelId, newExpiry);
     }
 
     /// @notice The frozen expiry of badges in `book`: hackers end 7 days after the event, judges at the
@@ -332,13 +364,14 @@ contract LanyardRegistrar {
     ////////////////////////////////////////////////////////////////////////
 
     /// @dev The base registry mints (and re-mints, whenever roles change) the edition name to this
-    ///      contract. Accept tokens from that registry only.
-    function onERC1155Received(address, address, uint256, uint256, bytes calldata)
+    ///      contract. Accept only mints from that registry.
+    function onERC1155Received(address, address from, uint256, uint256, bytes calldata)
         external
         view
         returns (bytes4)
     {
-        if (msg.sender != address(baseRegistry)) revert UnexpectedToken();
+        // Mints and regenerations only (from == 0); a holder transferring a base name in is refused.
+        if (msg.sender != address(baseRegistry) || from != address(0)) revert UnexpectedToken();
         return this.onERC1155Received.selector;
     }
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.25;
 
+import {IERC1155Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 import {IEnhancedAccessControl} from "ens-v2/access-control/interfaces/IEnhancedAccessControl.sol";
 import {IPermissionedRegistry} from "ens-v2/registry/interfaces/IPermissionedRegistry.sol";
 import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
@@ -9,6 +10,8 @@ import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.
 
 import {LanyardRegistrar} from "../../src/ens/LanyardRegistrar.sol";
 import {EnsFixture} from "./helpers/EnsFixture.sol";
+
+contract NoReceiver {}
 
 /// A1.2-R3 (frozen role policy), R4 (expiry per book), R5 (organizer only) and R6 (BadgeIssued).
 contract RegisterBadgeTest is EnsFixture {
@@ -64,6 +67,7 @@ contract RegisterBadgeTest is EnsFixture {
         uint256 labelId = id("alice");
         assertEq(book.getOwner(labelId), alice);
         assertEq(book.roles(labelId, alice), 0);
+        assertEq(book.roleCount(labelId), 0, "nobody holds any role on the badge");
         assertEq(book.getResolver("alice"), address(0));
         assertEq(address(book.getSubregistry("alice")), address(0));
 
@@ -74,9 +78,12 @@ contract RegisterBadgeTest is EnsFixture {
         book.setResolver(labelId, address(1));
         vm.expectRevert(abi.encodeWithSelector(UNAUTHORIZED, resource, R.ROLE_SET_SUBREGISTRY, alice));
         book.setSubregistry(labelId, IRegistry(address(1)));
-        vm.expectRevert(); // no ROLE_CAN_TRANSFER_ADMIN
+        vm.expectRevert(
+            abi.encodeWithSelector(IPermissionedRegistry.TransferDisallowed.selector, tokenId, alice)
+        );
         book.unsafeTransfer(stranger, tokenId, "");
-        vm.expectRevert(); // safe transfer is also refused (book is not emancipated, and no transfer role)
+        // Safe transfer is refused earlier still: a book the organizer can unregister from is not emancipated.
+        vm.expectRevert(IPermissionedRegistry.TransferUnsafeUntilRegistryIsEmancipated.selector);
         book.safeTransferFrom(alice, stranger, tokenId, 1, "");
         vm.stopPrank();
         assertEq(book.getOwner(labelId), alice, "still alice's");
@@ -135,6 +142,7 @@ contract RegisterBadgeTest is EnsFixture {
         IPermissionedRegistry book = _book(judges);
         assertEq(book.getOwner(id(label)), owner);
         assertEq(book.roles(id(label), owner), 0);
+        assertEq(book.roleCount(id(label)), 0);
         assertEq(book.getExpiry(id(label)), FREEZE_DEADLINE);
     }
 
@@ -181,44 +189,113 @@ contract RegisterBadgeTest is EnsFixture {
         assertEq(uint8(book.getStatus(id("v"))), uint8(IPermissionedRegistry.Status.AVAILABLE));
     }
 
-    function test_R4_renewExtendsUpToThePolicyAndNoFurther() public {
+    // Revival policy: new expiry in the future, later than the current one, at most namespaceExpiry, and
+    // the label must still have an owner.
+
+    function test_R4_renewRevivesAnExpiredBadgeWithItsOwnerAfterThePolicyExpiry() public {
         _issue(volunteers, "v", alice);
         IPermissionedRegistry book = _book(volunteers);
-        // A volunteer badge is already at its policy expiry, so only the same value is allowed.
-        vm.startPrank(organizer);
-        registrar.renew(volunteers, "v", EVENT_END);
-        vm.expectRevert(
-            abi.encodeWithSelector(LanyardRegistrar.ExpiryAbovePolicy.selector, EVENT_END + 1, EVENT_END)
-        );
-        registrar.renew(volunteers, "v", EVENT_END + 1);
-        vm.stopPrank();
-        assertEq(book.getExpiry(id("v")), EVENT_END);
+        vm.warp(EVENT_END + 1); // past the volunteer policy expiry
+        assertEq(book.getOwner(id("v")), address(0), "expired");
+        assertEq(uint8(book.getStatus(id("v"))), uint8(IPermissionedRegistry.Status.AVAILABLE));
+
+        uint64 newExpiry = FREEZE_DEADLINE; // beyond the issue policy, within the namespace lifetime
+        vm.prank(organizer);
+        registrar.renew(volunteers, "v", newExpiry);
+
+        assertEq(book.getOwner(id("v")), alice, "owner restored");
+        assertEq(book.getExpiry(id("v")), newExpiry, "expiry is exactly the requested one");
+        assertEq(uint8(book.getStatus(id("v"))), uint8(IPermissionedRegistry.Status.REGISTERED));
+        assertEq(book.roleCount(id("v")), 0, "revival grants no roles");
     }
 
-    function test_R4_renewCanReviveAnExpiredBadgeWithinThePolicy() public {
-        // Registry rule: the registrar's root RENEW role can revive an expired name. Policy still caps it.
-        _issue(hackers, "h", alice);
-        IPermissionedRegistry book = _book(hackers);
-        vm.warp(EVENT_END + 7 days);
-        assertEq(book.getOwner(id("h")), address(0));
+    function test_R4_renewExtendsALiveBadgeUpToNamespaceExpiry() public {
+        _issue(volunteers, "v", alice);
+        IPermissionedRegistry book = _book(volunteers);
+        vm.startPrank(organizer);
+        registrar.renew(volunteers, "v", EVENT_END + 1);
+        assertEq(book.getExpiry(id("v")), EVENT_END + 1);
+        registrar.renew(volunteers, "v", NAMESPACE_EXPIRY); // the exact upper boundary
+        vm.stopPrank();
+        assertEq(book.getExpiry(id("v")), NAMESPACE_EXPIRY);
+    }
+
+    function test_R4_renewRevertsPastNamespaceExpiry() public {
+        _issue(volunteers, "v", alice);
+        vm.prank(organizer);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                LanyardRegistrar.ExpiryAboveNamespace.selector, NAMESPACE_EXPIRY + 1, NAMESPACE_EXPIRY
+            )
+        );
+        registrar.renew(volunteers, "v", NAMESPACE_EXPIRY + 1);
+    }
+
+    function test_R4_renewRevertsWhenTheNewExpiryIsNotInTheFuture() public {
+        _issue(volunteers, "v", alice);
+        vm.warp(EVENT_END + 1 days);
         vm.startPrank(organizer);
         vm.expectRevert(
             abi.encodeWithSelector(
-                LanyardRegistrar.ExpiryAbovePolicy.selector, EVENT_END + 7 days + 1, EVENT_END + 7 days
+                LanyardRegistrar.RenewalNotInFuture.selector, block.timestamp, block.timestamp
             )
         );
-        registrar.renew(hackers, "h", EVENT_END + 7 days + 1);
-        registrar.renew(hackers, "h", EVENT_END + 7 days); // no reduction, within policy: accepted
+        registrar.renew(volunteers, "v", uint64(block.timestamp)); // == now is already expired
+        vm.expectRevert(
+            abi.encodeWithSelector(LanyardRegistrar.RenewalNotInFuture.selector, EVENT_END, block.timestamp)
+        );
+        registrar.renew(volunteers, "v", EVENT_END);
         vm.stopPrank();
     }
 
-    function test_R4_renewCannotReduceAnExpiryOrTouchAnUnissuedLabel() public {
+    function test_R4_renewRevertsWhenItWouldNotLengthenTheExpiry() public {
         _issue(hackers, "h", alice);
+        uint64 current = EVENT_END + 7 days;
         vm.startPrank(organizer);
-        vm.expectRevert();
-        registrar.renew(hackers, "h", EVENT_END); // would shorten (EVENT_END + 7 days -> EVENT_END)
-        vm.expectRevert();
-        registrar.renew(hackers, "never-issued", EVENT_END + 7 days);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.RenewalNotLonger.selector, current, current));
+        registrar.renew(hackers, "h", current); // a no-op
+        vm.expectRevert(
+            abi.encodeWithSelector(LanyardRegistrar.RenewalNotLonger.selector, EVENT_END + 1, current)
+        );
+        registrar.renew(hackers, "h", EVENT_END + 1); // a reduction
+        vm.stopPrank();
+    }
+
+    function test_R4_renewRevertsForALabelThatWasNeverIssued() public {
+        vm.prank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.NoBadgeToRevive.selector, "never-issued"));
+        registrar.renew(hackers, "never-issued", NAMESPACE_EXPIRY);
+    }
+
+    function test_R4_renewAfterARawUnregisterReverts() public {
+        // The organizer's raw UNREGISTER role removes the badge; the registrar must not resurrect it.
+        _issue(hackers, "h", alice);
+        IPermissionedRegistry book = _book(hackers);
+        vm.prank(organizer);
+        book.unregister(id("h"));
+        vm.warp(block.timestamp + 1);
+        vm.prank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.NoBadgeToRevive.selector, "h"));
+        registrar.renew(hackers, "h", NAMESPACE_EXPIRY);
+        assertEq(book.getOwner(id("h")), address(0));
+    }
+
+    function test_R4_renewRevertsForAReservedLabel() public {
+        IPermissionedRegistry book = _book(hackers);
+        vm.prank(organizer);
+        book.register("held", address(0), IRegistry(address(0)), address(0), 0, NAMESPACE_EXPIRY);
+        vm.prank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.NoBadgeToRevive.selector, "held"));
+        registrar.renew(hackers, "held", NAMESPACE_EXPIRY);
+    }
+
+    function test_R4_renewIsClosedForPartnersAndUnknownBooks() public {
+        vm.startPrank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.BookNotOpen.selector, partners));
+        registrar.renew(partners, "arkiv", NAMESPACE_EXPIRY);
+        bytes32 unknown = keccak256("sponsors");
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.UnknownBook.selector, unknown));
+        registrar.renew(unknown, "x", NAMESPACE_EXPIRY);
         vm.stopPrank();
     }
 
@@ -287,8 +364,47 @@ contract RegisterBadgeTest is EnsFixture {
     function test_R6_aRevertedIssueEmitsNothing() public {
         vm.recordLogs();
         vm.prank(stranger);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(LanyardRegistrar.NotOrganizer.selector, stranger));
         registrar.registerBadge(judges, "priya", alice);
         assertEq(vm.getRecordedLogs().length, 0);
+    }
+
+    function test_R3_aContractWithoutAnErc1155ReceiverCannotBeIssuedABadge() public {
+        // Ops caveat (README): the registry mints with an acceptance check, so the owner must be an EOA or a
+        // contract implementing onERC1155Received.
+        address noReceiver = address(new NoReceiver());
+        vm.prank(organizer);
+        vm.expectRevert(abi.encodeWithSelector(IERC1155Errors.ERC1155InvalidReceiver.selector, noReceiver));
+        registrar.registerBadge(hackers, "contract", noReceiver);
+        assertEq(
+            uint8(_book(hackers).getStatus(id("contract"))), uint8(IPermissionedRegistry.Status.AVAILABLE)
+        );
+    }
+
+    function test_R4_expiryTableAndNamespaceExpiryWhenTheEventEndsAfterTheFreezeDeadline() public {
+        uint64 lateEnd = FREEZE_DEADLINE + 5 days;
+        LanyardRegistrar late = new LanyardRegistrar(
+            organizer, factory, address(userRegistryImpl), base, "late2026", lateEnd, FREEZE_DEADLINE
+        );
+        vm.prank(organizer);
+        late.bootstrapEdition();
+        IPermissionedRegistry lateEdition = late.edition();
+        uint256 roles = late.editionNameRoles();
+        vm.startPrank(organizer);
+        base.register(
+            "late2026", address(late), IRegistry(address(lateEdition)), address(0), roles, FAR_FUTURE
+        );
+        late.seal();
+        late.registerBadge(hackers, "h", alice);
+        late.registerBadge(judges, "j", alice);
+        late.registerBadge(volunteers, "v", alice);
+        vm.stopPrank();
+
+        assertEq(late.namespaceExpiry(), lateEnd + 30 days, "max(eventEnd, freezeDeadline) + 30d");
+        assertEq(late.bookRegistry(hackers).getExpiry(id("h")), lateEnd + 7 days);
+        assertEq(late.bookRegistry(judges).getExpiry(id("j")), FREEZE_DEADLINE);
+        assertEq(late.bookRegistry(volunteers).getExpiry(id("v")), lateEnd);
+        assertEq(lateEdition.getExpiry(id("hackers")), lateEnd + 30 days, "book names last the namespace");
+        assertTrue(FREEZE_DEADLINE < lateEnd, "judges lapse before volunteers in this timeline");
     }
 }

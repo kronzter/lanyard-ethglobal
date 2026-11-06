@@ -7,6 +7,8 @@ import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
 import {IStandardRegistry} from "ens-v2/registry/interfaces/IStandardRegistry.sol";
 import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.sol";
 
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+
 import {LanyardRegistrar} from "../../src/ens/LanyardRegistrar.sol";
 import {EnsFixture} from "./helpers/EnsFixture.sol";
 
@@ -16,6 +18,7 @@ contract BooksTest is EnsFixture {
     LanyardRegistrar internal registrar;
     IPermissionedRegistry internal edition;
     string internal constant EDITION = "mumbai2026";
+    bytes4 internal immutable CANNOT_GRANT = IEnhancedAccessControl.EACCannotGrantRoles.selector;
     bytes4 internal immutable UNAUTHORIZED = IEnhancedAccessControl.EACUnauthorizedAccountRoles.selector;
 
     uint256 internal constant ORGANIZER_BOOK_ROLES =
@@ -131,11 +134,14 @@ contract BooksTest is EnsFixture {
         IPermissionedRegistry book = registrar.bookRegistry(registrar.HACKERS());
         vm.prank(address(registrar));
         book.register("alice", stranger, IRegistry(address(0)), address(0), 0, EVENT_END);
+        uint256 resource = book.getResource(id("alice"));
         vm.prank(address(registrar));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(UNAUTHORIZED, resource, R.ROLE_UNREGISTER, address(registrar)));
         book.unregister(id("alice"));
         vm.prank(address(registrar));
-        vm.expectRevert();
+        vm.expectRevert(
+            abi.encodeWithSelector(UNAUTHORIZED, resource, R.ROLE_SET_RESOLVER, address(registrar))
+        );
         book.setResolver(id("alice"), address(1));
     }
 
@@ -147,10 +153,10 @@ contract BooksTest is EnsFixture {
         book.register("alice", stranger, IRegistry(address(0)), address(0), 0, EVENT_END);
         // The organizer holds no admin role, so it cannot hand out roles (UPGRADE included).
         vm.prank(organizer);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(CANNOT_GRANT, 0, R.ROLE_UPGRADE, organizer));
         book.grantRootRoles(R.ROLE_UPGRADE, organizer);
         vm.prank(organizer);
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSelector(CANNOT_GRANT, 0, R.ROLE_REGISTRAR, organizer));
         book.grantRootRoles(R.ROLE_REGISTRAR, stranger);
     }
 
@@ -184,7 +190,9 @@ contract BooksTest is EnsFixture {
         edition.setSubregistry(hackersId, IRegistry(address(0)));
         vm.expectRevert(abi.encodeWithSelector(UNAUTHORIZED, resource, R.ROLE_UNREGISTER, organizer));
         edition.unregister(hackersId);
-        vm.expectRevert(); // no ROLE_CAN_TRANSFER_ADMIN
+        vm.expectRevert(
+            abi.encodeWithSelector(IPermissionedRegistry.TransferDisallowed.selector, tokenId, organizer)
+        );
         edition.unsafeTransfer(stranger, tokenId, "");
         vm.stopPrank();
     }
@@ -195,5 +203,19 @@ contract BooksTest is EnsFixture {
         assertEq(uint8(edition.getStatus(id("partners"))), uint8(IPermissionedRegistry.Status.REGISTERED));
         vm.warp(NAMESPACE_EXPIRY);
         assertEq(uint8(edition.getStatus(id("partners"))), uint8(IPermissionedRegistry.Status.AVAILABLE));
+    }
+
+    function test_R2_noOneCanUpgradeTheEditionOrABook() public {
+        _bootstrap();
+        _seal();
+        address[2] memory proxies = [address(edition), address(registrar.bookRegistry(registrar.HACKERS()))];
+        address[2] memory callers = [organizer, address(registrar)];
+        for (uint256 i; i < proxies.length; ++i) {
+            for (uint256 j; j < callers.length; ++j) {
+                vm.prank(callers[j]);
+                vm.expectRevert(abi.encodeWithSelector(UNAUTHORIZED, 0, R.ROLE_UPGRADE, callers[j]));
+                UUPSUpgradeable(proxies[i]).upgradeToAndCall(address(userRegistryImpl), "");
+            }
+        }
     }
 }

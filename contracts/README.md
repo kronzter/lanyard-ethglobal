@@ -44,3 +44,18 @@ No upgrades during the build. Remappings live in `remappings.txt` and are edited
 - **Sepolia** supports `cancun`, the default `evm_version`.
 - **Rabdi** (chain `7794095`): EVM version and contract deployability are unmeasured until
   P0.6-S6. If Rabdi needs a different target, add a `[profile.rabdi]`.
+
+## LanyardRegistrar notes (A1)
+
+- **Revival.** `renew(book, label, newExpiry)` extends a badge or revives an expired one with its
+  previous owner (A2.3). The new expiry must be in the future, later than the current one and at
+  most `namespaceExpiry`, deliberately the tree's lifetime and not the issue policy. A label that
+  was unregistered or is only reserved has no owner and reverts. Issuing still uses the fixed
+  per-book policy expiry.
+- **Badge owners must be able to receive ERC-1155.** The registry mints with an acceptance check,
+  so `registerBadge` reverts for a contract owner without `onERC1155Received`. Use an EOA or a
+  contract that implements the receiver.
+- **Raw organizer roles.** The organizer holds REGISTRAR, UNREGISTER, RENEW and SET_RESOLVER on
+  each book root, so direct issuance and removal bypass the registrar's policy (issuer trust).
+- **Edition name receiver.** The registrar accepts ERC-1155 tokens only as mints from the base
+  registry; a holder cannot push a base name into it.
