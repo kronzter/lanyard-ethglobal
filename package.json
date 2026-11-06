@@ -14,7 +14,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint": "eslint . && prettier --check .",
-    "format": "prettier --write . && eslint --fix ."
+    "format": "prettier --write . && eslint --fix .",
+    "prepare": "husky",
+    "secret-scan": "node scripts/secret-scan/cli.mjs --staged",
+    "secret-scan:all": "node scripts/secret-scan/cli.mjs --all"
   },
   "dependencies": {
     "@expo/metro-runtime": "58.0.17",
@@ -32,10 +35,13 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@scure/bip39": "2.4.0",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
     "eslint": "10.14.0",
     "globals": "17.14.0",
+    "husky": "9.1.7",
+    "lint-staged": "17.6.0",
     "prettier": "3.9.10",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.1",
