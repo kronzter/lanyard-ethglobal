@@ -32,6 +32,13 @@ describe("createProviders", () => {
     expect(() => live.identityDirectory()).toThrow(/A2\.4, switched on at I2/);
     expect(() => live.router()).toThrow(ProviderNotWiredError);
     expect(() => live.router()).toThrow(/A3\.2, switched on at I3/);
+    expect(() => live.venueMap()).toThrow(/A3\.3, switched on at I3/);
+  });
+
+  it("serves the stub venue map in stub mode without loading react-native-svg", () => {
+    const p = createProviders({ ens: "mock", router: "stub" });
+    expect(typeof p.venueMap()).toBe("function");
+    expect(p.venueMap()).toBe(p.venueMap());
   });
 
   it("serves the fixture ENS reader, directory and stub router in mock mode, one instance each", async () => {
