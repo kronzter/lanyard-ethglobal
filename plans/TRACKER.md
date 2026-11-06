@@ -140,7 +140,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 2. ~~Set up an Expo account and eas-cli, get a Reown project ID and an archive Sepolia RPC key~~ done 2026-11-06.
 3. Phone half of the spike: ~~S1, S2, S7~~ done 2026-11-06; S8 done (phone reads + B's Node load and watchers). **Deferred by user decision until before I1:** S5 on web (Chrome + MetaMask at `/spike`), and with B: S3, S4 and the Hermes vector run (S3 first).
 4. ~~Rest of the app shell (R2, R3, R5, R6, R7 on Android)~~ merged 2026-11-06. Open: merge #15, a `preview` APK (`pnpm app:apk`) on both phones.
-5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) in a draft PR from `a1/namespace` into `phase/A` (Track A base, cut from `main`); supersedes #14. Review findings A1-D4–D6 fixed; next: the deploy-time checks A1-D7/D8, rerun the Sepolia fork suite, then the live deploy.
+5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) in a draft PR from `a1/namespace` into `phase/A` (Track A base, cut from `main`); supersedes #14. Review findings A1-D4–D6 fixed; Sepolia fork mode A passes on the fixed branch (2026-11-06). Next: the deploy-time checks A1-D7/D8, then the live deploy.
 6. A3: move #11 (Mumbai venue) and the A3.2 router onto `a3/venue` from `phase/A`.
 
 ---
@@ -157,7 +157,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 
 **Bug hunt:** reviewed; findings corrected and rechecked · **Merged:** no
 
-**Verification · 2026-11-06 (`a1/namespace` on `main` `e5f0aa8`):** 127 Foundry tests pass after the D4–D6 fixes (2 fork tests skip without config); `LanyardRegistrar` runtime 24,111 bytes (465 under EIP-170); TypeScript 738/741, the 3 failures being Windows-only (`cli/score-keygen.test.ts` ×2, Track B) and a `rules-version` timeout under load that passes alone; typecheck, lint, `forge fmt` and secret scan pass. No Track B files changed. An earlier run of the expanded fork mode A passed at pinned block **12077035** against the deployed ENSv2 (edition, books, three team registries, reserved winners, exact role inventories, forbidden winner claims, duplicate-team rejection, twelve hackers badges); `SEPOLIA_FORK_BLOCK` pins the block. Ancestor and base-name authority remain disclosed trust limits.
+**Verification · 2026-11-06 (`a1/namespace` on `main` `e5f0aa8`):** 127 Foundry tests pass after the D4–D6 fixes; **Person A reran the fork suite on `9d7dd24`: mode A passes against the real Sepolia ENSv2** (128 passed, mode B skipped until the live deploy); `LanyardRegistrar` runtime 24,111 bytes (465 under EIP-170); TypeScript 738/741, the 3 failures being Windows-only (`cli/score-keygen.test.ts` ×2, Track B) and a `rules-version` timeout under load that passes alone; typecheck, lint, `forge fmt` and secret scan pass. No Track B files changed. An earlier run of the expanded fork mode A passed at pinned block **12077035** against the deployed ENSv2 (edition, books, three team registries, reserved winners, exact role inventories, forbidden winner claims, duplicate-team rejection, twelve hackers badges); `SEPOLIA_FORK_BLOCK` pins the block. Ancestor and base-name authority remain disclosed trust limits.
 
 Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D4–D9 come from an independent contract review on 2026-11-06; D4–D6 are fixed in the contract, D7–D8 are deploy-time checks still to add, D9 is disclosed. No live transaction was sent.
 
