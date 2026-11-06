@@ -9,7 +9,8 @@ import { addr } from "@arkiv-network/sdk/schema";
 import type { EventTimes } from "@/shared/config/schema";
 import { isAddress, type Address, type Hex } from "@/shared/types/primitives";
 import { isUserRejection, type ArkivReader, type ArkivWriter, type StoredEntity } from "./api";
-import { APP, KINDS } from "./kinds";
+import { APP } from "./kinds";
+import { buildCreate } from "./writers";
 import type { KeyValueStore } from "./store";
 
 export const DESK_LABEL = "desk";
@@ -156,24 +157,14 @@ export async function drip(deps: DripDeps, recipientInput: string): Promise<Drip
     }
   }
 
-  const kind = KINDS.drip;
+  const record = buildCreate(
+    "drip",
+    { edition: deps.edition, byLabel: DESK_LABEL, times: deps.times },
+    { recipient, tx: txHash! },
+  );
   const written = await deps.desk
     .write({
-      creates: [
-        {
-          schema: kind.schema,
-          values: {
-            app: APP,
-            event: deps.edition,
-            kind: "drip",
-            by_label: DESK_LABEL,
-            recipient: addr(recipient),
-            tx: txHash!,
-          } as never,
-          expiration: kind.retention(deps.times),
-          flags: kind.flags,
-        },
-      ],
+      creates: [record],
     })
     .catch(async (e: unknown) => {
       // The tGLM already moved; keep the "sent" intent so the next run writes only the record.
