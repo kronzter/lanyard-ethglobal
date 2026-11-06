@@ -93,6 +93,14 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 | S3 | One commit per spec; agents never push | Several small commits per spec ending in a `docs(tracker)` commit; titles describe the change, with the spec ID only in a `Refs:` footer, and no assistant attribution. Agents push non-`main` branches, never `main`. PRs target the phase branch directly: stacked PRs #2–#4 merged into their stacked bases before retargeting, so #5 brought the same commits into `phase/P0-foundation`, and stacking is no longer used | revised |
 | S4 | No local Android build host (Windows, no WSL/SDK); `--local` blocked S1 | APKs build on EAS cloud (`pnpm app:dev-apk`, `pnpm app:apk`); `--local` scripts kept as optional; builds receive only public `EXPO_PUBLIC_*` values and EAS holds no secret; P0/I3/I4/CONTEXT/README/workflow | revised |
 
+### Approved plan repair · 2026-11-06 (Mumbai venue size)
+
+Scope approved in conversation: the user shared the ETHGlobal Mumbai floor plan, asked to keep its layout but split the hacking spaces into many more seat slots, estimated the hall at ~80 × 50 m, then chose to scale it to ~96 × 60 m to reach ~800 seats. The event has 6–8 partners, to be named later. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| V1 | A3.1 planned ~60 seats, 3 zones and 2 partner tables | `venue.mumbai.json` traced from the floor plan at ~96 × 60 m with ~800 seats, 5 zones each with a help desk or help point, 8 partner booths (configured partners get `partner-table`s, the rest are placeholders); A3.1 | revised |
+
 ### Specs
 
 | Spec | Owner | Status | Commit | Notes |
