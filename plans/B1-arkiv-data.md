@@ -4,7 +4,7 @@
 
 ## Goal
 
-One package, `packages/arkiv`, that every screen uses to write, read and watch Lanyard's records on Rabdi, signing with the user's own wallet through AppKit. Plus the on-chain `Faucet` that gives each new user their first tGLM. Track B's later phases build only on this.
+One module, `src/arkiv`, that every screen uses to write, read and watch Lanyard's records on Rabdi, signing with the user's own wallet through AppKit. Plus the on-chain `Faucet` that gives each new user their first tGLM. Track B's later phases build only on this.
 
 Follow [the evidence contract](01-evidence-and-interfaces.md): live rows are current observations, readonly does not prevent deletion/transfer, and retained capture is operator-attested rather than a historical chain snapshot. Funding uses the `Faucet` contract, or the P0.6 desk-wallet + `drip` record fallback.
 
@@ -51,7 +51,7 @@ Expiry is physical retention in blocks, not the application's lease/session cloc
 **Requirements**
 - **B1.1-R1** THE package SHALL pin P0.6-validated SDK 1.0.x/viem versions and export Rabdi config (ID `7794095`) and keyless wallet-add parameters. Reader access configuration is separate and redacted in logs: the app may ship a dedicated read-only Arkiv access key as a public value if P0.6 shows keyless is too limited (proxy only as the further fallback); no operator or signing key goes in wallets or app bundles.
 - **B1.1-R2** THE app-side Arkiv client SHALL sign with the EIP-1193 provider from the shell's `useWallet()` (AppKit), never with a raw key. Only local scripts and the CLI take a key, from their own `.env`.
-- **B1.1-R3** THE `Faucet` contract (`packages/faucet`, on Rabdi) SHALL hold organizer-funded tGLM, and its `drip(address)` SHALL send a fixed amount at most once per address, callable only by the organizer or addresses the organizer has given the desk role.
+- **B1.1-R3** THE `Faucet` contract (`contracts/src/faucet`, on Rabdi) SHALL hold organizer-funded tGLM, and its `drip(address)` SHALL send a fixed amount at most once per address, callable only by the organizer or addresses the organizer has given the desk role.
 - **B1.1-R4** THE `/organizer/faucet` web-only screen SHALL let a desk wallet scan or paste an address, call `drip`, and show the transaction and the new balance. A fresh wallet has no gas to call `drip` itself, which is why the desk calls it.
 - **B1.1-R5** THE package SHALL expose an in-memory `FakeArkiv` with the same app API for tests, enforcing native owner/flags/expiry behavior, allowing owner deletion/transfer of readonly records, and rejecting historical-query options. Simulate changing pages and capture gaps.
 - **B1.1-R6** THE faucet address SHALL be written to `deployments/rabdi.json`.

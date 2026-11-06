@@ -75,17 +75,27 @@ Scope approved in conversation: a pass over A1–A4, B1–B4, I1–I4 and the sh
 | M1–M3 | A1 gas wording, history-fixture branch, A1.1 requirement order | A1 wording; `sepolia-history.json` committed on I2; A1.1 R1–R5 in order | revised |
 | M4–M5 | CONTEXT said decryption key goes in results record; faucet shown as fixed | Published in the evidence bundle; faucet decision lists fallback | revised |
 | M6 | `OpenTicket` vs `RoutingTicket` | P0.2 uses `RoutingTicket` and `LocatedStop` from `01` | revised |
-| M7 | `/teams/[team]` route unowned | `apps/app/app/teams/**` owned by Track B | revised |
+| M7 | `/teams/[team]` route unowned | `app/teams/**` owned by Track B | revised |
 | M8 | Partner POIs had no partner ID | POI `partner-table` kind with `partner` ID; A3.1-R7 blocks export without one per partner | revised |
 | M9 | P0.1 CI ran `expo export` before the app existed | Runs once P0.5 creates `apps/app` | revised |
 | M10 | Bug-hunt prompt skipped the authoritative contract | Prompt also reads `01-evidence-and-interfaces.md` | revised |
+
+### Approved plan repair · 2026-11-06 (single app, Track B first)
+
+Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; Person B (`@arnavmahajan630`) builds the P0 slice B1 needs. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| S1 | 8-package pnpm monorepo and ENSv2 git submodules add Expo/Metro/EAS friction | One Expo project at the repo root, plain `src/` folders, `cli/`, one `contracts/` Foundry project with Soldeer deps; ESLint import boundaries + CODEOWNERS; all plan paths rewritten | revised |
+| S2 | P0 blocked on both builders | Track B slice (P0.1, P0.2, P0.4a, P0.5a, P0.6a S6/S9/S10/S12) merges first; P0.3, remaining fixtures, AppKit/Android and ENSv2 deferred to before the phase that needs them (`P0-foundation.md`) | revised |
+| S3 | One commit per spec; agents never push | Several small spec-tagged commits ending in a `docs(tracker)` commit; per-spec stacked PR branches; agents push non-`main` branches, never `main` | revised |
 
 ### Specs
 
 | Spec | Owner | Status | Commit | Notes |
 | --- | --- | --- | --- | --- |
 | P0.6 Wallet and chain spike | pair | todo | | |
-| P0.1 Repo skeleton and CI | A | todo | | |
+| P0.1 Repo skeleton and CI | B (swapped from A) | doing | | |
 | P0.2 Shared types, config, deployments | B | todo | | |
 | P0.3 Interfaces, mocks, conformance | pair | todo | | |
 | P0.4 Fixtures | B | todo | | |
@@ -246,7 +256,7 @@ Scope approved in conversation: a pass over A1–A4, B1–B4, I1–I4 and the sh
 
 ## Interface change log
 
-Every change to `packages/shared/src/interfaces` after P0 gets a row here. Either person may append a row.
+Every change to `src/shared/interfaces` after P0 gets a row here. Either person may append a row.
 
 | Commit | Interface | Change | Additive? | Real impl updated in |
 | --- | --- | --- | --- | --- |

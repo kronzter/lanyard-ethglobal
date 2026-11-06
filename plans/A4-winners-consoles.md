@@ -45,7 +45,7 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 - **A4.2-R1** `setEventResults(PublicationInput)` SHALL use the results-wallet-only contract entrypoint, store the full commitment, and write results key/hash, bundle hash, bundle URI (`lanyard.bundle-uri`) and edition on the edition name through the publication resolver. It is set once; conflicting/repeated direct calls fail. A resumed CLI adopts matching state without calling again. Bound URI bytes to 2,048 and reject unsupported URI schemes before writing.
 - **A4.2-R2** `lockResults(expected)` SHALL atomically compare complete event/winner state, require a sealed grant inventory, revoke the contract's text/link/upgrade roles and all their admins (including scoped text grants), then set persistent `locked`. Partial failure reverts everything. Event-pointer writes, winner writes, declarations and publication SHALL all fail after lock, even from a new client instance.
 - **A4.2-R3** THE `SepoliaResultsPublisher` SHALL implement `ResultsPublisher` and pass `runResultsPublisherConformance` on a Sepolia fork.
-- **A4.2-R4** THE `SepoliaResultsPublisher` SHALL be used only by the local freeze CLI, with the results key from that machine's `.env`. It SHALL never be imported by `apps/app`.
+- **A4.2-R4** THE `SepoliaResultsPublisher` SHALL be used only by the local freeze CLI, with the results key from that machine's `.env`. It SHALL never be imported by app code (`app/`, `src/`).
 - **A4.2-R5** THE publisher SHALL implement shared `state`, confirmed receipts and `reconcile`. Save exact signed transaction/hash/nonce before local broadcast. Compare complete commitment/payload hashes; missing receipts never authorize resending. Simulate role removal and gas limits on a fork before irreversible handoff.
 
 **Commit:** `feat(ens): A4.2 results lock and SepoliaResultsPublisher`
@@ -84,7 +84,7 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 - [ ] The winner name can't be transferred and has no set-resolver role
 - [ ] A team predating `WinnerRegistrar` works through stable forwarders without backfill or surviving registry admins
 - [ ] Mixed-case or look-alike team labels are normalized before `declare`
-- [ ] Search the web export and the APK for the results key and the organizer key: absent; `apps/app` doesn't import `SepoliaResultsPublisher`
+- [ ] Search the web export and the APK for the results key and the organizer key: absent; app code (`app/`, `src/`) doesn't import `SepoliaResultsPublisher`
 - [ ] Coordinator console with a non-coordinator wallet connected: blocked before sending
 - [ ] Head-judge console with a non-head-judge wallet, or partner console used for another partner's sub-book: blocked before sending, and the contract reverts if sent anyway
 - [ ] Desk with a wallet on Rabdi instead of Sepolia: asks to switch, sends nothing on the wrong chain

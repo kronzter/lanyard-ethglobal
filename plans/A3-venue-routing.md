@@ -51,7 +51,7 @@ Publishing the venue to Arkiv and writing seat assignments (Track B, wired in I3
 - **A3.2-R5** `judgeRoute` SHALL accept `LocatedStop[]` from the caller, order nearest-next with key ties and visit each unique project once. Missing locations are caller-reported `unlocated` items; conflicting duplicate cells fail. Project-key strings alone are insufficient routing input.
 - **A3.2-R6** THE `GridRouter` SHALL pass `runRouterConformance`.
 - **A3.2-R7** WHEN a target is unreachable, THE router SHALL return `null` within 50 ms on the Mumbai venue, on a mid-range Android phone, and never hang.
-- **A3.2-R8** THE `packages/venue` code SHALL be pure TypeScript with no Node-only imports, so it runs on Hermes.
+- **A3.2-R8** THE `src/venue` code SHALL be pure TypeScript with no Node-only imports, so it runs on Hermes.
 
 **Commit:** `feat(venue): A3.2 GridRouter with a*, dijkstra and ticket scoring`
 

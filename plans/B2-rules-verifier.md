@@ -4,7 +4,7 @@
 
 ## Goal
 
-`@lanyard/rules`: one pure function, used by the app (on Hermes and in the browser) and by `lanyard verify` (on Node), that decides which Arkiv records count. Anyone can write anything to Arkiv; the rules decide what's real.
+`src/rules`: one pure function, used by the app (on Hermes and in the browser) and by `lanyard verify` (on Node), that decides which Arkiv records count. Anyone can write anything to Arkiv; the rules decide what's real.
 
 **Arkiv decides who can edit a record (its owner). ENS decides whether the record counts (the writer held the right badge at that moment).**
 
@@ -33,7 +33,7 @@ Records that fail are kept and shown greyed out with a reason, never hidden.
 ### B2.1 · Time mapping
 
 **Requirements**
-- **B2.1-R1** THE package SHALL retain available recent Arkiv creation timestamps in B1's capture store and map them through `EnsReader.sepoliaBlockAt`. Missing timestamp evidence fails; arbitrary old Rabdi block reads are not a dependency.
+- **B2.1-R1** THE `src/rules` module SHALL retain available recent Arkiv creation timestamps in B1's capture store and map them through `EnsReader.sepoliaBlockAt`. Missing timestamp evidence fails; arbitrary old Rabdi block reads are not a dependency.
 - **B2.1-R2** WHEN a timestamp falls between two Sepolia blocks, THE mapping SHALL pick the earlier block.
 - **B2.1-R3** THE mapping SHALL be an input to the rules, prepared outside them, so the rules stay pure.
 
@@ -49,7 +49,7 @@ Records that fail are kept and shown greyed out with a reason, never hidden.
 - **B2.2-R3** THE engine SHALL ship the organizer-only kinds now: `venue`, `seat_assignment` and `acceptance` count only if written by the organizer; a `seat_assignment` also requires `EnsReader.owner(hacker_label)` == `hacker_address` at creation; `rubric` only if written by the organizer (any track, and the only writer for `main`) or by a partner for its own track; `results` only by the results key; `drip` only by the configured desk wallet.
 - **B2.2-R4** THE engine SHALL use integer arithmetic, stable sorting, and deterministic tie-breaks (earliest block, then lowest record key).
 - **B2.2-R5** `prepare(records, ensReader, context, config)` SHALL deduplicate creation-time, action-time and evaluation-cutoff ownership/expiry/registration-ID/note reads and unregister intervals. Required read failures throw; current state is never a historical substitute. Permission notes require their shared registration/holder binding, not just the presence of a permission string. Pin continuous judge registration and every present-tense decision at the supplied cutoff. B4 extends preparation with authorization before score decryption and independently regenerated plaintext/rejection entries; raw captured bytes remain separate.
-- **B2.2-R6** THE package SHALL import nothing Node-only, so it runs unchanged on Hermes, in the browser and on Node.
+- **B2.2-R6** THE `src/rules` module SHALL import nothing Node-only, so it runs unchanged on Hermes, in the browser and on Node.
 
 **Tasks**
 - [ ] Engine with a per-kind rule registry
@@ -88,7 +88,7 @@ Records that fail are kept and shown greyed out with a reason, never hidden.
 - [ ] A `seat_assignment` written by a volunteer: rejected with a reason, still shown
 - [ ] An organizer `seat_assignment` whose `hacker_label` isn't owned by `hacker_address`: rejected with a reason
 - [ ] The same inputs on two laptops, and on the Android app: identical output hash
-- [ ] Grep the rules package for `Date.now`, `Math.random`, `fetch` and Node built-ins: none
+- [ ] Grep `src/rules` for `Date.now`, `Math.random`, `fetch` and Node built-ins: none
 - [ ] Prepared 2,000-record evaluation/hash finishes under a minute; cold network preparation measured separately
 - [ ] The mock RPC throws mid-verify: the CLI fails loudly
 - [ ] Canonical bytes/hash agree on Node/browser/Hermes for bigint, maps, bytes and non-ASCII strings

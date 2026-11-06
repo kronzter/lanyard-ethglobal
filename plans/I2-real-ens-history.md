@@ -29,7 +29,7 @@ The B2 core and preparation run on real historical ownership, address, expiry an
 
 1. `chore(fixtures): I2 add recorded sepolia history from A2 scripts`
 2. `feat(app): I2 default ENS flag to sepolia`
-   Wire both app providers and the Node `packages/cli/src/providers.ts` composition root to A2's reader/directory; the CLI's `LANYARD_ENS` flag must select the real reader too.
+   Wire both app providers and the Node `cli/providers.ts` composition root to A2's reader/directory; the CLI's `LANYARD_ENS` flag must select the real reader too.
 3. `test(e2e): I2 historical owner and lead-note snapshot reads`
 4. `test(e2e): I2 revoke and revive scenario on sepolia and rabdi`
 5. `test(e2e): I2 rules output hash matches across two machines and the app`
