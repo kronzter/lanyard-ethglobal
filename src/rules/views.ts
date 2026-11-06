@@ -12,6 +12,7 @@ import type { Address, Hex } from "@/shared/types/primitives";
 import type { Poi } from "@/shared/types/venue";
 import { decodeRecord, str, type DecodedRecord } from "./decode";
 import { holderOf } from "./kinds/duty";
+import { staffPartnerOf } from "./kinds/tickets";
 import { EnsSnapshot } from "./snapshot";
 import {
   activeSessions,
@@ -59,7 +60,10 @@ export type EvaluationView = {
   ticketsAt(at?: bigint): TicketView[];
   /** The latest valid seat assignment for a hacker address at `at` (its `seat`, `venue`). */
   seatOf(hacker: Address, at?: bigint): DecodedRecord | undefined;
-  /** Where a helper starts after clocking in: their session zone's help desk (B3.2-R7). */
+  /**
+   * Where a helper starts: a volunteer at their session zone's help desk after clocking in (B3.2-R7);
+   * partner staff at their partner's table, else the lowest-id help desk (B3.3-R3).
+   */
   helperStart(volunteer: string, at?: bigint): Poi | undefined;
   facts: Facts;
 };
@@ -116,13 +120,19 @@ export function evaluationView(
         return typeof info === "string" ? [] : [{ ...info, state: ticketState(facts, r, at) }];
       }),
     seatOf: (hacker, at = now) => seatAssignmentAt(facts, hacker, at),
-    helperStart: (volunteer, at = now) => {
-      const session = sessionsOf(volunteer, at)[0];
+    helperStart: (helper, at = now) => {
       const venue = venueAt(facts, at)?.venue;
-      if (!session || !venue) return undefined;
-      return venue.pois
-        .filter((p) => p.kind === "help-desk" && p.zone === session.shift.zone)
-        .sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+      if (!venue) return undefined;
+      const first = (keep: (p: Poi) => boolean) =>
+        venue.pois.filter(keep).sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+      const partner = staffPartnerOf(helper);
+      if (partner !== undefined)
+        return (
+          first((p) => p.kind === "partner-table" && p.partner === partner) ??
+          first((p) => p.kind === "help-desk")
+        );
+      const session = sessionsOf(helper, at)[0];
+      return session ? first((p) => p.kind === "help-desk" && p.zone === session.shift.zone) : undefined;
     },
     facts,
   };

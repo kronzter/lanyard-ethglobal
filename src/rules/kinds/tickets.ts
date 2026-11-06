@@ -3,13 +3,15 @@
 //   ticket               a hackers badge, at a seat of the venue current at creation, in a
 //                        configured category; logical life [created, created+4 h)
 //   ticket_claim         the earliest eligible claim of an open ticket wins a 15 min lease; claims
-//                        during a winning lease lose for good. General: on duty in the ticket's zone.
+//                        during a winning lease lose for good. General: on duty in the ticket's zone;
+//                        partner categories: that partner's staff badge at the action, no shift.
 //   ticket_resolution    the winning claimer, before both lease end and ticket close, at its seat;
 //                        it closes the ticket for good
 //   ticket_confirmation  the ticket's hacker, for that ticket's resolution
 //
 // Every decision is at the record's own block time, from records earlier in evidence order.
 import { ticketCategory } from "@/shared/config/tickets";
+import { roleOfLabel } from "@/shared/ens/roles";
 import { isCanonicalLabel } from "@/shared/labels";
 import { ref, str, type DecodedRecord } from "../decode";
 import { holderOf, isVolunteerLabel, VOLUNTEER } from "./duty";
@@ -36,6 +38,20 @@ export const isHackerBadge = (label: string): boolean => {
 
 export const HACKER: Writer = { via: "badge", applies: isHackerBadge, describe: "a hackers badge" };
 
+/** The partner of a `<name>.staff.<partner>.partners` badge, else undefined (judges are not staff). */
+export const staffPartnerOf = (label: string): string | undefined => {
+  if (!isCanonicalLabel(label)) return undefined;
+  const role = roleOfLabel(label);
+  return role.startsWith("partner-staff:") ? role.slice("partner-staff:".length) : undefined;
+};
+
+/** Partner booth staff answer their own partner's tickets, without shifts (B3.3-R3). */
+export const STAFF: Writer = {
+  via: "badge",
+  applies: (label) => staffPartnerOf(label) !== undefined,
+  describe: "a partner staff badge",
+};
+
 /** The counted ticket a record references, with its bound zone, or a reason. */
 function referencedTicket(r: DecodedRecord, f: Facts): TicketInfo | string {
   const key = ref(r, "ticket");
@@ -46,10 +62,17 @@ function referencedTicket(r: DecodedRecord, f: Facts): TicketInfo | string {
   return ticketInfo(f, t);
 }
 
-/** May this writer help with this ticket at the record's time? General tickets need on-duty staff. */
+/**
+ * May this writer help with this ticket at the record's time? General tickets need an on-duty
+ * volunteer in the ticket's zone; partner tickets need that partner's staff badge, which the writer
+ * check already found owned and unexpired at this very action (B3.3-R3).
+ */
 function eligible(r: DecodedRecord, t: TicketInfo, ctx: RuleCtx, f: Facts): RuleResult {
   const category = ticketCategory(ctx.config, t.category);
-  if (category?.partner) return reject(`a ${category.name} ticket is answered by ${category.partner} staff`);
+  if (category?.partner)
+    return staffPartnerOf(r.byLabel!) === category.partner
+      ? ok
+      : reject(`${category.name} tickets are answered only by ${category.partner} staff`);
   if (ctx.writer.via !== "badge" || !isVolunteerLabel(r.byLabel!))
     return reject("a general ticket is answered by an on-duty volunteer");
   const at = createdAt(r);
@@ -77,7 +100,7 @@ export const ticket: KindRule = {
 
 export const ticket_claim: KindRule = {
   flags: READONLY,
-  writers: [VOLUNTEER],
+  writers: [VOLUNTEER, STAFF],
   check: (r, ctx) => {
     const f = factsOf(ctx);
     const t = referencedTicket(r, f);
@@ -99,7 +122,7 @@ export const ticket_claim: KindRule = {
 
 export const ticket_resolution: KindRule = {
   flags: READONLY,
-  writers: [VOLUNTEER],
+  writers: [VOLUNTEER, STAFF],
   check: (r, ctx) => {
     const f = factsOf(ctx);
     const t = referencedTicket(r, f);

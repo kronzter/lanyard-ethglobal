@@ -230,3 +230,64 @@ describe("helper position", () => {
     expect(view.helperStart("dev.volunteers")).toBeUndefined();
   });
 });
+
+describe("partner tickets (B3.3-R3)", () => {
+  const partnerTicket = (at: bigint, hacker = "zkpay-a") =>
+    ticket(hacker, at, { seat: "e1", category: "partner:arkiv" });
+
+  it("only that partner's staff answer, without shifts; volunteers, judges and other partners cannot", async () => {
+    const t = partnerTicket(T0);
+    const byVolunteer = claim("anita", t, T0 + 10n);
+    const byJudge = claim("ana", t, T0 + 11n);
+    const byOtherStaff = claim("uma", t, T0 + 12n);
+    const bySam = claim("sam", t, T0 + 13n);
+    const r = resolve("sam", t, bySam, T0 + 20n, "e1");
+    const { verdict } = await run([...DUTY, t, byVolunteer, byJudge, byOtherStaff, bySam, r]);
+    expect(verdict(byVolunteer).reason).toMatch(/only by arkiv staff/);
+    expect(verdict(byJudge).reason).toMatch(/partner staff badge/);
+    expect(verdict(byOtherStaff).reason).toMatch(/only by arkiv staff/);
+    expect(verdict(bySam).counts).toBe(true);
+    expect(verdict(r).counts).toBe(true);
+  });
+
+  it("revoked partner staff: a claim before counts, the resolution after does not", async () => {
+    const t = partnerTicket(9_032_900n);
+    const c = claim("tara", t, 9_032_950n);
+    const r = resolve("tara", t, c, 9_033_010n, "e1");
+    const { verdict } = await run([VENUE, t, c, r]);
+    expect(verdict(c).counts).toBe(true);
+    expect(verdict(r).counts).toBe(false);
+  });
+
+  it("staff start at their partner's table", async () => {
+    const { view } = await viewAt(DUTY, START + 20n);
+    expect(view.helperStart("sam.staff.arkiv.partners")?.id).toBe("table-arkiv");
+    expect(view.helperStart("uma.staff.ens.partners")?.id).toBe("table-ens");
+  });
+});
+
+describe("seats (B3.3-R6)", () => {
+  const assign = (seat: string, at: bigint) =>
+    obs({
+      kind: "seat_assignment",
+      creator: persona("organizer").address,
+      byLabel: "organizer",
+      at,
+      attrs: {
+        hacker_address: ["addr", persona("zkpay-a").address],
+        hacker_label: ["str", "zkpay-a.hackers"],
+        seat: ["str", seat],
+        venue: ["key", VENUE.key],
+      },
+    });
+
+  it("the latest assignment wins and a reassignment never moves an existing ticket", async () => {
+    const first = assign("w1", T0 - 50n);
+    const t = ticket("zkpay-a", T0, { seat: "w1" });
+    const moved = assign("w2", T0 + 10n);
+    const { view } = await viewAt([...DUTY, first, t, moved], T0 + 20n);
+    expect(view.seatOf(persona("zkpay-a").address)?.key).toBe(moved.key);
+    expect(view.seatOf(persona("zkpay-a").address, tsOf(T0))?.key).toBe(first.key);
+    expect(view.ticketsAt()[0]!.seat).toBe("w1");
+  });
+});
