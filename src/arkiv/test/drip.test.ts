@@ -66,7 +66,7 @@ describe("desk drip", () => {
             recipient: addr(NEWBIE),
             tx: "0xforged",
           } as never,
-          expiration: KINDS.drip.retention(eventConfig.times),
+          expiration: KINDS.drip.retention.at(eventConfig.times),
           flags: KINDS.drip.flags,
         },
       ],

@@ -29,7 +29,8 @@
     "web:export": "expo export --platform web --output-dir dist",
     "ci:local": "pnpm secret-scan:all && pnpm lint && pnpm typecheck && pnpm test && pnpm vectors:browser && pnpm forge:install && pnpm forge:fmt && pnpm forge:test && pnpm web:export && pnpm smoke:web",
     "smoke:web": "node scripts/smoke-web-deeplink.mjs",
-    "vectors:browser": "node scripts/vectors-browser.mjs"
+    "vectors:browser": "node scripts/vectors-browser.mjs",
+    "arkiv:schema": "tsx scripts/arkiv-schema.ts && prettier --write arkiv/schema.md"
   },
   "dependencies": {
     "@adraffy/ens-normalize": "1.11.1",
