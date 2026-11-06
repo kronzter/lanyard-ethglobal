@@ -19,6 +19,7 @@ export async function publishedBundle(
   const at = { sepoliaBlock: await ens.headBlock() };
   const hash = await ens.text("", "lanyard.bundle-hash", at);
   if (!hash) return null;
+  if ((await ens.text("", "lanyard.locked", at)) !== "1") return null;
   const uri = await ens.text("", "lanyard.bundle-uri", at);
   const resultsHash = await ens.text("", "lanyard.results-hash", at);
   if (!uri || !resultsHash || !uri.startsWith("https://"))

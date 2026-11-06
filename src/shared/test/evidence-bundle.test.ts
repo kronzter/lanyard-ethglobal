@@ -178,3 +178,19 @@ describe("results summary", () => {
     expect(() => assertSummaryFits({ a: "x".repeat(128 * 1024) })).toThrow(/over the 131072-byte limit/);
   });
 });
+
+describe("retained input scope", () => {
+  it("rejects unresolved gaps, mutable inputs and results rows", () => {
+    const body = rawBody();
+    expect(() =>
+      parseEvidenceBody({
+        ...body,
+        diagnostics: { ...body.diagnostics, gaps: [{ fromBlock: "1", toBlock: "2", reason: "missed scan" }] },
+      }),
+    ).toThrow(/gaps/);
+    for (const patch of [{ kind: "results" }, { flags: { readonly: false, permissionlessExtension: false } }])
+      expect(() =>
+        parseEvidenceBody({ ...body, records: body.records.map((r) => ({ ...r, ...patch })) }),
+      ).toThrow(/not ranking evidence/);
+  });
+});

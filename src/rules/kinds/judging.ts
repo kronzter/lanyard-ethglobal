@@ -1,6 +1,6 @@
 // Immutable judging dependencies. All selection uses retained evidence order.
 import { z } from "zod";
-import { canonicalHash, canonicalJson, parseJsonStrict } from "@/shared/canonical";
+import { canonicalBytes, canonicalHash, parseJsonStrict } from "@/shared/canonical";
 import { isTeamLabel, isCanonicalLabel } from "@/shared/labels";
 import { Bytes32Schema, AddressSchema } from "@/shared/types/primitives";
 import { TeamPageContentSchema } from "@/shared/types/team-page";
@@ -82,7 +82,8 @@ export const submission: KindRule = {
     if (!track(ctx, s.track)) return reject("unknown submission track");
     if (
       canonicalHash(s) !== str(r, "content_hash") ||
-      canonicalJson(payload(r, "snapshot")) !== canonicalJson(s)
+      bytes(r, "snapshot") !==
+        `0x${Array.from(canonicalBytes(s), (b) => b.toString(16).padStart(2, "0")).join("")}`
     )
       return reject("submission content hash mismatch");
     if (earlier(ctx, "submission", (x) => str(x, "team") === s.team))

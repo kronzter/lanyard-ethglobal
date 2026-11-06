@@ -72,3 +72,7 @@ Findings go in `TRACKER.md › I4`.
 - [ ] Every High fixed; every open Medium in `README.md › Known limitations`
 - [ ] `arkiv/friction.md` and `README.md` complete
 - [ ] I4 marked done in `TRACKER.md`; merged into `main`
+
+**Prepared-publication gate:** The live Node publisher must pass `runPreparedPublisherConformance` as well as ordinary publisher conformance before enabling live freeze. Verify the signed bundle’s explicit host upload/resume flow, two retained copies, exact saved job and no replacement nonce after unknown outcomes. Mock transaction envelopes never count as a Sepolia signing test.
+
+**Completed-freeze UI gate:** confirm `lanyard.locked = "1"` is written in the atomic lock transaction; a valid event commitment and bundle alone must not expose prizes or final rankings before lock.

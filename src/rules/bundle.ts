@@ -17,6 +17,7 @@ import {
 import { dedupeObservations, type CapturedObservation } from "@/shared/evidence/observation";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
+import { assertRequiredEvidence } from "./evidence-closure";
 import { evaluateWith, type Engine } from "./engine";
 import type { RulesOutput, Verdict } from "./types";
 
@@ -119,11 +120,15 @@ export function firstDifference(claimed: unknown, actual: RulesOutput): string |
     if (canonicalJson(a ?? null) !== canonicalJson(b ?? null))
       return `verdict ${i} (${b?.key ?? a?.key ?? "?"}): claimed ${canonicalJson(a ?? null)}, recomputed ${canonicalJson(b ?? null)}`;
   }
+  for (const field of ["scores", "rankings"] as const)
+    if (canonicalJson(c[field] ?? null) !== canonicalJson(actual[field] ?? null))
+      return `output.${field} differs from independently regenerated decisions`;
   return "output differs outside the verdict list";
 }
 
 /** Re-run the rules on a body's retained inputs and compare canonical output bytes. Pure. */
 export function reproduce(engine: Engine, body: EvidenceBody): Reproduction {
+  assertRequiredEvidence(engine, body.records, body.ens, body.context, body.config);
   const output = evaluateWith(
     engine,
     body.records,

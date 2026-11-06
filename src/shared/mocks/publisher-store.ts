@@ -17,7 +17,7 @@ export type MockTx = {
   hash: Hex;
   seq: number;
   op: PublisherOp;
-  status: "pending" | "confirmed" | "reverted";
+  status: "prepared" | "pending" | "confirmed" | "reverted";
   blockNumber: bigint | null;
   blockHash: Hex | null;
 };
@@ -73,7 +73,7 @@ const PersistedSchema = z
             z.object({ kind: z.literal("declareWinner"), input: WinnerInputSchema }).strict(),
             z.object({ kind: z.literal("lockResults"), expected: StateSchema }).strict(),
           ]),
-          status: z.enum(["pending", "confirmed", "reverted"]),
+          status: z.enum(["prepared", "pending", "confirmed", "reverted"]),
           blockNumber: big.nullable(),
           blockHash: Bytes32Schema.nullable(),
         })
