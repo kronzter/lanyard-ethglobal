@@ -18,3 +18,4 @@ export * from "./deployments/load";
 export * from "./types/team-page";
 export * from "./fixtures/personas";
 export * from "./fixtures/team-pages";
+export * from "./interfaces";
