@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "deletedCapturedFinal": {
+    "note": "Ana's final score was captured, then its owner deleted the entity. The retained readonly bytes stay usable evidence; deletion does not discard them.",
+    "observation": {
+      "key": "0x14e6b1654b2312e585225a19c1889babbf2454f3f22d3580fca33307012a8fd4",
+      "kind": "final_score",
+      "creator": "0xdf37f81daad2b0327a0a50003740e1c935c70913",
+      "owner": "0xdf37f81daad2b0327a0a50003740e1c935c70913",
+      "flags": {
+        "readonly": true,
+        "permissionlessExtension": false
+      },
+      "createdAtBlock": "796400",
+      "updatedAtBlock": "796400",
+      "expiresAtBlock": "1115000",
+      "createdAtTimestamp": "1796535000",
+      "observedAtBlock": "796415",
+      "observedAtBlockHash": "0x4a4ec86824ed51105306b1f031188d17eaf373905108a723c46884c79e324d47",
+      "network": {
+        "chainId": 7794095,
+        "resetId": "0xca3160c2c2476e6630ab42287d9a4fd0a7f7a96e080aad7b105ebff702c386b6"
+      },
+      "attributes": [
+        {
+          "name": "app",
+          "type": "str",
+          "indexed": true,
+          "value": "lanyard"
+        },
+        {
+          "name": "by_label",
+          "type": "str",
+          "indexed": true,
+          "value": "ana.judges.arkiv.partners"
+        },
+        {
+          "name": "event",
+          "type": "str",
+          "indexed": true,
+          "value": "mumbai2026"
+        },
+        {
+          "name": "kind",
+          "type": "str",
+          "indexed": true,
+          "value": "final_score"
+        },
+        {
+          "name": "submission",
+          "type": "key",
+          "indexed": true,
+          "value": "0x012bf568b9d9c85163b8a13596d104c948d61f59698124bfeb229c35525b9770"
+        }
+      ],
+      "payload": "0xabababababababababababababababababababababababababababababababababababababababababababababababab",
+      "deletedAtBlock": "798200"
+    }
+  },
+  "deletedUncapturedFinal": {
+    "note": "Chen's final score key entered the capture inventory but vanished before its bytes were retained. That is a capture gap: automatic freeze must stop and disclose it, never treat the score as absent.",
+    "key": "0x161bd3e0c9d7f625a4774d7e46384af34f39ee5c6ed2a5625c2ca409b84db8ec",
+    "kind": "final_score",
+    "inInventorySinceBlock": "797300",
+    "missingSinceBlock": "797600",
+    "retained": null
+  },
+  "expiredLeaseRetainedClaim": {
+    "note": "Ravi claimed Person B's ticket 20 minutes before evaluation. The claim's physical expiry was extended to the event end, but its logical 15-minute lease has lapsed, so the ticket is open again.",
+    "ticket": {
+      "key": "0xc9558d048a263b145573e4ac298a6f8d02d85bfc7198e4e50885255b39b38fb8",
+      "kind": "ticket",
+      "creator": "0x2f4f06d218e426344cfe1a83d53dad806994d325",
+      "owner": "0x2f4f06d218e426344cfe1a83d53dad806994d325",
+      "flags": {
+        "readonly": true,
+        "permissionlessExtension": false
+      },
+      "createdAtBlock": "788300",
+      "updatedAtBlock": "788300",
+      "expiresAtBlock": "1111400",
+      "createdAtTimestamp": "1796518800",
+      "observedAtBlock": "788330",
+      "observedAtBlockHash": "0x22e35dc84c9c3d505f8ef38b3c7daec3e1c6d5248fce4103e79615d0fd7f1936",
+      "network": {
+        "chainId": 7794095,
+        "resetId": "0xca3160c2c2476e6630ab42287d9a4fd0a7f7a96e080aad7b105ebff702c386b6"
+      },
+      "attributes": [
+        {
+          "name": "app",
+          "type": "str",
+          "indexed": true,
+          "value": "lanyard"
+        },
+        {
+          "name": "by_label",
+          "type": "str",
+          "indexed": true,
+          "value": "zkpay-b.hackers"
+        },
+        {
+          "name": "event",
+          "type": "str",
+          "indexed": true,
+          "value": "mumbai2026"
+        },
+        {
+          "name": "kind",
+          "type": "str",
+          "indexed": true,
+          "value": "ticket"
+        },
+        {
+          "name": "seat",
+          "type": "str",
+          "indexed": true,
+          "value": "w2"
+        }
+      ],
+      "payload": "0x00"
+    },
+    "claim": {
+      "key": "0x0ae60162193d287cb5359a393c3a782ff3274351ac3de524e081c125f8c38d21",
+      "kind": "ticket_claim",
+      "creator": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "owner": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "flags": {
+        "readonly": true,
+        "permissionlessExtension": false
+      },
+      "createdAtBlock": "788600",
+      "updatedAtBlock": "788600",
+      "expiresAtBlock": "1111400",
+      "createdAtTimestamp": "1796519400",
+      "observedAtBlock": "788630",
+      "observedAtBlockHash": "0x89ffa03742bff8eba042c640228c45caa4408b8fb63abe285f74800fa344567d",
+      "network": {
+        "chainId": 7794095,
+        "resetId": "0xca3160c2c2476e6630ab42287d9a4fd0a7f7a96e080aad7b105ebff702c386b6"
+      },
+      "attributes": [
+        {
+          "name": "app",
+          "type": "str",
+          "indexed": true,
+          "value": "lanyard"
+        },
+        {
+          "name": "by_label",
+          "type": "str",
+          "indexed": true,
+          "value": "ravi.volunteers"
+        },
+        {
+          "name": "event",
+          "type": "str",
+          "indexed": true,
+          "value": "mumbai2026"
+        },
+        {
+          "name": "kind",
+          "type": "str",
+          "indexed": true,
+          "value": "ticket_claim"
+        },
+        {
+          "name": "ticket",
+          "type": "key",
+          "indexed": true,
+          "value": "0xc9558d048a263b145573e4ac298a6f8d02d85bfc7198e4e50885255b39b38fb8"
+        }
+      ],
+      "payload": "0x00"
+    },
+    "leaseSeconds": 900,
+    "evaluatedAtTimestamp": "1796520600"
+  },
+  "publicationRestart": {
+    "note": "The freeze CLI broadcast the event-results transaction and crashed before journaling its receipt. A restarted CLI must reconcile the saved hash and adopt the confirmed publication without sending it again.",
+    "broadcast": {
+      "kind": "setEventResults",
+      "input": {
+        "event": "mumbai2026",
+        "resultsKey": "0x090b59a5056ef26b2690ec33576e47858b4553d0314c64604a1b448a653749fa",
+        "resultsHash": "0x749660209c0be41c82ac27e777769ce1735b2f1ae0bac577332893856b3eff94",
+        "bundleHash": "0x68a17ee71cd30f117f51a05451ca76d04019dd2c4654e0dc030747ee07f4ee61",
+        "bundleUri": "https://evidence.example/mumbai2026/bundle.json"
+      }
+    },
+    "outcome": "crash-after-broadcast"
+  },
+  "cutoffs": [
+    {
+      "note": "One second before results: too early, rejected before any key disclosure.",
+      "timestamp": "1796545799",
+      "inWindow": false
+    },
+    {
+      "note": "Exactly results: the earliest allowed cutoff.",
+      "timestamp": "1796545800",
+      "inWindow": true
+    },
+    {
+      "note": "One second before the freeze deadline: the latest allowed cutoff.",
+      "timestamp": "1796567399",
+      "inWindow": true
+    },
+    {
+      "note": "Exactly the freeze deadline: the window is exclusive here, rejected.",
+      "timestamp": "1796567400",
+      "inWindow": false
+    }
+  ]
+}

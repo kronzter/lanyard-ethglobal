@@ -1,0 +1,6 @@
+{
+  "network": "rabdi",
+  "chainId": 7794095,
+  "mode": "mock",
+  "note": "Placeholder: B1.1 writes the live file after P0.6-S6 picks the funding profile."
+}

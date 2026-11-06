@@ -1,0 +1,176 @@
+{
+  "schemaVersion": 1,
+  "id": "small",
+  "name": "Small test hall",
+  "image": {
+    "uri": "venue.small.png",
+    "widthPx": 800,
+    "heightPx": 480
+  },
+  "grid": {
+    "cols": 20,
+    "rows": 12,
+    "cellSizeMm": 1000,
+    "originPx": {
+      "x": 0,
+      "y": 0
+    },
+    "cellSizePx": 40
+  },
+  "walkable": [
+    [0, 10],
+    [11, 19],
+    [31, 19],
+    [51, 19],
+    [71, 19],
+    [91, 19],
+    [111, 12],
+    [129, 1],
+    [131, 19],
+    [151, 24],
+    [178, 17],
+    [196, 1],
+    [198, 17],
+    [218, 22]
+  ],
+  "zones": [
+    {
+      "id": "west",
+      "name": "West hall"
+    },
+    {
+      "id": "east",
+      "name": "East hall"
+    }
+  ],
+  "seats": [
+    {
+      "id": "w1",
+      "cell": {
+        "x": 2,
+        "y": 2
+      },
+      "zone": "west"
+    },
+    {
+      "id": "w2",
+      "cell": {
+        "x": 4,
+        "y": 2
+      },
+      "zone": "west"
+    },
+    {
+      "id": "w3",
+      "cell": {
+        "x": 6,
+        "y": 2
+      },
+      "zone": "west"
+    },
+    {
+      "id": "w4",
+      "cell": {
+        "x": 2,
+        "y": 4
+      },
+      "zone": "west"
+    },
+    {
+      "id": "w5",
+      "cell": {
+        "x": 4,
+        "y": 4
+      },
+      "zone": "west"
+    },
+    {
+      "id": "w6",
+      "cell": {
+        "x": 6,
+        "y": 4
+      },
+      "zone": "west"
+    },
+    {
+      "id": "e1",
+      "cell": {
+        "x": 12,
+        "y": 2
+      },
+      "zone": "east"
+    },
+    {
+      "id": "e2",
+      "cell": {
+        "x": 14,
+        "y": 2
+      },
+      "zone": "east"
+    },
+    {
+      "id": "e3",
+      "cell": {
+        "x": 16,
+        "y": 2
+      },
+      "zone": "east"
+    },
+    {
+      "id": "e4",
+      "cell": {
+        "x": 12,
+        "y": 4
+      },
+      "zone": "east"
+    },
+    {
+      "id": "e5",
+      "cell": {
+        "x": 14,
+        "y": 4
+      },
+      "zone": "east"
+    },
+    {
+      "id": "e6-walled",
+      "cell": {
+        "x": 16,
+        "y": 9
+      },
+      "zone": "east"
+    }
+  ],
+  "pois": [
+    {
+      "id": "desk-west",
+      "kind": "help-desk",
+      "name": "West help desk",
+      "cell": {
+        "x": 1,
+        "y": 10
+      },
+      "zone": "west"
+    },
+    {
+      "id": "desk-east",
+      "kind": "help-desk",
+      "name": "East help desk",
+      "cell": {
+        "x": 18,
+        "y": 10
+      },
+      "zone": "east"
+    },
+    {
+      "id": "stage",
+      "kind": "stage",
+      "name": "Main stage",
+      "cell": {
+        "x": 9,
+        "y": 11
+      },
+      "zone": "west"
+    }
+  ]
+}

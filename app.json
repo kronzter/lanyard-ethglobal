@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Lanyard",
+    "slug": "lanyard",
+    "scheme": "lanyard",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android", "ios", "web"],
+    "android": {
+      "package": "eth.lanyard.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "eas": {
+        "projectId": "d8203653-30ea-4946-a22b-66ad3df39233"
+      }
+    },
+    "owner": "kronzter"
+  }
+}

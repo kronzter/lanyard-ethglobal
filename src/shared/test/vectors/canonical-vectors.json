@@ -1,0 +1,176 @@
+[
+  {
+    "name": "empty object",
+    "input": {},
+    "canonical": "{}",
+    "keccak": "0xb48d38f93eaa084033fc5970bf96e559c33c4cdc07d889ab00b4d63f9590739d"
+  },
+  {
+    "name": "empty array and nulls",
+    "input": {
+      "a": [],
+      "b": null,
+      "c": [null, true, false]
+    },
+    "canonical": "{\"a\":[],\"b\":null,\"c\":[null,true,false]}",
+    "keccak": "0xdd69e31d3771f2f83d96dc53fd9f8a24394fcd4692f82bfd57cc65cc99123f56"
+  },
+  {
+    "name": "RFC 8785 key order",
+    "input": {
+      "1": "One",
+      "€": "Euro Sign",
+      "\r": "Carriage Return",
+      "דּ": "Hebrew Letter Dalet With Dagesh",
+      "😀": "Emoji: Grinning Face",
+      "": "Control",
+      "ö": "Latin Small Letter O With Diaeresis"
+    },
+    "canonical": "{\"\\r\":\"Carriage Return\",\"1\":\"One\",\"\":\"Control\",\"ö\":\"Latin Small Letter O With Diaeresis\",\"€\":\"Euro Sign\",\"😀\":\"Emoji: Grinning Face\",\"דּ\":\"Hebrew Letter Dalet With Dagesh\"}",
+    "keccak": "0xa0a138a7404c34122e9e872cd2a11429272c1ad2a592c0c8c47cf059164bb78f"
+  },
+  {
+    "name": "nested objects keep array order",
+    "input": {
+      "z": {
+        "b": [3, 1, 2],
+        "a": {
+          "y": 1,
+          "x": 2
+        }
+      },
+      "a": "first"
+    },
+    "canonical": "{\"a\":\"first\",\"z\":{\"a\":{\"x\":2,\"y\":1},\"b\":[3,1,2]}}",
+    "keccak": "0xf355aacc9c40284f9e1cf753bde8f5c5361fed2967a17541d6f1442fa769164b"
+  },
+  {
+    "name": "integers at the safe edges",
+    "input": {
+      "max": 9007199254740991,
+      "min": -9007199254740991,
+      "zero": 0,
+      "negZero": 0,
+      "small": -42
+    },
+    "canonical": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"negZero\":0,\"small\":-42,\"zero\":0}",
+    "keccak": "0x9c7a0dae93fbd98fa883b66440232c1e10519616e1bd254405b2e9d2a1cd60a0"
+  },
+  {
+    "name": "bigints as unsigned decimal strings",
+    "input": {
+      "zero": {
+        "$bigint": "0"
+      },
+      "block": {
+        "$bigint": "9037200"
+      },
+      "huge": {
+        "$bigint": "340282366920938463463374607431768211455"
+      }
+    },
+    "canonical": "{\"block\":\"9037200\",\"huge\":\"340282366920938463463374607431768211455\",\"zero\":\"0\"}",
+    "keccak": "0xbfd21c58a529d531462cc27bedc5818578ef0b8f7af09e6915ddd05de20b01e3"
+  },
+  {
+    "name": "bytes as lowercase hex",
+    "input": {
+      "empty": {
+        "$bytes": "0x"
+      },
+      "payload": {
+        "$bytes": "0xdeadBEEF00ff"
+      }
+    },
+    "canonical": "{\"empty\":\"0x\",\"payload\":\"0xdeadbeef00ff\"}",
+    "keccak": "0x55dda808f74e481a5307f44380165d41778df6fbae9288ab8c3da65ecea70890"
+  },
+  {
+    "name": "maps sorted by canonical key",
+    "input": {
+      "$map": [
+        ["zkpay", 3],
+        ["arkiv", 1],
+        ["ens", 2]
+      ]
+    },
+    "canonical": "[[\"arkiv\",1],[\"ens\",2],[\"zkpay\",3]]",
+    "keccak": "0x1a4d49136e07ec32fc8c4e4ee21b693c05dbe350269b3c4da28894677a1a03c5"
+  },
+  {
+    "name": "bigint-keyed map",
+    "input": {
+      "$map": [
+        [
+          {
+            "$bigint": "20"
+          },
+          "b"
+        ],
+        [
+          {
+            "$bigint": "3"
+          },
+          "a"
+        ]
+      ]
+    },
+    "canonical": "[[\"20\",\"b\"],[\"3\",\"a\"]]",
+    "keccak": "0x82629e91ca4ac61a360f5b237716baa89d60c0e7e36a629d2f82d5ae35aff655"
+  },
+  {
+    "name": "escapes and non-ASCII text",
+    "input": {
+      "quote": "say \"hi\"",
+      "slash": "a/b\\c",
+      "ctrl": "\u0001\u001f\n\t",
+      "hindi": "मुंबई",
+      "emoji": "🦄 lanyard",
+      "nbsp": "a b",
+      "lineSep": "x y"
+    },
+    "canonical": "{\"ctrl\":\"\\u0001\\u001f\\n\\t\",\"emoji\":\"🦄 lanyard\",\"hindi\":\"मुंबई\",\"lineSep\":\"x y\",\"nbsp\":\"a b\",\"quote\":\"say \\\"hi\\\"\",\"slash\":\"a/b\\\\c\"}",
+    "keccak": "0x4097e4b32308663c8844eef7d6df657e56df4a61562258615aafd13c3b90fc07"
+  },
+  {
+    "name": "permission envelope",
+    "input": {
+      "schemaVersion": 1,
+      "registrationId": "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "holder": "0x00000000000000000000000000000000000000b1",
+      "permissions": ["shift-manager"]
+    },
+    "canonical": "{\"holder\":\"0x00000000000000000000000000000000000000b1\",\"permissions\":[\"shift-manager\"],\"registrationId\":\"0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"schemaVersion\":1}",
+    "keccak": "0x16e01a757a2a943a4cd996c850876d192253d92a167b5a5b48fe724ae4c7a85e"
+  },
+  {
+    "name": "evaluation context shape",
+    "input": {
+      "event": "mumbai2026",
+      "arkivChainId": 7794095,
+      "arkivResetId": "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "sepoliaChainId": 11155111,
+      "arkivCutoff": {
+        "number": {
+          "$bigint": "900100"
+        },
+        "hash": "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "timestamp": {
+          "$bigint": "1796545860"
+        }
+      },
+      "sepoliaCutoff": {
+        "number": {
+          "$bigint": "9037205"
+        },
+        "hash": "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+        "timestamp": {
+          "$bigint": "1796545848"
+        }
+      },
+      "configHash": "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+    },
+    "canonical": "{\"arkivChainId\":7794095,\"arkivCutoff\":{\"hash\":\"0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd\",\"number\":\"900100\",\"timestamp\":\"1796545860\"},\"arkivResetId\":\"0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc\",\"configHash\":\"0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff\",\"event\":\"mumbai2026\",\"sepoliaChainId\":11155111,\"sepoliaCutoff\":{\"hash\":\"0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee\",\"number\":\"9037205\",\"timestamp\":\"1796545848\"}}",
+    "keccak": "0x9d3d83c52bc6c4a3eb7c8e51242b27c1539a75720af0a1aacdb27d25944e5993"
+  }
+]

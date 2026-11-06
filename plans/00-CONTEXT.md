@@ -1,6 +1,6 @@
 # Lanyard · Master context
 
-This page loads the project context. Read `01-evidence-and-interfaces.md` for the authoritative cross-phase evidence, trust and interface contract; phase files fill in feature details without overriding it. Plans are a reviewed baseline: user-authorized corrections update affected files together; implementation progress lives in `plans/TRACKER.md`. Never commit unless the user asks and never run `git push`.
+This page loads the project context. Read `01-evidence-and-interfaces.md` for the authoritative cross-phase evidence, trust and interface contract; phase files fill in feature details without overriding it. Plans are a reviewed baseline: user-authorized corrections update affected files together; implementation progress lives in `plans/TRACKER.md`. Never commit unless the user asks. Agents may push non-`main` branches and open PRs, but never push `main` or force-push; the user merges.
 
 **Linked into the repo root as `AGENTS.md` and `CLAUDE.md`** (symlinks to `plans/00-CONTEXT.md`, set up in P0.1), so every agent session loads it automatically.
 
@@ -23,13 +23,13 @@ This page loads the project context. Read `01-evidence-and-interfaces.md` for th
 
 ## 3 · App, wallets, chains
 
-- Expo + Expo Router at `apps/app`. **Android** (locally built dev or preview APKs: `eas build --platform android --profile <p> --local`, never in the cloud) and **web**. The code stays iOS-compatible but is never built.
+- Expo + Expo Router at the repo root. **Android** (dev or preview APKs built on EAS cloud: `eas build --platform android --profile <p>`; `--local` optional) and **web**. The code stays iOS-compatible but is never built.
 - Dev builds only. Expo Go can't load Reown AppKit's native modules.
 - **Reown AppKit**: the native SDK on Android, the wagmi adapter on web, both behind one `useWallet()` hook. Chains: Sepolia and Rabdi. The fallback, if P0.6 fails for external wallets, is AppKit's email/social-login wallet.
 - **No server signer.** Actions use the actor's wallet. Deploy, seed, capture and freeze are local CLIs. Read-only, app-restricted RPC keys may ship in the app as public values (rotated if abused); no signing, operator or decryption key ever ships. A read-only RPC proxy is only a P0 fallback and holds no signing/decryption keys; evidence bundles are downloadable and also verifiable from a local file. Declare each service/profile in P0 and I4.
 - Field screens (hacker, volunteer, lead, judge, team) are for phones. Organizer screens, ENS consoles and the venue editor are **web-only**: on Android they show "Open on web".
 - Venue map: `react-native-svg` + `react-native-gesture-handler` + `react-native-reanimated`, the same component on native and web.
-- `packages/rules` is pure TypeScript that runs unchanged on Hermes (in the app) and Node (in the CLI).
+- `src/rules` is pure TypeScript that runs unchanged on Hermes (in the app) and Node (in the CLI).
 - **Gas.** Staff send Sepolia writes; field actors only read ENS through app flows. Arkiv writers get initial tGLM at the desk: through the `Faucet` contract if P0.6-S6 proves it, otherwise a dedicated desk wallet sends tGLM and writes a readonly Arkiv `drip` record so repeats are refused.
 
 ## 4 · Names
@@ -69,7 +69,7 @@ App-issued badges omit transfer-admin; raw authorized registrars can choose othe
 
 ## 6 · Records (Arkiv)
 
-Every record has `app: "lanyard"`, `event: "mumbai2026"`, `kind` and `by` (the writer's relative ENS label). The full table, with owners, flags and expiries, is in `B1-arkiv-data.md`.
+Every record has `app: "lanyard"`, `event: "mumbai2026"`, `kind` and `by_label` (the writer's relative ENS label; Arkiv reserves `by` as a query keyword, so the attribute can't be named `by`). The full table, with owners, flags and expiries, is in `B1-arkiv-data.md`.
 
 Kinds: `venue`, `seat_assignment`, `shift`, `clock`, `duty_pass`, `ticket`, `ticket_claim`, `ticket_resolution`, `ticket_confirmation`, `project`, `submission`, `acceptance`, `rubric`, `judge_assignment`, `score_sheet`, `final_score`, `recusal`, `results`, plus `drip` when P0.6 selects the desk-wallet funding fallback. Draft projects/sheets are mutable; adjudication uses immutable submission snapshots and retained readonly dependencies.
 
@@ -89,12 +89,14 @@ Every app write is signed by the user's wallet through AppKit. Use `executeBatch
 
 ## 8 · How the two tracks stay independent
 
-- **Person A · ENS & venue:** `packages/{contracts,ens,venue}`, `apps/app/app/admin/ens/*`, `apps/app/app/venue/*`, `apps/app/src/components/venue/*`.
-- **Person B · Arkiv & flows:** `packages/{arkiv,faucet,rules,cli}`, `arkiv/`, `apps/app/app/{volunteer,lead,tickets,judge,team,teams,organizer}/*`.
+One repo, one Expo dApp at the root, no workspace packages and no git submodules. Folders, not packages, separate the tracks; ESLint enforces the import boundaries.
+
+- **Person A (`@kronzter`) · ENS & venue:** `contracts/**/ens/`, `src/{ens,venue}`, `app/admin/ens/*`, `app/venue/*`, `src/components/venue/*`.
+- **Person B (`@arnavmahajan630`) · Arkiv & flows:** `src/{arkiv,rules}`, `contracts/**/faucet/`, `cli/`, `arkiv/`, `app/{volunteer,lead,tickets,judge,team,teams,organizer}/*`.
 - **Shared** contracts/shell: built in P0, coordinated changes afterward. Phase-owned fixture additions are allowed under the ownership table; breaking interface repairs update every consumer/mock together. Suggested commit boundaries apply only if the user requests commits.
 - Interfaces: `EnsReader` (real in A2.4), `Router` (real in A3.2), `ResultsPublisher` (real in A4.2). Each has a mock and a conformance suite.
 - Flags: ENS mock→sepolia at I2 · router stub→grid at I3 · results mock→sepolia at I4.
-- Feature/rules modules never import another track's package directly. Shared interfaces are wired only in app `apps/app/src/providers.ts` and Node `packages/cli/src/providers.ts`; the app never imports the CLI-only results publisher.
+- Feature/rules modules never import another track's folder directly. Shared interfaces are wired only in app `src/providers.ts` and Node `cli/providers.ts`; the app never imports the CLI-only results publisher.
 
 ## 9 · Phase order
 
@@ -117,10 +119,10 @@ There are no time windows. Integrations do not block the next development phase.
 Full detail is in `00-README.md` and `00-git-workflow.md`.
 
 - One branch per phase, `phase/<ID>-<slug>`, and one per integration, `int/<ID>-<slug>`. Plain merges into `main`.
-- **When commits are requested**, use one per spec/finding with regression checks. Never commit automatically; the user pushes manually.
+- **When commits are requested**, use several small commits per spec whose titles and bodies describe the change itself (spec ID only in a `Refs:` footer; never "wip" or "phase done"), and one per finding with its regression check. Agents may push non-`main` branches and open PRs; the user merges.
 - A bug hunt after **every** phase, by someone who didn't write it (by default a fresh agent session; the prompt is in `00-README.md`). Highs are fixed before merge.
 - Plans change through explicit user-authorized repairs with affected consumers updated together. Progress goes in `plans/TRACKER.md`; a repaired plan is not completed implementation.
-- APK builds always use `--local`.
+- APK builds run on EAS cloud with only public `EXPO_PUBLIC_*` values; no signing, operator or decryption key is ever an EAS secret.
 
 ## 11 · Pitfalls we already know about
 
@@ -150,7 +152,7 @@ Full detail is in `00-README.md` and `00-git-workflow.md`.
 - With an external wallet, every transaction is a switch to the wallet app. Batch writes, and make the write queue survive the app going to the background.
 - The wallet must add Rabdi (`wallet_addEthereumChain`) before the first Arkiv write.
 - Local APK builds need the Android SDK and JDK on the builder's machine.
-- `eas build --local` needs a proven Linux/macOS host; Windows/WSL is not officially supported by Expo. Prove the chosen local build route in P0, without cloud builds.
+- EAS cloud builds need an Expo account and count against its free-tier build quota and queue; keep APK rebuilds to native changes and use Metro reloads otherwise. `--local` needs a Linux/macOS host (Windows only through WSL, not officially supported by Expo).
 
 **General**
 - The organizer key, results key and score-decryption key exist only in the local `.env` of whoever runs the scripts or CLI. They never ship in the app.
@@ -182,7 +184,7 @@ Full detail is in `00-README.md` and `00-git-workflow.md`.
 | --- | --- |
 | Edition label | `mumbai2026` |
 | App | Expo + Expo Router, Android + web; iOS-compatible but never built |
-| APK builds | Always local (`eas build --local`) |
+| APK builds | EAS cloud (`eas build`); `--local` optional on a Linux/macOS/WSL host |
 | Wallets | Reown AppKit with external wallets; fallback to AppKit email/social login if P0.6 fails |
 | Infrastructure | Actor-signed writes, local capture/freeze, downloadable retained bundles; read-only, app-restricted RPC keys ship in the app as public values; a declared read-only proxy only if P0 limits fail, holding RPC credentials but no signing/decryption keys |
 | Badge issue | The organizer issues directly at the desk; no vouchers |

@@ -1,0 +1,54 @@
+# Encodes plans/00-README.md › Ownership of paths. Later lines win.
+# Person A = @kronzter (ENS & venue) · Person B = @arnavmahajan630 (Arkiv & flows).
+
+# Default: both review anything not claimed below, so nothing is unowned.
+*                               @kronzter @arnavmahajan630
+
+# ── Shared: P0 / integration; additive changes, coordinated ──
+/src/shared/                    @kronzter @arnavmahajan630
+/fixtures/                      @kronzter @arnavmahajan630
+/app/_layout.tsx                @kronzter @arnavmahajan630
+/app/index.tsx                  @kronzter @arnavmahajan630
+/src/shell/                     @kronzter @arnavmahajan630
+/src/flags.ts                   @kronzter @arnavmahajan630
+/src/providers.ts               @kronzter @arnavmahajan630
+/app.json                       @kronzter @arnavmahajan630
+/eas.json                       @kronzter @arnavmahajan630
+/package.json                   @kronzter @arnavmahajan630
+/pnpm-lock.yaml                 @kronzter @arnavmahajan630
+/tsconfig.json                  @kronzter @arnavmahajan630
+/eslint.config.mjs              @kronzter @arnavmahajan630
+/contracts/foundry.toml         @kronzter @arnavmahajan630
+/scripts/                       @kronzter @arnavmahajan630
+/.github/                       @kronzter @arnavmahajan630
+/README.md                      @kronzter @arnavmahajan630
+/plans/                         @kronzter @arnavmahajan630
+/e2e/                           @kronzter @arnavmahajan630
+
+# ── Track A · Person A ──
+/src/ens/                       @kronzter
+/src/venue/                     @kronzter
+/src/components/venue/          @kronzter
+/app/admin/ens/                 @kronzter
+/app/venue/                     @kronzter
+/contracts/src/ens/             @kronzter
+/contracts/test/ens/            @kronzter
+/contracts/script/ens/          @kronzter
+/deployments/sepolia.json       @kronzter
+
+# ── Track B · Person B ──
+/src/arkiv/                     @arnavmahajan630
+/src/rules/                     @arnavmahajan630
+/cli/                           @arnavmahajan630
+/arkiv/                         @arnavmahajan630
+/contracts/src/faucet/          @arnavmahajan630
+/contracts/test/faucet/         @arnavmahajan630
+/contracts/script/faucet/       @arnavmahajan630
+/app/volunteer/                 @arnavmahajan630
+/app/lead/                      @arnavmahajan630
+/app/tickets/                   @arnavmahajan630
+/app/judge/                     @arnavmahajan630
+/app/team/                      @arnavmahajan630
+/app/teams/                     @arnavmahajan630
+/app/organizer/                 @arnavmahajan630
+/deployments/rabdi.json         @arnavmahajan630

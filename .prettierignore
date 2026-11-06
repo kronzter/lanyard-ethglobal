@@ -1,0 +1,16 @@
+# Reviewed baseline: never reflow plan tables.
+plans/
+node_modules/
+dist/
+web-build/
+.expo/
+coverage/
+spike/
+android/
+ios/
+pnpm-lock.yaml
+# Solidity is formatted by `forge fmt`.
+contracts/
+# Symlinks into plans/ (agent context).
+AGENTS.md
+CLAUDE.md

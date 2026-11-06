@@ -31,7 +31,7 @@ The A1-created names and B1 records agree on registry ownership. This checkpoint
 ## Cross bug hunt
 
 **A attacks B's code:**
-- [ ] Write a record with `by` set to a badge you don't own: B1 doesn't stop it (correct, that's B2's job), and the e2e check flags it
+- [ ] Write a record with `by_label` set to a badge you don't own: B1 doesn't stop it (correct, that's B2's job), and the e2e check flags it
 - [ ] Use a persona wallet with zero tGLM: a clear error, no stuck queue
 - [ ] Contract profile: duplicate drip reverts. Desk-wallet fallback: the desk refuses an address that already has a desk-wallet `drip` record and reconciles uncertain transfers before another send; do not claim on-chain once-per-wallet enforcement
 - [ ] Search the web export and the APK for any private key

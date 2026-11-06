@@ -23,7 +23,7 @@ The event runs on real Sepolia/Rabdi with no interface mocks: local capture/free
 5. `test(e2e): I4 full demo script from badge to verify match`
 6. `docs: I4 add evidence scope, issuer/ancestor trust, service profile and demo script to readme`
 
-Build the demo APK with `eas build --platform android --profile preview --local` and install it on both phones.
+Build the demo APK with `pnpm app:apk` (EAS cloud) and install it on both phones.
 
 Before running the final demo, assert effective app ENS = `sepolia`, router = `grid`, CLI ENS/results = `sepolia`, live deployment validation passes, and the selected funding/infrastructure/shift-write profiles match P0. Check actual structural ancestor expiries cover `namespaceExpiry` and judge badges cover the supported freeze window. A4/B4 can finish against mocks while earlier integrations lag, but I4 cannot sign off with any mock/stub provider.
 

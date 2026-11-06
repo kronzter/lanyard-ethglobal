@@ -1,0 +1,7 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "mode": "mock",
+  "note": "Placeholder: no ENS contracts are deployed yet. A1 writes the live file.",
+  "publicAppOrigin": "http://localhost:8081"
+}

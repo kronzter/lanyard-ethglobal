@@ -1,19 +1,20 @@
 # Lanyard · Build plan
 
-Event OS for hackathons on **ENSv2 (Sepolia)** and **Arkiv (Rabdi)**, shipped as an **Expo dApp** for Android and web. Two builders, two tracks, phase- and spec-driven.
+Event OS for hackathons on **ENSv2 (Sepolia)** and **Arkiv (Rabdi)**, shipped as an **Expo dApp** for Android and web. Two builders, two tracks, phase- and spec-driven. **Person A = `@kronzter`**, **Person B = `@arnavmahajan630`**.
 
 - **Person A · ENS & venue track.** Contracts, names, permissions, ENS reads, venue grid, routing, winner names, ENS consoles.
 - **Person B · Arkiv & flows track.** Arkiv records, faucet, rules engine, verifier CLI, volunteer, ticket and judging flows.
 
 Read `00-CONTEXT.md`, then the authoritative [evidence and shared contracts](01-evidence-and-interfaces.md), then `00-git-workflow.md` before a user-requested commit.
 
-**Plans are a reviewed baseline.** Explicit user-authorized repairs may change them, with all affected interfaces, phases and acceptance checks updated together. Progress lives in **`plans/TRACKER.md`**. Plan corrections do not mark implementation done. Never commit unless asked; never run `git push`.
+**Plans are a reviewed baseline.** Explicit user-authorized repairs may change them, with all affected interfaces, phases and acceptance checks updated together. Progress lives in **`plans/TRACKER.md`**. Plan corrections do not mark implementation done. Never commit unless asked. Agents may push non-`main` branches and open PRs; they never push `main` or force-push, and the user merges.
 
 ## The app
 
-- **Expo + Expo Router**, TypeScript, at `apps/app`. Targets **Android and web**. The code stays iOS-compatible, but iOS is never built, tested or demoed.
+- **One repo, one dApp.** A single Expo project at the repo root: one `package.json`, one lockfile, no workspace packages and no git submodules. Domain code lives in plain folders (`src/shared`, `src/arkiv`, `src/rules`, `src/ens`, `src/venue`, `src/shell`), the Node CLI in `cli/` (run with `tsx`, importing `src/`), and one Foundry project in `contracts/` whose dependencies come from Soldeer. Track boundaries are ESLint import rules plus `CODEOWNERS`.
+- **Expo + Expo Router**, TypeScript, at the repo root. Targets **Android and web**. The code stays iOS-compatible, but iOS is never built, tested or demoed.
 - **Dev builds only.** Reown AppKit's native modules don't run in Expo Go.
-- **Every APK build runs locally**: `eas build --platform android --profile <development|preview> --local`. Never queue a cloud EAS build.
+- **APK builds run on EAS cloud**: `eas build --platform android --profile <development|preview>` (`--local` optional on a Linux/macOS/WSL host). Builds get only public `EXPO_PUBLIC_*` values.
 - **Wallets: Reown AppKit.** The native SDK on Android, the wagmi adapter on web. Users connect their own wallet (MetaMask, Rainbow, …). If the P0.6 spike shows external wallets can't write to Arkiv, the fallback is AppKit's email/social-login wallet.
 - **No server signer.** Users sign their own actions. Deploy, seed, capture and freeze are local CLIs. Retained signed evidence bundles are downloadable and usable from local files. Read-only, app-restricted RPC keys ship in the app as public values (rotated if abused). A declared read-only RPC proxy is only a fallback if P0 shows those limits can't be lived with; it may hold RPC credentials, but no signing/decryption keys. Final network acceptance uses the actual P0-selected profile, including wallet relay/login services.
 - **Screen split.** Field roles (hacker, volunteer, lead, judge, team) use phones. Organizer screens, ENS consoles and the venue editor are web-only screens.
@@ -53,7 +54,7 @@ Freeze cutoffs must be in `[results, freezeDeadline)` and namespace lifetimes co
 **The only hard dependency between people is P0.** After that:
 
 - Every phase depends only on **P0** and on **the same track's earlier phases**. A never waits for B, and B never waits for A.
-- Each track codes against **interfaces in `packages/shared`**, with **mocks** standing in for the other track's work, behind **feature flags**.
+- Each track codes against **interfaces in `src/shared`**, with **mocks** standing in for the other track's work, behind **feature flags**.
 - **Integration checkpoints (I1–I4)** are a separate, third kind of dependency. One starts when **both** matching phases are merged. It flips one flag from mock to real, runs a smoke test, and runs a **cross bug hunt**.
 - **Integrations never gate the next phase.** When your phase is merged, start your next phase straight away. The checkpoint happens whenever both of you are ready. One ordering rule between integrations: **I3 requires I2 complete**, because its on-duty and partner-staff checks run on real ENS.
 - **Final acceptance is different:** I4 requires I1–I3 completed plus A4/B4, and explicitly checks ENS/router/results are all live. Lagging integrations do not block phase development, but cannot be skipped at sign-off.
@@ -65,7 +66,7 @@ Freeze cutoffs must be in `[results, freezeDeadline)` and namespace lifetimes co
 | P0 · joint | `P0-foundation.md` | P0.6 wallet + chain spike (first) · P0.1 repo + CI · P0.2 shared types + config · P0.3 interfaces, mocks, conformance · P0.4 fixtures · P0.5 app shell |
 | A1 | `A1-namespace.md` | A1.1 base + edition · A1.2 books + badge registrar · A1.3 teams + reserved `winner` |
 | B1 | `B1-arkiv-data.md` | B1.1 chain + faucet · B1.2 record kinds + writers · B1.3 queue, batch, readers, watcher |
-| I1 | `I1-names-meet-records.md` | Real badges, real `by` labels on Arkiv |
+| I1 | `I1-names-meet-records.md` | Real badges, real `by_label` values on Arkiv |
 | A2 | `A2-permissions-ens-reader.md` | A2.1 resolvers · A2.2 scoped grants · A2.3 revoke + revive · A2.4 real `EnsReader` |
 | B2 | `B2-rules-verifier.md` | B2.1 time mapping · B2.2 rules core · B2.3 determinism + `lanyard verify` |
 | I2 | `I2-real-ens-history.md` | ENS flag → `sepolia`; rules on real history |
@@ -84,18 +85,20 @@ Disjoint paths mean merges don't conflict.
 
 | Path | Owner |
 | --- | --- |
-| `packages/shared/**` | **Both.** Additive changes only, each in its own commit (see below) |
+| `src/shared/**` | **Both.** Additive changes only, each in its own commit (see below) |
 | `fixtures/**` | Shared baseline in P0; additive phase-owned fixtures allowed (A: ENS history/Mumbai venue; B: flow/prize/capture fixtures). Coordinate modifications to existing shared files; real deployment-address fixture changes use integration branches |
-| `apps/app/app/_layout.tsx`, `apps/app/src/shell/**`, `apps/app/src/flags.ts`, `apps/app/src/providers.ts`, `apps/app/app.json`, `apps/app/eas.json`, `apps/app/package.json`, `README.md` | Shared: P0/integration by default; a phase may make a necessary coordinated dependency/config or Known limitations update in a separate reviewable change |
-| `packages/contracts/**`, `packages/ens/**`, `packages/venue/**` | A |
-| `apps/app/app/admin/ens/**`, `apps/app/app/venue/**`, `apps/app/src/components/venue/**` | A |
-| `packages/arkiv/**`, `packages/faucet/**`, `packages/rules/**`, `packages/cli/**`, `arkiv/**` | B |
-| `apps/app/app/{volunteer,lead,tickets,judge,team,teams,organizer}/**` | B |
+| `app/_layout.tsx`, `app/index.tsx`, `src/shell/**`, `src/flags.ts`, `src/providers.ts`, `app.json`, `eas.json`, `package.json`, `tsconfig.json`, `eslint.config.mjs`, `contracts/foundry.toml`, `scripts/**`, `.github/**`, `README.md` | Shared: P0/integration by default; a phase may make a necessary coordinated dependency/config or Known limitations update in a separate reviewable change |
+| `contracts/{src,test,script}/ens/**`, `src/ens/**`, `src/venue/**` | A |
+| `app/admin/ens/**`, `app/venue/**`, `src/components/venue/**` | A |
+| `src/arkiv/**`, `contracts/{src,test,script}/faucet/**`, `src/rules/**`, `cli/**`, `arkiv/**` | B |
+| `app/{volunteer,lead,tickets,judge,team,teams,organizer}/**` | B |
 | `deployments/sepolia.json` | A writes; B only reads |
 | `deployments/rabdi.json` | B writes; A only reads |
 | `plans/TRACKER.md` | Each person edits only their own track's section; integration sections are edited on integration branches |
 | `plans/*.md` (everything else) | Reviewed baseline; explicit user-authorized corrections update cross-phase dependencies together |
 | `e2e/**` | Integration branches only |
+
+Import boundaries are enforced by `eslint.config.mjs`: Track A folders and Track B folders never import each other (except the two composition roots), `src/shared` and `src/rules` import nothing Node-, React Native- or Expo-specific, and nothing under `app/` or `src/` imports `cli/`.
 
 If both people add app dependencies, `pnpm-lock.yaml` will conflict. Resolve it by re-running `pnpm i` after merging `main`.
 
@@ -103,9 +106,9 @@ If both people add app dependencies, `pnpm-lock.yaml` will conflict. Resolve it 
 
 ## Interfaces are the contract
 
-Defined in P0.3, in `packages/shared/src/interfaces/`:
+Defined in P0.3, in `src/shared/interfaces/`:
 
-Concrete implementations are imported only by `apps/app/src/providers.ts` and Node `packages/cli/src/providers.ts`. The Node root gets the real reader at I2 and real publisher at I4; feature/rules modules consume shared interfaces. The app never imports `SepoliaResultsPublisher`.
+Concrete implementations are imported only by `src/providers.ts` and Node `cli/providers.ts`. The Node root gets the real reader at I2 and real publisher at I4; feature/rules modules consume shared interfaces. The app never imports `SepoliaResultsPublisher`.
 
 | Interface | Real version by | Used by | Mock until |
 | --- | --- | --- | --- |
@@ -116,7 +119,7 @@ Concrete implementations are imported only by `apps/app/src/providers.ts` and No
 
 Rules for changing them:
 
-1. **Additive mid-phase** (a new optional field or a new method): allowed. Put it in its **own commit** that touches only `packages/shared`, update the mock in the same commit, and add a row to the interface change log in `TRACKER.md`. The other person picks it up the next time they merge `main`.
+1. **Additive mid-phase** (a new optional field or a new method): allowed. Put it in its **own commit** that touches only `src/shared`, update the mock in the same commit, and add a row to the interface change log in `TRACKER.md`. The other person picks it up the next time they merge `main`.
 2. **Breaking** (rename, remove, changed meaning): coordinate a shared repair, update all consumers/mocks/conformance in the same reviewable change, and record it in `TRACKER.md`. Explicit user-approved plan repairs can define the initial corrected baseline before implementation.
 3. Each real implementation must pass the **conformance suite** for its interface, and so must the mock. That's what makes the swap at integration boring.
 
@@ -124,7 +127,7 @@ Rules for changing them:
 
 | Flag | Read by | Values | Flipped at |
 | --- | --- | --- | --- |
-| `EXPO_PUBLIC_LANYARD_ENS` / `LANYARD_ENS` | App (`apps/app/src/flags.ts`) / CLI | `mock` · `sepolia` | I2 |
+| `EXPO_PUBLIC_LANYARD_ENS` / `LANYARD_ENS` | App (`src/flags.ts`) / CLI | `mock` · `sepolia` | I2 |
 | `EXPO_PUBLIC_LANYARD_ROUTER` | App | `stub` · `grid` | I3 |
 | `LANYARD_RESULTS` | Freeze CLI | `mock` · `sepolia` | I4 |
 
@@ -136,8 +139,8 @@ Expo inlines every `EXPO_PUBLIC_*` variable into the app bundle, so every value 
 
 Every phase, every time:
 
-1. **Branch** from an up-to-date `main`: `phase/<ID>-<slug>`.
-2. **Specs in order, one commit per spec** (format in `00-git-workflow.md`). Mark the spec done in `TRACKER.md` in the same commit.
+1. **Branch** from an up-to-date `main`: `phase/<ID>-<slug>`. Optionally one branch per spec, `<id>/<spec>-<slug>`, with a stacked PR into the phase branch.
+2. **Specs in order, several small commits per spec** (format in `00-git-workflow.md`). The spec's final commit marks it done in `TRACKER.md`, after `pnpm ci:local` passes.
 3. **Phase bug hunt** on the phase branch (see below). Log the findings in `TRACKER.md`.
 4. **Fix** every High: one fix commit per finding, with its regression test in the same commit.
 5. Fix each Medium, or write it up in `README.md › Known limitations`.
@@ -164,15 +167,15 @@ The other person reads the findings when they get to them and can add rows. They
 ## Shared conventions
 
 - **Networks.** ENS on Sepolia. Arkiv on Rabdi: chain ID `7794095`, RPC `https://rpc.rabdi.db-chain.testnet.arkiv.network`, 2 s blocks, tGLM gas.
-- **RPCs.** P0 measures explicit keyless Rabdi access. If it's too limited, the app ships a dedicated read-only Arkiv access key as a public value; a declared read-only proxy with server-held credentials is the fallback only if that also fails. Sepolia uses an archive endpoint with a read-only key restricted to the app (Android package and web origin), shipped as `EXPO_PUBLIC_SEPOLIA_RPC_URL`; a public mobile bundle cannot keep it secret, so it's treated as public and rotated if abused. Scripts and the CLI use their own keys from the local `.env`. Operator signing/decryption credentials never ship in the app, and no raw keyed transport diagnostics are logged.
+- **RPCs.** P0 measures explicit keyless Rabdi access. If it's too limited, the app ships a dedicated read-only Arkiv access key as a public value; a declared read-only proxy with server-held credentials is the fallback only if that also fails. Sepolia uses an archive endpoint with a read-only key restricted to the app (Android package and web origin), shipped as `EXPO_PUBLIC_SEPOLIA_RPC_URL` (the Reown project ID ships the same way, as `EXPO_PUBLIC_REOWN_PROJECT_ID`, restricted to the app's domains and package); a public mobile bundle cannot keep it secret, so it's treated as public and rotated if abused. Scripts and the CLI use their own keys from the local `.env`. Operator signing/decryption credentials never ship in the app, and no raw keyed transport diagnostics are logged.
 - **Names.** Base `lanyard.eth`. Edition `mumbai2026.lanyard.eth`. Team `<team>.mumbai2026.lanyard.eth`. Winner `winner.<team>.mumbai2026.lanyard.eth`, created whenever a winner is declared.
 - **Labels in code** are relative to the edition: `priya.volunteers`, `zkpay`, `ana.judges.arkiv.partners`.
 - **Partners** are listed in `event.config.ts`: `arkiv` and `ens` for now. Adding one is a config and seed change, never a code change.
 - **Tracks.** One per partner plus the non-partner `main` track, listed in `event.config.ts`. Global judges (`judges` book) score `main` only; partner judges score their own partner's track only.
-- **Pinned versions.** Exact versions in `package.json` for `@arkiv-network/sdk`, the Expo SDK, Reown AppKit and viem. ENSv2 contracts are pinned by commit in `foundry.toml`. No upgrades during the build.
+- **Pinned versions.** Exact versions in `package.json` for `@arkiv-network/sdk`, the Expo SDK, Reown AppKit and viem. ENSv2 contracts are pinned by commit as a Soldeer git dependency in `contracts/foundry.toml` (no submodules). No upgrades during the build.
 - **Addresses** live in `deployments/sepolia.json` and `deployments/rabdi.json`. Nothing is hard-coded.
 - **Secrets.** The organizer key, results key and score-decryption key live only in the local `.env` of whoever runs the deploy, seed or freeze scripts. They never ship in the app. Users' keys never leave their wallets. `.env` is git-ignored; `.env.example` is committed.
-- **APK builds** always use `--local`.
+- **APK builds** run on EAS cloud; no secret is ever stored in EAS.
 - **Requirements style.** EARS: `WHEN <trigger>, THE <component> SHALL <response>`. IDs are per spec, e.g. `A1.2-R3`.
 - **Teams** have at most 4 people, written Person A, Person B, Person C, Person D in fixtures and the demo. (Not to be confused with the two builders.)
 - **Seats.** Everyone has an assigned seat. No QR stickers.
@@ -181,4 +184,4 @@ The other person reads the findings when they get to them and can add rows. They
 
 All decisions taken, and the ones still open, are listed in `00-CONTEXT.md` §13–14.
 
-The approved evidence/publication repair is specified in `01-evidence-and-interfaces.md`. Version pins, confirmation depths, cipher package/encoding and local build host are measured P0 deliverables; until recorded, the dependent capability remains blocked rather than being silently assumed.
+The approved evidence/publication repair is specified in `01-evidence-and-interfaces.md`. Version pins, confirmation depths, cipher package/encoding and the APK build route are measured P0 deliverables; until recorded, the dependent capability remains blocked rather than being silently assumed.
