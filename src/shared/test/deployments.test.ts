@@ -3,7 +3,7 @@ import rabdiJson from "../../../deployments/rabdi.json";
 import sepoliaJson from "../../../deployments/sepolia.json";
 import { configHash } from "../config/hash";
 import type { EventConfigInput } from "../config/schema";
-import { BlockedCapabilityError, measured } from "../config/unmeasured";
+import { measured } from "../config/unmeasured";
 import { validateEventConfig } from "../config/validate";
 import {
   DeploymentError,
@@ -83,8 +83,8 @@ describe("live deployments", () => {
     ).toThrow(/reset identity .* does not match/);
   });
 
-  it("stay blocked while the score cipher and shift-write profile are unmeasured", () => {
-    expect(() => configHash(eventConfig)).toThrow(BlockedCapabilityError);
+  it("freeze the edition config once every gate is measured", () => {
+    expect(configHash(eventConfig)).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
   it.each([

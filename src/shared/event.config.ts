@@ -4,9 +4,10 @@
 //   - times: December 2026 dates (IST), until the organizer confirms the schedule
 //   - authorities: mock wallets from the public `test … junk` mnemonic (HD indices 0, 1, 5, 6,
 //     matching fixtures/personas.json); real wallets replace them before any live deploy
-// Spike-measured values stay `unmeasured` until P0.6 records evidence in plans/TRACKER.md.
-// Measured so far: both chain identities (S7, S10) and the funding profile (S6).
-import { measured, unmeasured } from "./config/unmeasured";
+// Spike-measured values came from P0.6 with evidence in plans/TRACKER.md; none is guessed.
+// All five gates are measured (2026-11-06): chain identities (S7, S10), funding (S6), the score
+// cipher (S11, Node + browser; Hermes run deferred) and the shift-write profile (S12).
+import { measured } from "./config/unmeasured";
 import type { EventConfigInput } from "./config/schema";
 import { validateEventConfig } from "./config/validate";
 
@@ -62,8 +63,24 @@ export const eventConfigInput = {
     },
   },
   venue: { cellSizeMm: 1000 },
-  scoreCipher: unmeasured("P0.6-S11"),
-  shiftWriteProfile: unmeasured("P0.6-S12"),
+  // Event score key from `pnpm lanyard score-keygen`; the secret lives only in the freeze
+  // operator's .env (SCORE_DECRYPTION_KEY). Envelope v1 in src/shared/crypto/score-cipher.ts.
+  scoreCipher: measured(
+    {
+      suite: "x25519-hkdf-sha256-aes-256-gcm",
+      keyId: "x25519:1ae432e7452008b0",
+      publicKey: "0x68a0e5f9d81351cda9c0ccb4f0ac3c60c9c12bfe089c4967eaee77458cd1860b",
+      implementation:
+        "@noble/curves@1.9.1 x25519 + @noble/hashes@2.4.0 hkdf-sha256 + @noble/ciphers@1.3.0 aes-256-gcm; envelope v1",
+    },
+    "P0.6-S11 2026-11-06: pinned vectors match on Node, headless Chromium and OpenSSL; Hermes run deferred",
+  ),
+  // External wallets cannot prove exclusive signer custody, so replacement shifts are confirmed
+  // first and their clock-in + duty pass batched second (two approvals, visible pending gap).
+  shiftWriteProfile: measured(
+    "confirmed-sequential",
+    "P0.6-S12 2026-11-06: chosen by the user; Node rehearsal confirm → journal → crash → resume passed",
+  ),
   // Rabdi refuses contract creation ("contract creation is disabled (no-EVM Arkiv executor)"), so
   // no Faucet contract: a desk wallet sends tGLM and writes a readonly `drip` record (B1.1-R7–R9).
   fundingProfile: measured("desk-wallet", "P0.6-S6 2026-11-06: Rabdi has no EVM; native tGLM transfer works"),

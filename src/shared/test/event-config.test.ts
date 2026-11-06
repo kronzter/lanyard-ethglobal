@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { configHash, freezeConfig } from "../config/hash";
+import { scoreKeyId } from "../crypto/score-cipher";
 import type { EventConfigInput } from "../config/schema";
 import { BlockedCapabilityError, measured, requireMeasured, unmeasured } from "../config/unmeasured";
 import {
@@ -55,13 +56,27 @@ describe("mumbai2026 config", () => {
     expect(staffBadgeExpiry(t)).toBe(t.eventEnd);
   });
 
-  it("keeps spike-measured values blocked instead of guessing them", () => {
-    expect(eventConfig.shiftWriteProfile).toEqual(unmeasured("P0.6-S12"));
-    expect(() => configHash(eventConfig)).toThrow(BlockedCapabilityError);
+  it("is fully measured, with a stable config hash and the real score key", () => {
+    expect(eventConfig.shiftWriteProfile).toEqual(
+      expect.objectContaining({ status: "measured", value: "confirmed-sequential" }),
+    );
+    expect(eventConfig.fundingProfile).toEqual(
+      expect.objectContaining({ status: "measured", value: "desk-wallet" }),
+    );
+    const frozen = freezeConfig(eventConfig);
+    expect(frozen.scoreCipher.keyId).toBe(scoreKeyId(frozen.scoreCipher.publicKey));
+    expect(configHash(eventConfig)).toMatch(/^0x[0-9a-f]{64}$/);
+    expect(configHash(eventConfig)).toBe(configHash(eventConfig));
+  });
+
+  it("still blocks a config with any gate left unmeasured, naming its spike check", () => {
+    const c = clone();
+    c.scoreCipher = unmeasured("P0.6-S11");
+    expect(() => configHash(validateEventConfig(c))).toThrow(BlockedCapabilityError);
     try {
-      freezeConfig(eventConfig);
+      freezeConfig(validateEventConfig(c));
     } catch (e) {
-      expect((e as BlockedCapabilityError).gate).toMatch(/^P0\.6-S/);
+      expect((e as BlockedCapabilityError).gate).toBe("P0.6-S11");
     }
   });
 });
