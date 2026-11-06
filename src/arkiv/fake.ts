@@ -81,6 +81,8 @@ export class FakeArkiv implements ArkivReader {
   constructor(
     private readonly genesisSeconds = 1_796_000_000n,
     startBlock = 1_000n,
+    /** Block 0's hash, i.e. the reset identity capture checks (defaults to a synthetic hash). */
+    private readonly genesisHash?: Hex,
   ) {
     this.headNumber = startBlock;
   }
@@ -166,7 +168,10 @@ export class FakeArkiv implements ArkivReader {
     if (number > this.headNumber) throw new Error(`block ${number} is in the future`);
     return {
       number,
-      hash: keccak256(encodePacked(["string", "uint256"], ["fake-block", number])),
+      hash:
+        number === 0n && this.genesisHash
+          ? this.genesisHash
+          : keccak256(encodePacked(["string", "uint256"], ["fake-block", number])),
       timestamp: this.genesisSeconds + number * FAKE_BLOCK_SECONDS,
     };
   }

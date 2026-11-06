@@ -1,13 +1,15 @@
 // Organizer-only and results-key kinds (B2.2-R3). Their writers are independently configured
 // authority wallets, so their `by_label` is descriptive and needs no badge.
 //
-//   venue, acceptance  organizer only
+//   venue              organizer only, and its payload must be a valid venue.json (B3.3-R6)
+//   acceptance         organizer only
 //   seat_assignment    organizer only, and `hacker_label` owned by `hacker_address` at creation
 //   rubric             organizer (any track; the only writer for `main`), or a partner for its own track
 //   results            the results wallet only
 //   drip               the configured desk wallet only
 import { isCanonicalLabel } from "@/shared/labels";
 import { addr, ref, str } from "../decode";
+import { venuePayload } from "../state";
 import { ok, reject, type KindRule, type RuleCtx } from "../types";
 
 const READONLY = { readonly: true, permissionlessExtension: false } as const;
@@ -24,7 +26,10 @@ const isHackerLabel = (label: string) => {
 export const venue: KindRule = {
   flags: READONLY,
   writers: [{ via: "authority", authority: "organizer" }],
-  check: () => ok,
+  check: (r) => {
+    const v = venuePayload(r);
+    return typeof v === "string" ? reject(v) : ok;
+  },
 };
 
 export const acceptance: KindRule = {

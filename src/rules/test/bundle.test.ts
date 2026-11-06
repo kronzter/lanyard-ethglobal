@@ -5,13 +5,12 @@ import { canonicalJson } from "@/shared/canonical";
 import { verifyEnvelope } from "@/shared/evidence/bundle";
 import { createFixtureEnsReader } from "@/shared/mocks/fixtures";
 import { assembleBody, ENGINE, evaluate, parseBundleText, prepare, reproduce, signBody } from "@/rules";
-import { context, frozen, obs, persona, RULES_VERSION } from "./harness";
+import { context, frozen, persona, RULES_VERSION, venueObs } from "./harness";
 
 async function body() {
-  const org = persona("organizer");
   const records = [
-    obs({ kind: "venue", creator: org.address, byLabel: "organizer", at: 9_021_700n }),
-    obs({ kind: "venue", creator: persona("ravi").address, byLabel: "ravi.volunteers", at: 9_021_800n }),
+    venueObs(9_021_700n),
+    venueObs(9_021_800n, undefined, { creator: persona("ravi").address, byLabel: "ravi.volunteers" }),
   ];
   const ctx = context();
   const { ens } = await prepare(records, createFixtureEnsReader(), ctx, frozen);
