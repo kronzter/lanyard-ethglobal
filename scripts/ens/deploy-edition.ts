@@ -19,6 +19,8 @@ import { encodeFunctionData, keccak256, toHex, type Address, type Hex } from "vi
 import {
   baseRegistrySalt,
   planEditionSteps,
+  recoverRegistrar,
+  registrarMismatches,
   predictVerifiableProxy,
   type EditionObservation,
   type EditionStep,
@@ -48,7 +50,7 @@ const lower = (a: string): Address => a.toLowerCase() as Address;
 
 type Ctx = Connection;
 
-type State = { registrar?: Address };
+type State = { registrar?: Address; registrarTx?: Hex };
 
 const edition = eventConfig.edition;
 const baseLabel = eventConfig.baseName.replace(/\.eth$/, "");
@@ -128,13 +130,39 @@ async function observe(ctx: Ctx, state: State) {
   let editionRegistry: Address | null = null;
   if (state.registrar && ((await pc.getCode({ address: state.registrar })) ?? "0x") !== "0x") {
     const r = state.registrar;
-    const [org, base, phase] = await Promise.all([
-      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "organizer" }),
-      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "baseRegistry" }),
-      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "phase" }),
+    const call = { address: r, abi: lanyardRegistrarAbi } as const;
+    const [org, base, factory, impl, end, freeze, label, phase] = await Promise.all([
+      pc.readContract({ ...call, functionName: "organizer" }),
+      pc.readContract({ ...call, functionName: "baseRegistry" }),
+      pc.readContract({ ...call, functionName: "factory" }),
+      pc.readContract({ ...call, functionName: "userRegistryImplementation" }),
+      pc.readContract({ ...call, functionName: "eventEnd" }),
+      pc.readContract({ ...call, functionName: "freezeDeadline" }),
+      pc.readContract({ ...call, functionName: "editionLabel" }),
+      pc.readContract({ ...call, functionName: "phase" }),
     ]);
-    if (!sameAddress(org, organizer) || !sameAddress(base, baseRegistry)) {
-      throw new Error(`recorded registrar ${r} belongs to a different organizer or base registry`);
+    const mismatches = registrarMismatches(
+      {
+        organizer: org,
+        baseRegistry: base,
+        factory,
+        userRegistryImplementation: impl,
+        eventEnd: end,
+        freezeDeadline: freeze,
+        editionLabel: label,
+      },
+      {
+        organizer,
+        baseRegistry,
+        factory: ensv2Sepolia.verifiableFactory,
+        userRegistryImplementation: ensv2Sepolia.userRegistryImpl,
+        eventEnd: eventConfig.times.eventEnd,
+        freezeDeadline: eventConfig.times.freezeDeadline,
+        editionLabel: edition,
+      },
+    );
+    if (mismatches.length > 0) {
+      throw new Error(`recorded registrar ${r} does not match the config: ${mismatches.join("; ")}`);
     }
     registrarPhase = REGISTRAR_PHASE[phase] ?? null;
     if (registrarPhase !== "created") {
@@ -248,6 +276,8 @@ async function runStep(ctx: Ctx, step: EditionStep, baseRegistry: Address, state
         ],
         ...common,
       });
+      state.registrarTx = hash;
+      writeState(ctx.statePath, state); // before waiting: a stopped run recovers the address from this hash
       const receipt = await ctx.publicClient.waitForTransactionReceipt({ hash });
       if (receipt.status !== "success" || !receipt.contractAddress)
         throw new Error(`${step} failed in ${hash}`);
@@ -304,6 +334,30 @@ async function runStep(ctx: Ctx, step: EditionStep, baseRegistry: Address, state
         }),
       );
   }
+}
+
+/** A deploy tx was recorded but no address: adopt the registrar from its receipt instead of deploying twice. */
+async function adoptRecordedDeploy(ctx: Ctx, state: State): Promise<void> {
+  if (state.registrar || !state.registrarTx) return;
+  let receipt: Awaited<ReturnType<Ctx["publicClient"]["getTransactionReceipt"]>> | null;
+  try {
+    receipt = await ctx.publicClient.getTransactionReceipt({ hash: state.registrarTx });
+  } catch {
+    receipt = null; // not mined (yet), or unknown to this node
+  }
+  const decision = recoverRegistrar(
+    receipt ? { status: receipt.status, contractAddress: receipt.contractAddress ?? null } : null,
+  );
+  if (decision.action === "wait") {
+    throw new Error(`registrar deploy ${state.registrarTx} has no receipt yet; wait for it, then re-run`);
+  }
+  if (decision.action === "use") {
+    state.registrar = decision.address;
+    console.log(`recovered registrar ${decision.address} from ${state.registrarTx}`);
+  } else {
+    delete state.registrarTx; // it reverted: the planner deploys a fresh one
+  }
+  writeState(ctx.statePath, state);
 }
 
 function requireRegistrar(state: State): Address {
@@ -375,6 +429,29 @@ async function verifyFinal(ctx: Ctx, baseRegistry: Address, state: State): Promi
     if (!sameAddress(bookParent[0], editionRegistry) || bookParent[1] !== book)
       problems.push(`${book}: parent pointer is wrong`);
   }
+  // Phase, protected labels and the edition name in the base registry (A1.1-R3, R4).
+  const phase = await pc.readContract({
+    address: registrar,
+    abi: lanyardRegistrarAbi,
+    functionName: "phase",
+  });
+  if (REGISTRAR_PHASE[phase] !== "sealed") problems.push("registrar is not sealed");
+  for (const label of ["admin", "staff", "lanyard", "ethglobal", "winner"]) {
+    const status = await pc.readContract({ ...reg, functionName: "getStatus", args: [idOf(label)] });
+    if (status !== 1) problems.push(`${label} is not reserved in the edition registry`);
+  }
+  const baseReg = { address: baseRegistry, abi: permissionedRegistryAbi } as const;
+  const [nameOwner, nameExpiry, nameRoles, resolverSet] = await Promise.all([
+    pc.readContract({ ...baseReg, functionName: "getOwner", args: [idOf(edition)] }),
+    pc.readContract({ ...baseReg, functionName: "getExpiry", args: [idOf(edition)] }),
+    pc.readContract({ ...baseReg, functionName: "roles", args: [idOf(edition), registrar] }),
+    pc.readContract({ address: registrar, abi: lanyardRegistrarAbi, functionName: "publicationResolver" }),
+  ]);
+  if (!sameAddress(nameOwner, registrar)) problems.push("edition name is not owned by the registrar");
+  if (nameExpiry < nsExpiry) problems.push(`edition name expires at ${nameExpiry}, before ${nsExpiry}`);
+  const resolverFrozen = !sameAddress(resolverSet, "0x0000000000000000000000000000000000000000");
+  const expectedNameRoles = resolverFrozen ? ROLE.RENEW : EDITION_NAME_ROLES;
+  if (nameRoles !== expectedNameRoles) problems.push(`registrar roles on the edition name are ${nameRoles}`);
   if (problems.length > 0) throw new Error(`final state check failed: ${problems.join("; ")}`);
   return editionRegistry;
 }
@@ -389,6 +466,7 @@ async function main(): Promise<void> {
   const { organizer } = ctx;
   const state = readState(ctx.statePath);
 
+  await adoptRecordedDeploy(ctx, state);
   const { observation, baseRegistry } = await observe(ctx, state);
   const plan = planEditionSteps(observation);
   console.log(

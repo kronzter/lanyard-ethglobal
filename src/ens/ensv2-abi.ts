@@ -60,6 +60,10 @@ export const permissionedRegistryAbi = parseAbi([
 export const lanyardRegistrarAbi = parseAbi([
   "constructor(address organizer, address factory, address userRegistryImplementation, address baseRegistry, string editionLabel, uint64 eventEnd, uint64 freezeDeadline)",
   "function organizer() view returns (address)",
+  "function factory() view returns (address)",
+  "function userRegistryImplementation() view returns (address)",
+  "function eventEnd() view returns (uint64)",
+  "function freezeDeadline() view returns (uint64)",
   "function baseRegistry() view returns (address)",
   "function namespaceExpiry() view returns (uint64)",
   "function editionLabel() view returns (string)",

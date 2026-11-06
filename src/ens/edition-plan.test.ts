@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
+import type { Address } from "viem";
 import { namespaceExpiry } from "../shared/config/validate";
 import { eventConfig } from "../shared/event.config";
 import {
   baseRegistrySalt,
   planEditionSteps,
+  recoverRegistrar,
+  registrarMismatches,
   predictVerifiableProxy,
   verifiableProxyCreationCode,
   type EditionObservation,
   type EditionStep,
+  type RegistrarImmutables,
 } from "./edition-plan";
 
 const expiry = namespaceExpiry(eventConfig.times);
@@ -156,5 +160,61 @@ describe("namespace expiry shared with Solidity", () => {
     expect(eventConfig.times.freezeDeadline).toBe(1_796_567_400n);
     expect(expiry).toBe(1_796_567_400n + 30n * 86_400n);
     expect(expiry).toBe(1_799_159_400n); // RegisterBadge.t.sol › test_R4_namespaceExpiryEqualsTheTypescriptFormula
+  });
+});
+
+describe("registrarMismatches", () => {
+  const expected: RegistrarImmutables = {
+    organizer: "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    baseRegistry: "0x2cBC51494744A7A6C2bedc4dD48C0B7C402931bb",
+    factory: "0x9e726eb570beb6bceb495ab8cda7df517d4e841c",
+    userRegistryImplementation: "0xa80338aaa8d23831cea25e858d1774534abb0263",
+    eventEnd: 1_796_560_200n,
+    freezeDeadline: 1_796_567_400n,
+    editionLabel: "mumbai2026",
+  };
+
+  it("accepts a registrar built from the same config (address case does not matter)", () => {
+    const actual = { ...expected, organizer: expected.organizer.toLowerCase() as Address };
+    expect(registrarMismatches(actual, expected)).toEqual([]);
+  });
+
+  it.each<[string, Partial<RegistrarImmutables>, RegExp]>([
+    ["organizer", { organizer: "0x0000000000000000000000000000000000000001" }, /organizer/],
+    ["base registry", { baseRegistry: "0x0000000000000000000000000000000000000002" }, /baseRegistry/],
+    ["factory", { factory: "0x0000000000000000000000000000000000000003" }, /factory/],
+    [
+      "implementation",
+      { userRegistryImplementation: "0x0000000000000000000000000000000000000004" },
+      /userRegistryImplementation/,
+    ],
+    ["eventEnd", { eventEnd: 1n }, /eventEnd/],
+    ["freezeDeadline", { freezeDeadline: 1n }, /freezeDeadline/],
+    ["edition label", { editionLabel: "other2026" }, /editionLabel/],
+  ])("reports a different %s", (_name, patch, message) => {
+    const out = registrarMismatches({ ...expected, ...patch }, expected);
+    expect(out).toHaveLength(1);
+    expect(out[0]).toMatch(message);
+  });
+
+  it("lists every difference", () => {
+    expect(registrarMismatches({ ...expected, eventEnd: 1n, freezeDeadline: 2n }, expected)).toHaveLength(2);
+  });
+});
+
+describe("recoverRegistrar", () => {
+  const deployed = "0xDC64a140Aa3E981100a9becA4E685f962f0cF6C9";
+  it("adopts the contract address from a successful receipt (lowercased)", () => {
+    expect(recoverRegistrar({ status: "success", contractAddress: deployed })).toEqual({
+      action: "use",
+      address: deployed.toLowerCase(),
+    });
+  });
+  it("waits when there is no receipt yet", () => {
+    expect(recoverRegistrar(null)).toEqual({ action: "wait" });
+  });
+  it("redeploys after a reverted deploy, and when a success carries no address", () => {
+    expect(recoverRegistrar({ status: "reverted", contractAddress: null })).toEqual({ action: "redeploy" });
+    expect(recoverRegistrar({ status: "success", contractAddress: null })).toEqual({ action: "redeploy" });
   });
 });

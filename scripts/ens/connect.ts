@@ -15,6 +15,7 @@ import {
 import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
 import { sepolia } from "viem/chains";
 import { eventConfig } from "../../src/shared/event.config";
+import { assertLoopbackUrl, redactUrls } from "./safety";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -39,6 +40,7 @@ export async function connect(opts: { fork: boolean; needKey: boolean }): Promis
     ? (process.env.FORK_RPC_URL ?? "http://127.0.0.1:8545")
     : process.env.SEPOLIA_RPC_URL;
   if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is not set");
+  if (opts.fork) assertLoopbackUrl(rpcUrl);
   const key = process.env.ORGANIZER_PRIVATE_KEY;
   if (opts.needKey && !key) throw new Error("ORGANIZER_PRIVATE_KEY is not set");
 
@@ -70,6 +72,6 @@ export function fail(script: string, err: unknown): void {
   const text =
     err instanceof Error ? ((err as { shortMessage?: string }).shortMessage ?? err.message) : String(err);
   const urls = [process.env.SEPOLIA_RPC_URL, process.env.FORK_RPC_URL].filter((u): u is string => !!u);
-  console.error(`${script}: ${urls.reduce((t, u) => t.split(u).join("<rpc-url>"), text)}`);
+  console.error(`${script}: ${redactUrls(text, urls)}`);
   process.exitCode = 1;
 }

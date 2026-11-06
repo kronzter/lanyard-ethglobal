@@ -120,3 +120,47 @@ export function predictVerifiableProxy(args: {
 /** Salts the script uses; the factory namespaces them by caller. */
 export const baseRegistrySalt = (baseName: string): bigint =>
   BigInt(keccak256(toHex(`lanyard.base:${baseName}`)));
+
+/** What a recorded registrar was built with; compared with the config before a resumed run trusts it. */
+export type RegistrarImmutables = {
+  organizer: Address;
+  baseRegistry: Address;
+  factory: Address;
+  userRegistryImplementation: Address;
+  eventEnd: bigint;
+  freezeDeadline: bigint;
+  editionLabel: string;
+};
+
+/** Every way `actual` differs from `expected` (empty when the registrar matches the config). */
+export function registrarMismatches(actual: RegistrarImmutables, expected: RegistrarImmutables): string[] {
+  const out: string[] = [];
+  const addr = ["organizer", "baseRegistry", "factory", "userRegistryImplementation"] as const;
+  for (const key of addr) {
+    if (actual[key].toLowerCase() !== expected[key].toLowerCase())
+      out.push(`${key} is ${actual[key]}, expected ${expected[key]}`);
+  }
+  for (const key of ["eventEnd", "freezeDeadline"] as const) {
+    if (actual[key] !== expected[key]) out.push(`${key} is ${actual[key]}, expected ${expected[key]}`);
+  }
+  if (actual.editionLabel !== expected.editionLabel)
+    out.push(
+      `editionLabel is ${JSON.stringify(actual.editionLabel)}, expected ${JSON.stringify(expected.editionLabel)}`,
+    );
+  return out;
+}
+
+export type DeployTxReceipt = { status: "success" | "reverted"; contractAddress: Address | null } | null;
+
+/**
+ * A registrar deploy transaction was recorded but its address was not. Decide from its receipt whether to
+ * adopt the address, wait for the transaction, or deploy again.
+ */
+export function recoverRegistrar(
+  receipt: DeployTxReceipt,
+): { action: "use"; address: Address } | { action: "wait" } | { action: "redeploy" } {
+  if (receipt === null) return { action: "wait" };
+  if (receipt.status === "success" && receipt.contractAddress)
+    return { action: "use", address: receipt.contractAddress.toLowerCase() as Address };
+  return { action: "redeploy" };
+}
