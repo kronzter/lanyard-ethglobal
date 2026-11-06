@@ -16,7 +16,7 @@ Everything the two tracks must agree on, built once and together, so that afterw
 | --- | --- |
 | P0.1 repo, hooks, CI | Somewhere to build, with a safety net |
 | P0.2 shared config, labels, canonical JSON, deployments, venue and team-page types | Record writers need config, labels and deployment shapes |
-| P0.4a `personas.json` + `by`-label test | Writers and seeds need real persona labels |
+| P0.4a `personas.json` + `by_label` test | Writers and seeds need real persona labels |
 | P0.5a Expo web shell (routes, flags, providers, web-only guard, `/teams/[team]`) | A home for B screens; web-export CI |
 | P0.6a Node-side Arkiv checks S6, S9, S10, S12 | Decide Faucet vs fallback, SDK API, capture and shift-write profile |
 
@@ -150,11 +150,11 @@ Implement the exact `EnsReader`, `EvaluationContext`, `Router`/located-stop and 
 - **P0.4-R2** THE `fixtures/venue.small.json` SHALL be a hand-made 20×12 grid with 12 seats, 2 zones, 3 points of interest (one `help-desk` per zone, plus a stage) and one walled-in seat.
 - **P0.4-R3** THE `fixtures/ens-history.json` SHALL script a day of ENS events at Sepolia blocks, including: badges issued; Priya made lead; Priya's lead note removed at a known block; one judge unregistered mid-judging; one badge reaching expiry; one expired badge revived.
 - **P0.4-R4** THE `fixtures/timeline.json` SHALL map the event's key times to mock Sepolia blocks (12 s per block from a fixed genesis).
-- **P0.4-R5** Fixtures SHALL cover owner/address disagreement, deleted captured and uncaptured finals, expired logical leases with retained claims, post-cutoff revocation, publication restart, stale registration-bound lead notes, out-of-window cutoffs and partner ancestors surviving event end. All persona keys are env-var names only; authority wallets may have descriptive `by` labels without badge ownership.
+- **P0.4-R5** Fixtures SHALL cover owner/address disagreement, deleted captured and uncaptured finals, expired logical leases with retained claims, post-cutoff revocation, publication restart, stale registration-bound lead notes, out-of-window cutoffs and partner ancestors surviving event end. All persona keys are env-var names only; authority wallets may have descriptive `by_label` values without badge ownership.
 
 **Tasks**
 - [ ] Four strict JSON fixture files; explain their stories in `fixtures/README.md` (JSON contains no comments)
-- [ ] A test that every `by` label used in fixtures exists in `personas.json`
+- [ ] A test that every `by_label` value used in fixtures exists in `personas.json`
 
 **Commit:** `chore(fixtures): P0.4 personas, small venue, ens history and timeline`
 

@@ -69,7 +69,7 @@ App-issued badges omit transfer-admin; raw authorized registrars can choose othe
 
 ## 6 · Records (Arkiv)
 
-Every record has `app: "lanyard"`, `event: "mumbai2026"`, `kind` and `by` (the writer's relative ENS label). The full table, with owners, flags and expiries, is in `B1-arkiv-data.md`.
+Every record has `app: "lanyard"`, `event: "mumbai2026"`, `kind` and `by_label` (the writer's relative ENS label; Arkiv reserves `by` as a query keyword, so the attribute can't be named `by`). The full table, with owners, flags and expiries, is in `B1-arkiv-data.md`.
 
 Kinds: `venue`, `seat_assignment`, `shift`, `clock`, `duty_pass`, `ticket`, `ticket_claim`, `ticket_resolution`, `ticket_confirmation`, `project`, `submission`, `acceptance`, `rubric`, `judge_assignment`, `score_sheet`, `final_score`, `recusal`, `results`, plus `drip` when P0.6 selects the desk-wallet funding fallback. Draft projects/sheets are mutable; adjudication uses immutable submission snapshots and retained readonly dependencies.
 

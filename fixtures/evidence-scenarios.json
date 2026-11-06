@@ -29,7 +29,7 @@
           "value": "lanyard"
         },
         {
-          "name": "by",
+          "name": "by_label",
           "type": "str",
           "indexed": true,
           "value": "ana.judges.arkiv.partners"
@@ -94,7 +94,7 @@
           "value": "lanyard"
         },
         {
-          "name": "by",
+          "name": "by_label",
           "type": "str",
           "indexed": true,
           "value": "zkpay-b.hackers"
@@ -147,7 +147,7 @@
           "value": "lanyard"
         },
         {
-          "name": "by",
+          "name": "by_label",
           "type": "str",
           "indexed": true,
           "value": "ravi.volunteers"

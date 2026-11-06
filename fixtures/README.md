@@ -27,6 +27,10 @@ The organizer, results and partner addresses are the authority wallets in
 `src/shared/event.config.ts` (HD indices 0, 1, 5, 6). Any fixture's `by` labels can be checked
 with `assertByLabelsKnown` from `src/shared/fixtures/personas.ts`.
 
+A persona's `by` field is the value its Arkiv records carry in the `by_label` attribute. Arkiv
+reserves `by` as a query keyword, so records (and `evidence-scenarios.json`) use `by_label`; the
+persona field keeps its short fixture name.
+
 ## `team-pages.json` (P0.2)
 
 The four public team-page states: `populated` (zkpay, published), `awaitingSubmission`

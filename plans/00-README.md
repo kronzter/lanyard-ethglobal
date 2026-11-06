@@ -66,7 +66,7 @@ Freeze cutoffs must be in `[results, freezeDeadline)` and namespace lifetimes co
 | P0 · joint | `P0-foundation.md` | P0.6 wallet + chain spike (first) · P0.1 repo + CI · P0.2 shared types + config · P0.3 interfaces, mocks, conformance · P0.4 fixtures · P0.5 app shell |
 | A1 | `A1-namespace.md` | A1.1 base + edition · A1.2 books + badge registrar · A1.3 teams + reserved `winner` |
 | B1 | `B1-arkiv-data.md` | B1.1 chain + faucet · B1.2 record kinds + writers · B1.3 queue, batch, readers, watcher |
-| I1 | `I1-names-meet-records.md` | Real badges, real `by` labels on Arkiv |
+| I1 | `I1-names-meet-records.md` | Real badges, real `by_label` values on Arkiv |
 | A2 | `A2-permissions-ens-reader.md` | A2.1 resolvers · A2.2 scoped grants · A2.3 revoke + revive · A2.4 real `EnsReader` |
 | B2 | `B2-rules-verifier.md` | B2.1 time mapping · B2.2 rules core · B2.3 determinism + `lanyard verify` |
 | I2 | `I2-real-ens-history.md` | ENS flag → `sepolia`; rules on real history |

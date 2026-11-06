@@ -19,8 +19,8 @@ Feature-specific rules for volunteers, tickets and judging. Those ship with thei
 ## How a record is judged
 
 1. **Writer.** `$creator` and creation flags match the kind policy. Current ownership controls mutation, not captured provenance.
-2. **Claimed badge.** The `by` attribute names an ENS label, e.g. `priya.volunteers`.
-3. **Badge belonged to writer.** `EnsReader.owner`, not its address record, matches the creator at creation time. Authority-only kinds instead match frozen authority addresses; their descriptive `by` labels need not be badges.
+2. **Claimed badge.** The `by_label` attribute names an ENS label, e.g. `priya.volunteers`.
+3. **Badge belonged to writer.** `EnsReader.owner`, not its address record, matches the creator at creation time. Authority-only kinds instead match frozen authority addresses; their descriptive `by_label` values need not be badges.
 4. **Badge allowed it.** At that time the badge was unexpired, not unregistered, and carried any needed permission note.
 5. **Kind-specific condition** (registered by B3/B4).
 
