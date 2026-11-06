@@ -53,7 +53,7 @@ export const prepare = (
 export { evaluateWith, checkContext, ContextError, RulesVersionError, type Engine } from "./engine";
 export { prepareWith, type Prepared, type PrepareStats } from "./prepare";
 export { rulesConfigOf, RulesConfigError, type RulesConfig } from "./config";
-export { decodeRecord, type DecodedRecord } from "./decode";
+export { addr, bytes, decodeRecord, ref, str, u64, type DecodedRecord } from "./decode";
 export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./snapshot";
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
 export * from "./types";

@@ -8,7 +8,7 @@ import { createLiveCore, type LiveStatus } from "./live";
 export function useArkivLive<T>(
   reader: ArkivReader,
   load: (head: BlockRef) => Promise<T>,
-  opts: { rescanMs?: number; enabled?: boolean } = {},
+  opts: { rescanMs?: number; enabled?: boolean; restartKey?: unknown } = {},
 ) {
   const [data, setData] = useState<T | null>(null);
   const [status, setStatus] = useState<LiveStatus>({ state: "starting" });
@@ -26,7 +26,7 @@ export function useArkivLive<T>(
     });
     core.start();
     return () => core.stop();
-  }, [reader, enabled, opts.rescanMs]);
+  }, [reader, enabled, opts.rescanMs, opts.restartKey]);
 
   return { data, status };
 }
