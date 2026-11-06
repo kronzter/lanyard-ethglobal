@@ -2,6 +2,7 @@
 // still be the canonical one. `EnsReader` exposes no block hashes, so this small B-owned source
 // supplies them: deterministic hashes over the fixture timeline in mock mode, a viem public client
 // against the archive RPC once ENS goes live at I2.
+import type { PublicClient } from "viem";
 import { canonicalHash } from "@/shared/canonical";
 import type { BlockRef, Hex } from "@/shared/types/primitives";
 import { timestampOfBlock, type Timeline } from "@/shared/fixtures/timeline";
@@ -27,6 +28,16 @@ export function mockSepoliaBlocks(
         hash: opts.override?.(number) ?? mockBlockHash(timeline.chainId, number),
         timestamp: timestampOfBlock(timeline, number),
       };
+    },
+  };
+}
+
+/** Canonical block identity from the same archive RPC used for historical ENS reads. */
+export function liveSepoliaBlocks(client: PublicClient): SepoliaBlocks {
+  return {
+    async blockRef(number) {
+      const block = await client.getBlock({ blockNumber: number });
+      return { number: block.number, hash: block.hash, timestamp: block.timestamp };
     },
   };
 }
