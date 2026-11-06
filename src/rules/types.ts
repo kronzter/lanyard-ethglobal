@@ -1,6 +1,7 @@
 // Rules engine types (B2.2; plans/01-evidence-and-interfaces.md §2).
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
+import type { TrackRanking } from "./rankings";
 import type { ScoreDecision } from "./scores";
 import type { RulesConfig } from "./config";
 import type { DecodedRecord } from "./decode";
@@ -82,4 +83,5 @@ export type RulesOutput = {
   verdicts: Verdict[];
   /** Derived independently from retained ciphertext; absent before freeze. */
   scores?: ScoreDecision[];
+  rankings?: TrackRanking[];
 };
