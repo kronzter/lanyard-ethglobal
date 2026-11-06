@@ -15,22 +15,7 @@
 // Run `forge build --root contracts` first: the registrar bytecode comes from contracts/out.
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import {
-  createPublicClient,
-  createWalletClient,
-  encodeFunctionData,
-  getAddress,
-  http,
-  keccak256,
-  toHex,
-  type Address,
-  type Hex,
-  type PublicClient,
-  type WalletClient,
-} from "viem";
-import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
-import { sepolia } from "viem/chains";
+import { encodeFunctionData, keccak256, toHex, type Address, type Hex } from "viem";
 import {
   baseRegistrySalt,
   planEditionSteps,
@@ -51,24 +36,17 @@ import {
   verifiableFactoryAbi,
 } from "../../src/ens/ensv2-abi";
 import { ensv2Sepolia } from "../../src/ens/ensv2-sepolia";
+import { BOOKS } from "../../src/shared/labels";
 import { namespaceExpiry } from "../../src/shared/config/validate";
 import { eventConfig } from "../../src/shared/event.config";
+import { connect, fail, ROOT, sameAddress, type Connection } from "./connect";
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const ARTIFACT = resolve(ROOT, "contracts/out/LanyardRegistrar.sol/LanyardRegistrar.json");
 
 const idOf = (label: string): bigint => BigInt(keccak256(toHex(label)));
 const lower = (a: string): Address => a.toLowerCase() as Address;
-const sameAddress = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
 
-type Ctx = {
-  fork: boolean;
-  publicClient: PublicClient;
-  walletClient: WalletClient | null;
-  organizer: Address;
-  account: PrivateKeyAccount | null;
-  statePath: string;
-};
+type Ctx = Connection;
 
 type State = { registrar?: Address };
 
@@ -369,6 +347,34 @@ async function verifyFinal(ctx: Ctx, baseRegistry: Address, state: State): Promi
   if (upgrade) problems.push("registrar holds ROLE_UPGRADE");
   if (!sameAddress(parent[0], baseRegistry) || parent[1] !== edition)
     problems.push("edition parent pointer is wrong");
+  // The four books exist, belong to the organizer and have exactly the managed-registry roles (A1.2-R1/R2).
+  const organizerBookRoles = ROLE.REGISTRAR | ROLE.UNREGISTER | ROLE.RENEW | ROLE.SET_RESOLVER;
+  const bookCounts = 2n * ROLE.REGISTRAR + ROLE.UNREGISTER + 2n * ROLE.RENEW + ROLE.SET_RESOLVER;
+  for (const book of BOOKS) {
+    const hash = keccak256(toHex(book));
+    const registry = await pc.readContract({
+      address: registrar,
+      abi: lanyardRegistrarAbi,
+      functionName: "bookRegistry",
+      args: [hash],
+    });
+    const bookReg = { address: registry, abi: permissionedRegistryAbi } as const;
+    const [owner, subregistry, expiry, counts, held, bookParent] = await Promise.all([
+      pc.readContract({ ...reg, functionName: "getOwner", args: [idOf(book)] }),
+      pc.readContract({ ...reg, functionName: "getSubregistry", args: [book] }),
+      pc.readContract({ ...reg, functionName: "getExpiry", args: [idOf(book)] }),
+      pc.readContract({ ...bookReg, functionName: "roleCount", args: [0n] }),
+      pc.readContract({ ...bookReg, functionName: "roles", args: [0n, ctx.organizer] }),
+      pc.readContract({ ...bookReg, functionName: "getParent" }),
+    ]);
+    if (!sameAddress(owner, ctx.organizer)) problems.push(`${book}: name is not owned by the organizer`);
+    if (!sameAddress(subregistry, registry)) problems.push(`${book}: name does not point at its registry`);
+    if (expiry !== nsExpiry) problems.push(`${book}: name expires at ${expiry}, expected ${nsExpiry}`);
+    if (counts !== bookCounts) problems.push(`${book}: unexpected root role holders (${counts})`);
+    if (held !== organizerBookRoles) problems.push(`${book}: organizer roles are ${held}`);
+    if (!sameAddress(bookParent[0], editionRegistry) || bookParent[1] !== book)
+      problems.push(`${book}: parent pointer is wrong`);
+  }
   if (problems.length > 0) throw new Error(`final state check failed: ${problems.join("; ")}`);
   return editionRegistry;
 }
@@ -379,33 +385,8 @@ async function main(): Promise<void> {
   const fork = args.has("--fork");
   for (const a of args) if (!["--plan", "--fork"].includes(a)) throw new Error(`unknown argument ${a}`);
 
-  const rpcUrl = fork ? (process.env.FORK_RPC_URL ?? "http://127.0.0.1:8545") : process.env.SEPOLIA_RPC_URL;
-  if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is not set");
-  const key = process.env.ORGANIZER_PRIVATE_KEY;
-  if (!planOnly && !key) throw new Error("ORGANIZER_PRIVATE_KEY is not set");
-
-  const account = key ? privateKeyToAccount(key as Hex) : null;
-  const organizer = account?.address ?? getAddress(eventConfig.authorities.organizer);
-  if (!fork && account && !sameAddress(account.address, eventConfig.authorities.organizer)) {
-    throw new Error(
-      "ORGANIZER_PRIVATE_KEY does not match authorities.organizer in src/shared/event.config.ts",
-    );
-  }
-
-  const transport = http(rpcUrl);
-  const publicClient = createPublicClient({ chain: sepolia, transport });
-  const chainId = await publicClient.getChainId();
-  if (chainId !== sepolia.id)
-    throw new Error(`RPC reports chain ${chainId}, expected Sepolia (${sepolia.id})`);
-  const walletClient = account ? createWalletClient({ account, chain: sepolia, transport }) : null;
-  const ctx: Ctx = {
-    fork,
-    publicClient,
-    walletClient,
-    organizer,
-    account,
-    statePath: resolve(ROOT, `.lanyard/edition-${fork ? "fork" : "sepolia"}.json`),
-  };
+  const ctx: Ctx = await connect({ fork, needKey: !planOnly });
+  const { organizer } = ctx;
   const state = readState(ctx.statePath);
 
   const { observation, baseRegistry } = await observe(ctx, state);
@@ -437,10 +418,4 @@ async function main(): Promise<void> {
   );
 }
 
-main().catch((err: unknown) => {
-  const text =
-    err instanceof Error ? ((err as { shortMessage?: string }).shortMessage ?? err.message) : String(err);
-  const urls = [process.env.SEPOLIA_RPC_URL, process.env.FORK_RPC_URL].filter((u): u is string => !!u);
-  console.error(`deploy-edition: ${urls.reduce((t, u) => t.split(u).join("<rpc-url>"), text)}`);
-  process.exit(1);
-});
+main().catch((err: unknown) => fail("deploy-edition", err));
