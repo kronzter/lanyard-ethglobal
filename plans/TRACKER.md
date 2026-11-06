@@ -140,7 +140,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 2. ~~Set up an Expo account and eas-cli, get a Reown project ID and an archive Sepolia RPC key~~ done 2026-11-06.
 3. Phone half of the spike: ~~S1, S2, S7~~ done 2026-11-06; S8 done (phone reads + B's Node load and watchers). **Deferred by user decision until before I1:** S5 on web (Chrome + MetaMask at `/spike`), and with B: S3, S4 and the Hermes vector run (S3 first).
 4. ~~Rest of the app shell (R2, R3, R5, R6, R7 on Android)~~ merged 2026-11-06. Open: merge #15, a `preview` APK (`pnpm app:apk`) on both phones.
-5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) in a draft PR from `a1/namespace` into `phase/A` (Track A base, cut from `main`); supersedes #14. Review findings A1-D4–D6 fixed; Sepolia fork mode A passes on the fixed branch (2026-11-06). Deploy-time checks A1-D7/D8 fixed. Next: the live deploy.
+5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) merged into `phase/A` (#28, 2026-11-06; supersedes #14). Review findings A1-D4–D8 fixed; Sepolia fork mode A passes. **Full live-deploy rehearsal on a Sepolia fork passed 2026-11-06** (block 12078310, real organizer `0x36b7…E2cF`, head judge `0x141c…6D6d`): resolvers, all nine edition steps, publication resolver, then a re-plan with nothing to do. Live runs name the organizer with `LANYARD_LIVE_ORGANIZER` because `authorities.organizer` in the shared config is still the mock wallet; **with B before I1:** set it to `0x36b7…E2cF` and regenerate B's rules vectors and fixtures (the change breaks 21 tests today). Next: the live deploy, then the A1 bug hunt.
 6. A3: move #11 (Mumbai venue) and the A3.2 router onto `a3/venue` from `phase/A`.
 
 ---
