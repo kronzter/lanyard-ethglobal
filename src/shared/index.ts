@@ -1,6 +1,20 @@
 /**
- * Shared types, config, labels, canonical encoding, interfaces and mocks.
- *
- * Owner: both tracks (additive changes only). Filled by P0.2 / P0.3.
+ * Shared types, config, labels and canonical encoding used by both tracks.
+ * Runs unchanged on Hermes, in the browser and on Node: no Node, React Native or Expo imports.
+ * Owner: both tracks (additive changes only, plans/00-README.md › Interfaces are the contract).
  */
-export {};
+export * from "./types/primitives";
+export * from "./labels";
+export * from "./canonical";
+export * from "./config/unmeasured";
+export * from "./config/schema";
+export * from "./config/validate";
+export * from "./config/hash";
+export * from "./event.config";
+export * from "./types/venue";
+export * from "./url";
+export * from "./deployments/schema";
+export * from "./deployments/load";
+export * from "./types/team-page";
+export * from "./fixtures/personas";
+export * from "./fixtures/team-pages";

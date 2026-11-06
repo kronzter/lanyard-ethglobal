@@ -16,22 +16,29 @@ No direct commits to `main`.
 
 ## Commits
 
-**When commits are requested, several small commits per spec**, each one logical change that builds on its own and carries the spec ID. The spec's final commit is a `docs(tracker)` commit that flips its `TRACKER.md` row, made only after `pnpm ci:local` passes. Otherwise leave the working diff reviewable and report the checks.
+**When commits are requested, several small commits per spec**, each one logical change that builds on its own and names its spec only in a `Refs:` footer. The spec's final commit is a `docs(tracker)` commit that flips its `TRACKER.md` row, made only after `pnpm ci:local` passes. Otherwise leave the working diff reviewable and report the checks.
 
 ```
-<type>(<scope>): <spec ID> <what it does>
+<type>(<scope>): <what the change does>
 
-build(hooks): P0.1 husky pre-commit secret scan and lint-staged
-feat(shared): P0.2 rfc 8785 canonical json and keccak hashing
-feat(ens): A1.2 badge books and LanyardRegistrar
-feat(rules): B3.1 on-duty rules, shifts and clocks
-docs(tracker): B3.1 on-duty rules done
+<what changed and why, in terms of the code's behaviour>
+
+Refs: <spec ID>
 ```
 
-- Conventional Commit style: `feat`, `fix`, `test`, `refactor`, `build`, `ci`, `chore`, `docs`. Pick the scope by what the spec mostly touches. This isn't enforced by a hook.
-- **Bug-hunt fixes:** one commit per finding, with the regression test in the same commit: `fix(contracts): A1 reject team label with trailing hyphen`.
+```
+feat(arkiv): sign record writes through a viem wallet client
+fix(rules): reject clock-ins that start after the shift ends
+build(contracts): pin forge-std through soldeer instead of submodules
+```
+
+- Titles and bodies describe the change itself: what the code now does and why. Don't narrate the plan, phase progress or spec bookkeeping there. The spec ID goes only in the `Refs:` footer, which keeps each commit traceable from `TRACKER.md`. (Commits before this rule keep the older `<type>(<scope>): <spec ID> …` titles.)
+- Conventional Commit style: `feat`, `fix`, `test`, `refactor`, `build`, `ci`, `chore`, `docs`. Pick the scope by what the change mostly touches. This isn't enforced by a hook.
+- PR titles and descriptions follow the same rule: say what changes, how it was verified and anything a reviewer must decide.
+- No AI attribution: no `Co-Authored-By` assistant trailers in commits and no "generated with" lines in PRs.
+- **Bug-hunt fixes:** one commit per finding, with the regression test in the same commit: `fix(contracts): reject team labels with a trailing hyphen` and `Refs: A1 bug hunt #3`.
 - **Interface additions** are a separate reviewable change in `src/shared` plus mocks and tracker. Commit only when requested. Coordinated breaking repairs also update consumers/conformance together.
-- **Tracker-only updates** (e.g. logging bug-hunt findings): `docs(tracker): A1 bug hunt findings`.
+- **Tracker-only updates** (e.g. logging bug-hunt findings): `docs(tracker): log namespace bug-hunt findings`.
 - Every commit on a phase branch builds.
 - Never commit `.env`, private keys or mnemonics. The `pre-commit` secret-scan hook (P0.1) rejects them.
 - Plan files are a reviewed baseline. User-authorized corrections may update them together; record the correction separately from implementation progress.

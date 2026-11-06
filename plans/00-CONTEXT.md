@@ -119,7 +119,7 @@ There are no time windows. Integrations do not block the next development phase.
 Full detail is in `00-README.md` and `00-git-workflow.md`.
 
 - One branch per phase, `phase/<ID>-<slug>`, and one per integration, `int/<ID>-<slug>`. Plain merges into `main`.
-- **When commits are requested**, use several small, meaningful commits per spec, each tagged with the spec ID (never "wip" or "phase done"), and one per finding with its regression check. Agents may push non-`main` branches and open PRs; the user merges.
+- **When commits are requested**, use several small commits per spec whose titles and bodies describe the change itself (spec ID only in a `Refs:` footer; never "wip" or "phase done"), and one per finding with its regression check. Agents may push non-`main` branches and open PRs; the user merges.
 - A bug hunt after **every** phase, by someone who didn't write it (by default a fresh agent session; the prompt is in `00-README.md`). Highs are fixed before merge.
 - Plans change through explicit user-authorized repairs with affected consumers updated together. Progress goes in `plans/TRACKER.md`; a repaired plan is not completed implementation.
 - APK builds always use `--local`.

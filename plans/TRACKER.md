@@ -1,6 +1,8 @@
 # Lanyard · Tracker
 
-Implementation progress goes here; explicit user-authorized plan corrections are recorded separately below. **Edit only your own track's progress** to avoid conflicts. P0/integration sections are updated with their work. Update status with its spec, but commit only when the user asks; the user pushes manually.
+Implementation progress goes here; explicit user-authorized plan corrections are recorded separately below. **Edit only your own track's progress** to avoid conflicts. P0/integration sections are updated with their work. Update status with its spec. Commits happen only when the user asks; agents may push non-`main` branches and open PRs, and the user merges.
+
+**Builders:** Person A = `@kronzter` (ENS & venue track, app shell) · Person B = `@arnavmahajan630` (Arkiv & flows track).
 
 Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` · `fixed <sha>` · `known limitation`.
 
@@ -12,18 +14,18 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| S1 Local dev APK + AppKit connects MetaMask mobile | todo | |
-| S2 Wallet adds and switches to Rabdi | todo | |
-| S3 Arkiv SDK on Hermes with AppKit signer (record polyfills) | todo | |
-| S4 `executeBatch` = one approval | todo | |
-| S5 S2–S4 on Expo web (wagmi adapter) | todo | |
-| S6 Deploy + call a contract on Rabdi (decides Faucet vs desk-wallet `drip` fallback) | todo | |
-| S7 Archive Sepolia read at a past block from the phone (public read-only app key) | todo | |
-| S8 Rabdi RPC load (keyless, then public app key if needed) + ENS read volume | todo | |
-| S9 Installed SDK/schema/index/access/gas evidence | todo | |
-| S10 Capture/deletion/reset/confirmation evidence | todo | |
-| S11 Cross-runtime cipher and canonical test vectors | todo | |
-| S12 Linked-create prediction/custody or confirmed sequential fallback | todo | |
+| S1 Local dev APK + AppKit connects MetaMask mobile | todo | **A.** Needs an Android SDK + eas-cli build host, a Reown project ID and MetaMask on a phone |
+| S2 Wallet adds and switches to Rabdi | todo | **A**, with B pairing |
+| S3 Arkiv SDK on Hermes with AppKit signer (record polyfills) | todo | **A + B** pair (phone). Hermes needs `crypto.getRandomValues`: the SDK's random entity salt throws `NoRandomSourceError` without it |
+| S4 `executeBatch` = one approval | todo | **A + B** pair (phone wallet) |
+| S5 S2–S4 on Expo web (wagmi adapter) | todo | **A**, after the AppKit web adapter is wired |
+| S6 Deploy + call a contract on Rabdi (decides Faucet vs desk-wallet `drip` fallback) | todo | **B**, Node. Blocked on a tGLM-funded throwaway key in `.env` as `RABDI_SPIKE_PRIVATE_KEY` |
+| S7 Archive Sepolia read at a past block from the phone (public read-only app key) | todo | **A**. Needs an archive Sepolia RPC key restricted to the app |
+| S8 Rabdi RPC load (keyless, then public app key if needed) + ENS read volume | todo | **A + B**. Keyless single reads work; load test pending, ideally with an Arkiv access key from hub.arkiv.network to compare |
+| S9 Installed SDK/schema/index/access/gas evidence | doing | **B.** `@arkiv-network/sdk` 1.0.1 pinned on `p0/P0.6a-arkiv-spike`. Source inspected: schema-typed creates (`defineSchema`, indexed columns), creation flags `readonly`/`permissionlessExtension`, expiries only via `ExpirationTime` capped at `MAX_LIFETIME` 7,884,000 blocks, query module has no `ne`/`not`, `predictEntityKeys`. Explicit `rabdi({ accessKey: "" })` reads work against the public endpoint (SDK warns it is heavily rate limited). Gas behaviour pending writes |
+| S10 Capture/deletion/reset/confirmation evidence | doing | **B.** Read half measured 2026-11-06: each query page reports the block it was read at (pages of one query can differ); genesis hash `0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce` is the reset-identity candidate; `finalized` advances in 32-block epochs and lagged `latest` by 65–93 blocks over 4 min. Create/delete/readback and the confirmation depth to freeze into config wait for the funded key |
+| S11 Cross-runtime cipher and canonical test vectors | todo | **B**, before B4; Hermes run with A's dev build |
+| S12 Linked-create prediction/custody or confirmed sequential fallback | doing | **B** (Node), then **A + B** on phone/web for wallet custody. SDK derives `key = keccak256(chainId, 0x4400…0044, owner, entityNonce, salt)`; the entity nonce is separate from the transaction nonce, and a prediction only holds while nothing else from that owner lands first. On-chain prediction and intervening-create test wait for the funded key |
 
 **Fallbacks chosen:** none yet.
 
@@ -94,17 +96,34 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 
 | Spec | Owner | Status | Commit | Notes |
 | --- | --- | --- | --- | --- |
-| P0.6 Wallet and chain spike | pair | todo | | |
+| P0.6 Wallet and chain spike | pair | doing | | **B (Node half):** S9, S10, S12 in progress; S6 and the write halves need a funded Rabdi key. **A (phone half):** S1–S5, S7, S8 not started. See the Spike table |
 | P0.1 Repo skeleton and CI | B (swapped from A) | done | bd95a4b | PR #1; CI green ([run 42172719701](https://github.com/kronzter/lanyard-ethglobal/actions/runs/42172719701)). Single Expo app (SDK 58, Node 24, pnpm hoisted), `lanyard/boundaries` lint rule, context-aware secret scan (fake key rejected, hashes and Anvil keys allowed, verified in a fresh clone), one Foundry project with Soldeer forge-std 1.17.0, CODEOWNERS test. ENSv2 pin deferred to A1 |
-| P0.2 Shared types, config, deployments | B | todo | | |
-| P0.3 Interfaces, mocks, conformance | pair | todo | | |
-| P0.4 Fixtures | B | todo | | |
-| P0.5 App shell | A | todo | | |
+| P0.2 Shared types, config, deployments | B | blocked | 9ad0618 | Implemented in `src/shared/` (186 tests): canonical labels (ENSIP-15 + strict policy), RFC 8785 canonical JSON + keccak + strict parser, event config (placeholder Dec 2026 IST times; mock authority wallets from the public test mnemonic), freeze window and `namespaceExpiry`, venue/routing shapes, mock/live deployments schema, team-page content and URL helper. **Blocked only on measured values:** Sepolia confirmations/reset ID (S7), Rabdi confirmations/reset ID (S10), score cipher (S11), `shiftWriteProfile` (S12), funding profile (S6). They are `unmeasured`, so `configHash` and `requireLive` throw `BlockedCapabilityError` |
+| P0.3 Interfaces, mocks, conformance | pair | todo | | Deferred until each consumer needs it: `EnsReader` + `IdentityDirectory` mocks before B2, `StubRouter` before B3, `MockResultsPublisher` before B4. B writes them; A reviews, since A2.4/A3.2/A4.2 must pass the same suites |
+| P0.4 Fixtures | B | doing | b0a654e | **P0.4a done:** `personas.json` (46 personas, R1 roster; addresses from the public test mnemonic, verified by re-derivation; authority personas match `event.config.ts`; key env names only, listed in `.env.example`) and `assertByLabelsKnown`. **Deferred per the Track B slice:** `ens-history.json` and `timeline.json` (before B2), `venue.small.json` (before B3), R5 evidence scenarios (before B4) |
+| P0.5 App shell | A (web slice by B) | doing | 7c41578 | **P0.5a done (web):** route folders with phase placeholders (R1), `flags.ts` + `providers.ts` composition root failing loudly for unwired providers (R4), web-only guard (R7, unit-tested; Android check pending), public `/teams/[team]` with no wallet gate, `output: "single"`, static-host rewrites (`public/serve.json`, `_redirects`), and `smoke:web` proving direct navigation/reload in CI plus a headless-Chromium render locally (R8). Intended public origin **not chosen yet** (mock `http://localhost:8081`); record it before A2 writes live ENS `url` records. **Pending (Person A / phone):** `eas.json` and local APK scripts (R2), AppKit `useWallet()` (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selection (R6) |
 
 **Bug hunt:** todo · **Merged:** no
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
+
+### Next up
+
+**Person B · `@arnavmahajan630`**
+
+1. Finish the Node half of the spike: S6 (deploy and call a contract on Rabdi), S10 writes (create, delete, readback; freeze the confirmation depth and reset ID into config), S12 on-chain key prediction. Needs `RABDI_SPIKE_PRIVATE_KEY` funded with tGLM.
+2. Merge PRs #1–#4 and the spike results into `phase/P0-foundation`, then into `main`.
+3. Start B1 from `main`: B1.1 Rabdi chain config plus the Faucet contract or the desk-wallet `drip` fallback (decided by S6). The B1.1 faucet screen signs with the desk wallet, so its in-app signing waits for A's `useWallet()`; contract, writer code and Node tests do not.
+4. Before B2: P0.3 `EnsReader`/`IdentityDirectory` interfaces, mocks and conformance, plus `ens-history.json` and `timeline.json`.
+
+**Person A · `@kronzter`**
+
+1. Review PRs #1–#4 (repo layout, CODEOWNERS, shared types).
+2. Set up a local Android build host (Android SDK, JDK, eas-cli) and get a Reown project ID and an archive Sepolia RPC key.
+3. Phone half of the spike: S1–S5, S7, S8 (S3/S4 paired with B).
+4. Rest of the app shell: `eas.json` and the local APK scripts (R2), AppKit `useWallet()` on Android and web (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selector (R6), and the "Open on web" check on a real Android build.
+5. Then A1: add ENSv2 as a Soldeer git dependency (candidate `ensdomains/contracts-v2` tag `sepolia-deployment-2026-09-15` = `f2f0a05`) and verify ABI and on-chain implementation compatibility.
 
 ---
 
