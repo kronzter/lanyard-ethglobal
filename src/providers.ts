@@ -2,13 +2,14 @@
 // (and cli/providers.ts for Node) may import another track's concrete implementations; feature
 // code asks here for shared interfaces. It never imports the CLI-only results publisher.
 //
-// Mock mode serves the fixture-backed mocks. A provider whose real implementation has not
-// landed fails loudly rather than returning a silent stand-in.
+// ENS uses A2's live reader and identity directory after I2. Mock mode remains available for
+// deterministic development. Router and publication switch at their own integrations.
 import { type ComponentType, Suspense, createElement, lazy } from "react";
 import rabdiJson from "../deployments/rabdi.json";
 import sepoliaJson from "../deployments/sepolia.json";
-import { parseRabdiDeployment, parseSepoliaDeployment } from "@/shared/deployments/load";
+import { parseRabdiDeployment, parseSepoliaDeployment, requireLive } from "@/shared/deployments/load";
 import { eventConfig } from "@/shared/event.config";
+import { sepoliaEventConfig } from "@/shared/live-event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { IdentityDirectory } from "@/shared/interfaces/identity-directory";
 import type { Router } from "@/shared/interfaces/router";
@@ -20,6 +21,9 @@ import {
   fixtureTimeline,
 } from "@/shared/mocks/fixtures";
 import { fakeArkiv, rabdiArkiv, type AppArkiv } from "./arkiv/app-arkiv";
+import { createSepoliaEnsReader } from "./ens/sepolia-ens-reader";
+import { createSepoliaIdentityDirectory } from "./ens/sepolia-identity-directory";
+import { MemoryEnsCache } from "./ens/ens-cache";
 import { flags as defaultFlags, type Flags } from "./flags";
 
 export class ProviderNotWiredError extends Error {
@@ -36,26 +40,42 @@ function StubVenueMap(props: VenueMapProps) {
   return createElement(Suspense, { fallback: null }, createElement(LazyStubVenueMap, props));
 }
 
-export function createProviders(flags: Flags = defaultFlags) {
+export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcUrl?: string } = {}) {
+  const rpcUrl = () => {
+    const url = opts.sepoliaRpcUrl ?? process.env.EXPO_PUBLIC_SEPOLIA_RPC_URL;
+    if (!url) throw new Error("EXPO_PUBLIC_SEPOLIA_RPC_URL is required for sepolia ENS mode");
+    return url;
+  };
+  const deployment = () => requireLive(parseSepoliaDeployment(sepoliaJson), eventConfig);
   let ensReader: EnsReader | undefined;
   let identityDirectory: IdentityDirectory | undefined;
   let router: Router | undefined;
   let arkiv: AppArkiv | undefined;
   return {
     flags,
-    config: eventConfig,
+    config: flags.ens === "sepolia" ? sepoliaEventConfig : eventConfig,
     deployments: {
       sepolia: parseSepoliaDeployment(sepoliaJson),
       rabdi: parseRabdiDeployment(rabdiJson),
     },
     ensReader(): EnsReader {
       if (flags.ens === "mock") return (ensReader ??= createFixtureEnsReader());
-      throw new ProviderNotWiredError("SepoliaEnsReader", "A2.4, switched on at I2");
+      return (ensReader ??= createSepoliaEnsReader({
+        rpcUrl: rpcUrl(),
+        deployment: deployment(),
+        names: eventConfig,
+        cache: new MemoryEnsCache(),
+      }));
     },
     identityDirectory(): IdentityDirectory {
       if (flags.ens === "mock")
         return (identityDirectory ??= createFixtureIdentityDirectory(createFixtureEnsReader()));
-      throw new ProviderNotWiredError("Sepolia IdentityDirectory", "A2.4, switched on at I2");
+      return (identityDirectory ??= createSepoliaIdentityDirectory({
+        rpcUrl: rpcUrl(),
+        deployment: deployment(),
+        editionLabel: eventConfig.edition,
+        reader: this.ensReader(),
+      }));
     },
     /** Rabdi (testnet), or the development-only fake on the fixture timeline. Public RPC values only. */
     arkiv(): AppArkiv {

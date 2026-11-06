@@ -4,9 +4,9 @@ import { fixtureVenue } from "@/shared/mocks/fixtures";
 import { ProviderNotWiredError, createProviders } from "./providers";
 
 describe("parseFlags", () => {
-  it("defaults to mock ENS and the stub router", () => {
-    expect(parseFlags({})).toEqual({ ens: "mock", router: "stub", arkiv: "rabdi" });
-    expect(parseFlags({ ens: "", router: "" })).toEqual({ ens: "mock", router: "stub", arkiv: "rabdi" });
+  it("defaults to Sepolia ENS and the stub router", () => {
+    expect(parseFlags({})).toEqual({ ens: "sepolia", router: "stub", arkiv: "rabdi" });
+    expect(parseFlags({ ens: "", router: "" })).toEqual({ ens: "sepolia", router: "stub", arkiv: "rabdi" });
   });
 
   it("accepts the integration values", () => {
@@ -26,7 +26,7 @@ describe("parseFlags", () => {
 });
 
 describe("createProviders", () => {
-  it("exposes the config, the live Rabdi deployment and the mock Sepolia one", () => {
+  it("exposes the config, the live Rabdi and Sepolia deployments", () => {
     const p = createProviders({ ens: "mock", router: "stub", arkiv: "rabdi" });
     expect(p.config.edition).toBe("mumbai2026");
     expect(p.deployments.rabdi.mode).toBe("live");
@@ -35,11 +35,18 @@ describe("createProviders", () => {
 
   it("fails loudly for providers that are not wired yet, naming where they land", () => {
     const live = createProviders({ ens: "sepolia", router: "grid", arkiv: "rabdi" });
-    expect(() => live.ensReader()).toThrow(/A2\.4, switched on at I2/);
-    expect(() => live.identityDirectory()).toThrow(/A2\.4, switched on at I2/);
     expect(() => live.router()).toThrow(ProviderNotWiredError);
     expect(() => live.router()).toThrow(/A3\.2, switched on at I3/);
     expect(() => live.venueMap()).toThrow(/A3\.3, switched on at I3/);
+  });
+
+  it("wires one live reader and directory using the configured RPC", () => {
+    const p = createProviders(
+      { ens: "sepolia", router: "stub", arkiv: "rabdi" },
+      { sepoliaRpcUrl: "http://127.0.0.1:8545" },
+    );
+    expect(p.ensReader()).toBe(p.ensReader());
+    expect(p.identityDirectory()).toBe(p.identityDirectory());
   });
 
   it("serves the stub venue map in stub mode without loading react-native-svg", () => {

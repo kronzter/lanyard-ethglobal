@@ -3,7 +3,19 @@
 // registrar's BookCreated / PartnerOnboarded / TeamRegistered events up to the block); each is then
 // verified with EnsReader.owner. A scan that cannot complete throws: incomplete discovery is never
 // reported as "no badge". Runtime-neutral (viem only).
-import { keccak256, parseAbi, parseAbiItem, toHex, zeroAddress, type Address, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  http,
+  keccak256,
+  parseAbi,
+  parseAbiItem,
+  toHex,
+  zeroAddress,
+  type Address,
+  type PublicClient,
+} from "viem";
+import { sepolia } from "viem/chains";
+import type { SepoliaReaderDeployment } from "./sepolia-ens-reader";
 import { roleOfLabel } from "../shared/ens/roles";
 import { EnsReadError, type AtBlock, type EnsReader } from "../shared/interfaces/ens-reader";
 import type { DiscoveredRole, IdentityDirectory } from "../shared/interfaces/identity-directory";
@@ -111,4 +123,25 @@ export class SepoliaIdentityDirectory implements IdentityDirectory {
         owned.push({ label, role: roleOfLabel(label) });
     return owned.sort((a, b) => (a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
   }
+}
+
+/** Same deployment and RPC as the historical reader; discovery verifies every candidate with it. */
+export function createSepoliaIdentityDirectory(opts: {
+  rpcUrl: string;
+  deployment: SepoliaReaderDeployment;
+  editionLabel: string;
+  reader: EnsReader;
+}): IdentityDirectory {
+  const c = opts.deployment.contracts;
+  for (const key of ["lanyardRegistrar", "baseRegistry", "editionRegistry"])
+    if (!c[key]) throw new Error(`deployment has no contracts.${key}`);
+  return new SepoliaIdentityDirectory({
+    client: createPublicClient({ chain: sepolia, transport: http(opts.rpcUrl) }) as PublicClient,
+    reader: opts.reader,
+    registrar: c.lanyardRegistrar as Address,
+    baseRegistry: c.baseRegistry as Address,
+    edition: c.editionRegistry as Address,
+    editionLabel: opts.editionLabel,
+    deployedAtBlock: BigInt(opts.deployment.deployedAtBlock),
+  });
 }

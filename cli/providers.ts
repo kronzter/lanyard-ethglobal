@@ -1,17 +1,25 @@
 import { durableWrite } from "./files";
 // The Node composition root (plans/01-evidence-and-interfaces.md §3): the only CLI file allowed
-// to pick concrete implementations across tracks. It selects mocks until I2 (ENS reader) and I4
-// (results publisher). The mock publisher persists to a local file so freeze runs survive a
+// to pick concrete implementations across tracks. ENS is live at I2; results stay mock until I4.
+// The mock publisher persists to a local file so freeze runs survive a
 // restart. Signing and decryption keys never pass through here.
-import { readFile } from "node:fs/promises";
+import { createPublicClient, http } from "viem";
+import { sepolia } from "viem/chains";
+import sepoliaJson from "../deployments/sepolia.json";
+import { parseSepoliaDeployment, requireLive } from "@/shared/deployments/load";
+import { createSepoliaEnsReader } from "../src/ens/sepolia-ens-reader";
+import { MemoryEnsCache } from "../src/ens/ens-cache";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { eventConfig } from "@/shared/event.config";
+import { sepoliaEventConfig } from "@/shared/live-event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { PreparedResultsPublisher } from "@/shared/interfaces/results-publisher";
 import { MockResultsPublisher } from "@/shared/mocks/mock-results-publisher";
 import { createSerializedStore, type PublisherStore } from "@/shared/mocks/publisher-store";
 import { createFixtureEnsReader, fixtureTimeline } from "@/shared/mocks/fixtures";
 import { parseCliFlags, type CliFlags } from "./flags";
-import { mockSepoliaBlocks, type SepoliaBlocks } from "./sepolia-blocks";
+import { liveSepoliaBlocks, mockSepoliaBlocks, type SepoliaBlocks } from "./sepolia-blocks";
 
 export const DEFAULT_MOCK_PUBLISHER_FILE = ".lanyard/mock-publisher.json";
 
@@ -42,19 +50,35 @@ export function fileStore(file: string): PublisherStore {
 export function createCliProviders(
   opts: { env?: Record<string, string | undefined>; publisherFile?: string } = {},
 ) {
-  const flags: CliFlags = parseCliFlags(opts.env ?? process.env);
+  const env = opts.env ?? process.env;
+  const flags: CliFlags = parseCliFlags(env);
+  let ensReader: EnsReader | undefined;
+  let blocks: SepoliaBlocks | undefined;
+  const rpcUrl = () => {
+    const url = env.SEPOLIA_RPC_URL ?? env.EXPO_PUBLIC_SEPOLIA_RPC_URL;
+    if (!url) throw new Error("SEPOLIA_RPC_URL is required for sepolia ENS mode");
+    requireLive(parseSepoliaDeployment(sepoliaJson), eventConfig);
+    return url;
+  };
   const publisherFile = opts.publisherFile ?? DEFAULT_MOCK_PUBLISHER_FILE;
   return {
     flags,
-    config: eventConfig,
+    config: flags.ens === "sepolia" ? sepoliaEventConfig : eventConfig,
     ensReader(): EnsReader {
-      if (flags.ens === "mock") return createFixtureEnsReader();
-      throw new CliProviderNotWiredError("SepoliaEnsReader", "A2.4, switched on at I2");
+      if (flags.ens === "mock") return (ensReader ??= createFixtureEnsReader());
+      return (ensReader ??= createSepoliaEnsReader({
+        rpcUrl: rpcUrl(),
+        deployment: requireLive(parseSepoliaDeployment(sepoliaJson), eventConfig),
+        names: eventConfig,
+        cache: new MemoryEnsCache(),
+      }));
     },
-    /** Sepolia block identity for verify; follows the ENS flag (the archive RPC client lands at I2). */
+    /** Sepolia block identity for verify, from the same RPC as the historical reader. */
     sepoliaBlocks(): SepoliaBlocks {
-      if (flags.ens === "mock") return mockSepoliaBlocks(fixtureTimeline());
-      throw new CliProviderNotWiredError("Sepolia block source", "I2, with the SepoliaEnsReader");
+      if (flags.ens === "mock") return (blocks ??= mockSepoliaBlocks(fixtureTimeline()));
+      return (blocks ??= liveSepoliaBlocks(
+        createPublicClient({ chain: sepolia, transport: http(rpcUrl()) }),
+      ));
     },
     resultsPublisher(): PreparedResultsPublisher {
       if (flags.results === "mock") return new MockResultsPublisher({ store: fileStore(publisherFile) });
