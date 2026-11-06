@@ -1,1 +1,6 @@
 forge-std/=dependencies/forge-std-1.17.0/src/
+@openzeppelin/contracts/=dependencies/openzeppelin-contracts-5.3.0/contracts/
+@openzeppelin/contracts-upgradeable/=dependencies/openzeppelin-contracts-upgradeable-5.2.0/contracts/
+@ensdomains/verifiable-factory/=dependencies/verifiable-factory-2026-ens/src/
+@ens/contracts/=dependencies/ens-contracts-v1-2026-ens/contracts/
+ens-v2/=dependencies/ens-contracts-v2-sepolia-2026-09-15/contracts/src/
