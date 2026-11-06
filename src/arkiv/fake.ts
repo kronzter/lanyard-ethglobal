@@ -72,9 +72,10 @@ export class FakeArkiv implements ArkivReader {
   private listeners = new Set<{ onEvent(e: EntityEvent): void; onError(e: Error): void }>();
   private headNumber: bigint;
   private txCounter = 0n;
-  private hooks: { rejectNext: boolean; holdNext: boolean; beforeQuery?: () => void } = {
+  private hooks: { rejectNext: boolean; holdNext: boolean; loseNext: boolean; beforeQuery?: () => void } = {
     rejectNext: false,
     holdNext: false,
+    loseNext: false,
   };
 
   constructor(
@@ -116,12 +117,17 @@ export class FakeArkiv implements ArkivReader {
     for (const l of [...this.listeners]) l.onError(error);
   }
   /** A signer for `account`. */
-  writer(account: Address): ArkivWriter {
+  /** The next write lands on chain, but its response is lost before the caller sees it. */
+  loseNextResponse(): void {
+    this.hooks.loseNext = true;
+  }
+  /** A signer for `account`; `onTxHash` sees each hash before the write resolves, like the real client. */
+  writer(account: Address, onTxHash?: (hash: Hex) => void): ArkivWriter {
     const owner = lower(account);
     return {
       account: owner,
-      write: (batch) => this.apply(owner, batch),
-      sendValue: (to, wei) => this.transfer(owner, to, wei),
+      write: (batch) => this.apply(owner, batch, onTxHash),
+      sendValue: (to, wei) => this.transfer(owner, to, wei, onTxHash),
     };
   }
 
@@ -243,7 +249,11 @@ export class FakeArkiv implements ArkivReader {
     return out;
   }
 
-  private async apply(owner: Address, batch: ArkivBatch): Promise<WriteResult> {
+  private async apply(
+    owner: Address,
+    batch: ArkivBatch,
+    onTxHash?: (hash: Hex) => void,
+  ): Promise<WriteResult> {
     this.consumeRejection();
     const block = this.headNumber + 1n;
     const staged = new Map(this.entities);
@@ -348,15 +358,25 @@ export class FakeArkiv implements ArkivReader {
         value: 0n,
       },
     });
+    onTxHash?.(hash);
     events.forEach((type, i) =>
       [...this.listeners].forEach((l) =>
         l.onEvent({ type, entityKey: keysFor[i]!, blockNumber: block, txHash: hash }),
       ),
     );
+    if (this.hooks.loseNext) {
+      this.hooks.loseNext = false;
+      throw new Error("connection lost after the transaction was sent");
+    }
     return { txHash: hash, created };
   }
 
-  private async transfer(from: Address, to: Address, wei: bigint): Promise<Hex> {
+  private async transfer(
+    from: Address,
+    to: Address,
+    wei: bigint,
+    onTxHash?: (hash: Hex) => void,
+  ): Promise<Hex> {
     this.consumeRejection();
     const balance = this.balances.get(from) ?? 0n;
     if (balance < wei) throw new FakeArkivError("insufficient-funds", `${from} has ${balance}, needs ${wei}`);
@@ -370,6 +390,7 @@ export class FakeArkiv implements ArkivReader {
     };
     const tx: Tx = { hash, receipt: null };
     this.txs.set(hash, tx);
+    onTxHash?.(hash);
     if (this.hooks.holdNext) {
       this.hooks.holdNext = false;
       tx.held = mine;
