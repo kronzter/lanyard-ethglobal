@@ -1,6 +1,36 @@
 [[dependencies]]
+name = "ens-contracts-v1"
+version = "2026-ens"
+git = "https://github.com/ensdomains/ens-contracts.git"
+rev = "121dc232df06be28e5eabb34ebfc4bc788498c05"
+
+[[dependencies]]
+name = "ens-contracts-v2"
+version = "sepolia-2026-09-15"
+git = "https://github.com/ensdomains/contracts-v2.git"
+rev = "f2f0a05e6c1711134b73204a1e37f8e6c1aea6ab"
+
+[[dependencies]]
 name = "forge-std"
 version = "1.17.0"
 url = "https://soldeer-revisions.s3.amazonaws.com/forge-std/1_17_0_01-10-2026_10:59:49_forge-std-1.17.zip"
 checksum = "a77ad38d5fbef0ec10d1f4d191698e5fbaa2bffbee5d1aced91a39da5e9b908c"
 integrity = "fa706c8a7caf3426c90f75e6aafa3224b0a6c899b490800cf6944e4ec42f9344"
+
+[[dependencies]]
+name = "openzeppelin-contracts"
+version = "5.3.0"
+git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git"
+rev = "e4f70216d759d8e6a64144a9e1f7bbeed78e7079"
+
+[[dependencies]]
+name = "openzeppelin-contracts-upgradeable"
+version = "5.2.0"
+git = "https://github.com/OpenZeppelin/openzeppelin-contracts-upgradeable.git"
+rev = "5fc3fee14043035097ae718387200f4f4daaa982"
+
+[[dependencies]]
+name = "verifiable-factory"
+version = "2026-ens"
+git = "https://github.com/ensdomains/verifiable-factory.git"
+rev = "5ef7b1a88fd9062bae580ed4048ca369f18450c4"
