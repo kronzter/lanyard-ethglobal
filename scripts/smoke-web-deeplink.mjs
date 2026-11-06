@@ -3,12 +3,13 @@
 // normally, every other path rewritten to index.html) and prove a public team URL loads by
 // direct navigation and on reload. `--render` also renders it in headless Chromium when one is
 // available locally (CI runs the server-level check only).
-import { execFile, execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync, readFileSync } from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import handler from "serve-handler";
+import { findBrowser } from "./browser-discovery.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const dist = path.join(root, "dist");
@@ -45,14 +46,7 @@ try {
   );
 
   if (process.argv.includes("--render")) {
-    const browser = ["chromium", "chromium-browser", "google-chrome"].find((b) => {
-      try {
-        execFileSync("which", [b], { stdio: "ignore" });
-        return true;
-      } catch {
-        return false;
-      }
-    });
+    const browser = findBrowser();
     if (!browser) fail("--render needs chromium on PATH");
     // Async on purpose: the static server runs in this process, so a sync spawn would deadlock it.
     const { stdout: dom } = await promisify(execFile)(
