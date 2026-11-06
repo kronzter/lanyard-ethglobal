@@ -34,7 +34,8 @@
     "arkiv:schema": "tsx scripts/arkiv-schema.ts && prettier --write arkiv/schema.md",
     "rules:version": "tsx scripts/rules-version.ts",
     "e2e:i2": "LANYARD_I2=1 vitest run e2e/i2.test.ts",
-    "e2e:i1:seed": "node --env-file-if-exists=.env --import tsx e2e/i1-seed.ts"
+    "e2e:i1:seed": "node --env-file-if-exists=.env --import tsx e2e/i1-seed.ts",
+    "e2e:i1": "LANYARD_I1=1 node --env-file-if-exists=.env ./node_modules/vitest/vitest.mjs run e2e/i1.test.ts"
   },
   "dependencies": {
     "@adraffy/ens-normalize": "1.11.1",
