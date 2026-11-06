@@ -2,7 +2,7 @@
 // Organizer-only A1.3 team registration. Reads process.env, never opens an env file.
 // --demo is restricted to a loopback fork because fixtures use publicly known test wallets.
 import { readFileSync } from "node:fs";
-import { encodeFunctionData, isAddress, keccak256, toHex, zeroAddress, type Address } from "viem";
+import { encodeFunctionData, keccak256, toHex, type Address } from "viem";
 import { parsePersonas } from "../../src/shared/fixtures/personas";
 import {
   buildDemoTeams,
@@ -14,7 +14,7 @@ import {
 } from "../../src/ens/team-plan";
 import { bookHash } from "../../src/ens/badge-plan";
 import { lanyardRegistrarAbi, permissionedRegistryAbi } from "../../src/ens/ensv2-abi";
-import { connect, fail, ROOT, sameAddress, type Connection } from "./connect";
+import { connect, fail, loadRegistrar, ROOT, sameAddress, type Connection } from "./connect";
 import { resolve } from "node:path";
 
 const idOf = (label: string): bigint => BigInt(keccak256(toHex(label)));
@@ -30,20 +30,7 @@ async function main(): Promise<void> {
       : [{ label: request.label, lead: request.lead, members: [] }];
   const ctx = await connect({ fork: request.fork, needKey: !request.dryRun });
   const { publicClient: pc } = ctx;
-  let registrar: Address;
-  try {
-    const state = JSON.parse(readFileSync(ctx.statePath, "utf8")) as { registrar?: unknown };
-    if (
-      typeof state.registrar !== "string" ||
-      !isAddress(state.registrar) ||
-      sameAddress(state.registrar, zeroAddress)
-    ) {
-      throw new Error("invalid registrar");
-    }
-    registrar = state.registrar;
-  } catch {
-    throw new Error(`no valid registrar in ${ctx.statePath}; run deploy-edition.ts first`);
-  }
+  const registrar = loadRegistrar(ctx);
 
   const readRegistrar = <N extends "phase" | "organizer" | "edition" | "namespaceExpiry">(functionName: N) =>
     pc.readContract({ address: registrar, abi: lanyardRegistrarAbi, functionName });

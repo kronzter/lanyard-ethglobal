@@ -59,3 +59,34 @@ export function chooseOrganizer(opts: {
       `${getAddress(opts.config)} in src/shared/event.config.ts; update the shared config with Track B before I1`,
   };
 }
+
+/**
+ * The registrar a script acts on: the local `.lanyard/edition-*.json` deploy state when this machine
+ * deployed, otherwise (live runs only) the committed live `deployments/sepolia.json`. Operators other
+ * than the deployer, such as the I1 seeding on Track B's machine, never need the deployer's state file.
+ */
+export function registrarFrom(opts: {
+  stateText: string | null;
+  fork: boolean;
+  deployment: { mode: string; contracts?: Record<string, string | undefined> };
+}): Address {
+  let candidate: unknown;
+  if (opts.stateText !== null) {
+    try {
+      candidate = (JSON.parse(opts.stateText) as { registrar?: unknown }).registrar;
+    } catch {
+      candidate = undefined;
+    }
+  } else if (!opts.fork && opts.deployment.mode === "live") {
+    candidate = opts.deployment.contracts?.lanyardRegistrar;
+  } else {
+    throw new Error("no registrar recorded; run deploy-edition.ts first");
+  }
+  if (
+    typeof candidate !== "string" ||
+    !isAddress(candidate, { strict: false }) ||
+    /^0x0{40}$/i.test(candidate)
+  )
+    throw new Error("invalid registrar in the deploy state or deployment");
+  return getAddress(candidate);
+}
