@@ -3,4 +3,4 @@
  *
  * Owner: Track B (@arnavmahajan630). Filled by B2–B4.
  */
-export {};
+export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
