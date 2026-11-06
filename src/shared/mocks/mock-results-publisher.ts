@@ -3,7 +3,7 @@
 // changes publication state, and a pending one is re-validated when it settles, just as a real
 // transaction would revert against a changed contract. State therefore survives a new instance
 // (a CLI restart), including a crash right after broadcast.
-import { canonicalHash } from "../canonical";
+import { canonicalBytes, canonicalHash } from "../canonical";
 import {
   AlreadyPublishedError,
   DuplicateDeclarationError,
@@ -17,7 +17,8 @@ import {
   type ConfirmedTx,
   type PublicationInput,
   type PublicationState,
-  type ResultsPublisher,
+  type PreparedResultsPublisher,
+  type PreparedPublication,
   type WinnerInput,
 } from "../interfaces/results-publisher";
 import { isTeamLabel } from "../labels";
@@ -54,7 +55,7 @@ const confirmedTx = (tx: MockTx): ConfirmedTx => ({
   blockHash: tx.blockHash!,
 });
 
-export class MockResultsPublisher implements ResultsPublisher {
+export class MockResultsPublisher implements PreparedResultsPublisher {
   constructor(private readonly opts: MockResultsPublisherOptions) {}
 
   private async load(): Promise<PersistedPublisher> {
@@ -65,7 +66,7 @@ export class MockResultsPublisher implements ResultsPublisher {
   protected validate(op: PublisherOp, data: PersistedPublisher): void {
     const { state } = data;
     if (state.locked) throw new LockedError();
-    const pending = data.txs.filter((t) => t.status === "pending");
+    const pending = data.txs.filter((t) => t.status === "pending" || t.status === "prepared");
     switch (op.kind) {
       case "setEventResults":
         if (state.eventResults) throw new AlreadyPublishedError("an event pointer is already set");
@@ -125,19 +126,54 @@ export class MockResultsPublisher implements ResultsPublisher {
     data.nextBlock += 1n;
   }
 
-  private async submit(op: PublisherOp): Promise<ConfirmedTx> {
+  private preparedTx(tx: MockTx): PreparedPublication {
+    const raw = canonicalBytes({ seq: tx.seq, op: tx.op });
+    return {
+      rawTransaction: `0x${Array.from(raw, (b) => b.toString(16).padStart(2, "0")).join("")}`,
+      txHash: tx.hash,
+      nonce: BigInt(tx.seq),
+    };
+  }
+  async pendingTransactions(): Promise<Hex[]> {
+    return (await this.load()).txs
+      .filter((tx) => tx.status === "prepared" || tx.status === "pending")
+      .map((tx) => tx.hash);
+  }
+  async prepare(op: PublisherOp): Promise<PreparedPublication> {
     const data = await this.load();
+    const existing = data.txs.find(
+      (t) => (t.status === "prepared" || t.status === "pending") && canonicalHash(t.op) === canonicalHash(op),
+    );
+    if (existing) return this.preparedTx(existing);
     this.validate(op, data);
     const seq = data.nextSeq++;
     const tx: MockTx = {
       hash: canonicalHash({ seq, op }),
       seq,
-      op,
-      status: "pending",
+      op: structuredClone(op),
+      status: "prepared",
       blockNumber: null,
       blockHash: null,
     };
     data.txs.push(tx);
+    await this.opts.store.save(data);
+    return this.preparedTx(tx);
+  }
+  async preparedStatus(hash: Hex): Promise<"prepared" | "pending" | "reverted" | ConfirmedTx> {
+    const tx = (await this.load()).txs.find((t) => t.hash === hash);
+    if (!tx) throw new UnknownTransactionError(hash);
+    return tx.status === "confirmed" ? confirmedTx(tx) : tx.status;
+  }
+  async broadcastPrepared(prepared: PreparedPublication): Promise<ConfirmedTx> {
+    const data = await this.load();
+    const tx = data.txs.find((t) => t.hash === prepared.txHash);
+    if (!tx || canonicalHash(this.preparedTx(tx)) !== canonicalHash(prepared))
+      throw new StateMismatchError("prepared publication bytes/hash/nonce differ");
+    if (tx.status === "confirmed") return confirmedTx(tx);
+    if (tx.status === "reverted") throw new PublicationRevertedError(tx.hash);
+    if (tx.status === "pending") throw new PublicationPendingError(tx.hash);
+    tx.status = "pending";
+    await this.opts.store.save(data);
     const outcome = this.opts.outcome?.() ?? "success";
     if (outcome === "success" || outcome === "crash-after-broadcast") this.confirm(data, tx);
     if (outcome === "revert") tx.status = "reverted";
@@ -146,6 +182,10 @@ export class MockResultsPublisher implements ResultsPublisher {
     if (tx.status === "reverted") throw new PublicationRevertedError(tx.hash);
     if (tx.status === "pending") throw new PublicationPendingError(tx.hash);
     return confirmedTx(tx);
+  }
+  private async submit(op: PublisherOp): Promise<ConfirmedTx> {
+    this.validate(op, await this.load());
+    return this.broadcastPrepared(await this.prepare(op));
   }
 
   async state(): Promise<PublicationState> {
@@ -167,7 +207,7 @@ export class MockResultsPublisher implements ResultsPublisher {
   async reconcile(txHash: Hex): Promise<"pending" | "reverted" | ConfirmedTx> {
     const tx = (await this.load()).txs.find((t) => t.hash === txHash.toLowerCase());
     if (!tx) throw new UnknownTransactionError(txHash);
-    return tx.status === "confirmed" ? confirmedTx(tx) : tx.status;
+    return tx.status === "confirmed" ? confirmedTx(tx) : tx.status === "prepared" ? "pending" : tx.status;
   }
 
   /** Test hook: mine or drop a pending transaction. */

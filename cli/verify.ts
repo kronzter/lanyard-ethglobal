@@ -163,6 +163,12 @@ export async function verify(
         );
       if (results.bundleUri !== body.bundleUri)
         throw mismatch(`the locked publication names bundle URI ${results.bundleUri}, not ${body.bundleUri}`);
+      const winners = Object.fromEntries(body.prizes.map((p) => [p.team, { ...results, ...p }]));
+      if (
+        new Set(body.prizes.map((p) => p.team)).size !== body.prizes.length ||
+        canonicalJson(published.winners) !== canonicalJson(winners)
+      )
+        throw mismatch("locked winner declarations differ from the bundle's manual prizes");
       lines.push(`locked publication commits to this bundle`);
     }
 

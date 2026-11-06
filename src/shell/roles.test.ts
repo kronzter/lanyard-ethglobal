@@ -117,3 +117,11 @@ describe("display", () => {
     expect(roleTitle({ kind: "badge", label: "q", role: "unknown" })).toBe("Unrecognized badge");
   });
 });
+
+describe("authority write provenance", () => {
+  it("maps head-judge and partner authorities to canonical labels", async () => {
+    const { writerLabel } = await import("./roles");
+    expect(writerLabel({ kind: "authority", authority: "headJudge" })).toBe("head-judge");
+    expect(writerLabel({ kind: "authority", authority: "partner:arkiv" })).toBe("arkiv.partners");
+  });
+});
