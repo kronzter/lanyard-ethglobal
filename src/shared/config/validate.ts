@@ -67,6 +67,10 @@ export function validateEventConfig(input: unknown): EventConfig {
     ["organizer", cfg.authorities.organizer],
     ["results", cfg.authorities.results],
     ...partnerIds.map((id) => [`partners.${id}`, cfg.authorities.partners[id]] as const),
+    ...(cfg.authorities.desk !== undefined ||
+    (cfg.fundingProfile.status === "measured" && cfg.fundingProfile.value === "desk-wallet")
+      ? ([["desk", cfg.authorities.desk]] as const)
+      : []),
   ] as const;
   for (const [name, address] of authority) {
     if (address === undefined) issues.push(`authorities.${name} is missing`);

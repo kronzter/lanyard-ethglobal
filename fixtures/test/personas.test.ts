@@ -4,10 +4,13 @@ import { mnemonicToAccount } from "viem/accounts";
 import { describe, expect, it } from "vitest";
 import { eventConfig } from "@/shared/event.config";
 import { assertByLabelsKnown, parsePersonas, type PersonaRole } from "@/shared/fixtures/personas";
+import rabdiJson from "../../deployments/rabdi.json";
+import { parseRabdiDeployment } from "@/shared/deployments/load";
 import pages from "../team-pages.json";
 import raw from "../personas.json";
 
 const file = parsePersonas(raw);
+const rabdi = parseRabdiDeployment(rabdiJson);
 const personas = file.personas;
 const byRole = (role: PersonaRole) => personas.filter((p) => p.role === role);
 const root = path.resolve(import.meta.dirname, "../..");
@@ -91,7 +94,14 @@ describe("persona keys and addresses", () => {
       organizer: addr("organizer"),
       results: addr("results"),
       partners: { arkiv: addr("partner-arkiv"), ens: addr("partner-ens") },
+      // The desk authority is the live wallet from `pnpm lanyard desk-keygen` (deployments/rabdi.json),
+      // not the `desk` persona's mnemonic key: real drip records on Rabdi are written by it.
+      desk:
+        rabdi.mode === "live" && rabdi.funding.profile === "desk-wallet"
+          ? rabdi.funding.deskWallet
+          : undefined,
     });
+    expect(eventConfig.authorities.desk).not.toBe(addr("desk"));
   });
 
   it("lists every key env var in .env.example with no value", () => {

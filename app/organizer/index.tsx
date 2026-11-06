@@ -11,6 +11,9 @@ export default function Screen() {
         <Link href={"/organizer/faucet" as never} style={styles.link}>
           Desk faucet: first-time tGLM (B1.1)
         </Link>
+        <Link href={"/organizer/records" as never} style={styles.link}>
+          Records and verdicts: what counts and why (B2.2)
+        </Link>
       </View>
     </View>
   );

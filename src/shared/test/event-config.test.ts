@@ -166,6 +166,10 @@ describe("structural checks", () => {
       (c) => delete (c.authorities.partners as Record<string, string>).ens,
       /authorities\.partners\.ens is missing/,
     ));
+  it("requires the desk wallet under the desk-wallet funding profile", () =>
+    expectIssue((c) => delete (c.authorities as { desk?: string }).desk, /authorities\.desk is missing/));
+  it("rejects a desk wallet shared with another authority", () =>
+    expectIssue((c) => (c.authorities.desk = c.authorities.organizer), /independent/));
   it("rejects a wrong chain ID", () =>
     expectIssue((c) => ((c.chains.rabdi as { chainId: number }).chainId = 1), /chains\.rabdi\.chainId/));
   it("rejects a fractional venue scale", () => expectIssue((c) => (c.venue.cellSizeMm = 0.5), /cellSizeMm/));
