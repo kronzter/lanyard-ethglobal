@@ -196,3 +196,16 @@ export async function captureForEvent(o: {
   }
   return report;
 }
+
+/** Retain bytes actually read after an invalidation; the event itself is never evidence. */
+export async function retainObservedEntity(
+  reader: ArkivReader,
+  store: ObservationStore,
+  entity: StoredEntity,
+  network: { chainId: number; resetId: Hex },
+) {
+  if (!entity.flags.readonly) return;
+  const observed = await reader.head();
+  const created = await reader.block(entity.createdAt);
+  await store.append(toObservation(entity, created, observed, network));
+}

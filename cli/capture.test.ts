@@ -6,7 +6,7 @@ import { captureForEvent } from "../src/arkiv/capture";
 import { FakeArkiv } from "../src/arkiv/fake";
 import { buildCreate } from "../src/arkiv/writers";
 import { eventConfig } from "../src/shared/event.config";
-import { jsonlObservationStore } from "./capture";
+import { jsonlObservationStore, readCaptureInventory } from "./capture";
 
 const dirs: string[] = [];
 afterEach(() => dirs.splice(0).forEach((d) => rmSync(d, { recursive: true, force: true })));
@@ -47,6 +47,7 @@ describe("JSONL observation store", () => {
     expect(lines.map((l) => JSON.parse(l).type)).toEqual(["observation", "gone"]);
     const reloaded = await jsonlObservationStore(file).load();
     expect(reloaded.observations[0]!.key).toBe(k);
+    expect(await readCaptureInventory(file)).toEqual([k]);
     expect(reloaded.gone[0]!.reason).toBe("deleted");
   });
 });
