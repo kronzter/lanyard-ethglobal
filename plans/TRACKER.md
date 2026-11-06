@@ -221,7 +221,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| B2.1 Time mapping | todo | | |
+| B2.1 Time mapping | done | 8dbfdbb | `src/rules/time.ts`: `mapTimes` maps each distinct retained creation timestamp through `EnsReader.sepoliaBlockAt` (floor: between two blocks, the earlier), refusing a zero/unavailable timestamp, a block past the Sepolia cutoff or a non-monotonic answer (R1, R2). The mapping is prepared outside the rules and retained in the bundle as `sepoliaBlockAt` entries (`label ""`, `key` = timestamp), so `evaluate` and `verify` re-derive it; `TimeMap` lookups of unprepared timestamps throw (R3) |
 | B2.2 Rules core | todo | | |
 | B2.3 Determinism and verify | todo | | |
 
@@ -299,3 +299,4 @@ Every change to `src/shared/interfaces` after P0 gets a row here. Either person 
 | --- | --- | --- | --- | --- |
 | 7f9216c | `EventConfig` (`src/shared/config/schema.ts`) | Optional `funding.dripWei` (desk-wallet first-time tGLM, 0.5 tGLM for mumbai2026) | yes | `src/shared/event.config.ts` |
 | 0765961 | `CapturedObservationSchema` (`src/shared/evidence/observation.ts`) | Dropped the readonly ⇒ `updatedAt == createdAt` rule (Rabdi bumps it on transfer); content immutability stays enforced by `dedupeObservations` | yes (accepts more valid input) | — |
+| 65fd289 | `ENS_QUERIES` / `PreparedEnsEntry` (`src/shared/evidence/bundle.ts`) | New `sepoliaBlockAt` entry kind retains the time mapping in bundles; exported `PreparedEnsEntry`, `EnsQuery`, `compareEnsEntries` | yes | — |
