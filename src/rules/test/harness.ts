@@ -3,14 +3,14 @@
 import personasJson from "../../../fixtures/personas.json";
 import { freezeConfig } from "@/shared/config/hash";
 import { eventConfig } from "@/shared/event.config";
-import { canonicalHash } from "@/shared/canonical";
+import { canonicalBytes, canonicalHash } from "@/shared/canonical";
 import type { CapturedObservation } from "@/shared/evidence/observation";
 import { parsePersonas } from "@/shared/fixtures/personas";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
-import { createFixtureEnsReader, fixtureTimeline } from "@/shared/mocks/fixtures";
+import { createFixtureEnsReader, fixtureTimeline, fixtureVenue } from "@/shared/mocks/fixtures";
 import type { Address, Hex } from "@/shared/types/primitives";
-import { evaluateWith, prepareWith, RULES_VERSION, type Engine, ENGINE } from "@/rules";
+import { evaluateWith, evaluationView, prepareWith, RULES_VERSION, type Engine, ENGINE } from "@/rules";
 
 export const timeline = fixtureTimeline();
 export const frozen = freezeConfig(eventConfig);
@@ -108,3 +108,34 @@ export async function run(
 }
 
 export { RULES_VERSION };
+
+// ── B3 helpers ──────────────────────────────────────────────────────────────────────────────
+
+const hexOf = (bytes: Uint8Array): Hex =>
+  `0x${Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("")}`;
+
+/** An organizer-published venue record carrying `venue` (the small fixture venue by default). */
+export function venueObs(at: bigint, venue: unknown = fixtureVenue(), extra: Partial<ObsSpec> = {}) {
+  return obs({
+    kind: "venue",
+    creator: persona("organizer").address,
+    byLabel: "organizer",
+    at,
+    attrs: { version: ["str", "v1"], payload: ["bytes", hexOf(canonicalBytes(venue))] },
+    ...extra,
+  });
+}
+
+/** A present-tense context: both cutoffs at a fixture Sepolia block. */
+export const contextAt = (block: bigint): EvaluationContext =>
+  context({
+    arkivCutoff: { number: 1_000_000n, hash: blockHash(1_000_000n), timestamp: tsOf(block) },
+    sepoliaCutoff: { number: block, hash: blockHash(block), timestamp: tsOf(block) },
+  });
+
+/** prepare → evaluate → view at a present-tense moment. */
+export async function viewAt(records: CapturedObservation[], block: bigint) {
+  const ctx = contextAt(block);
+  const r = await run(records, { ctx });
+  return { ...r, view: evaluationView(records, r.prepared.ens, ctx, r.output) };
+}

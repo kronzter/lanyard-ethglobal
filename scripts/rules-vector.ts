@@ -5,7 +5,9 @@
 import { mnemonicToAccount } from "viem/accounts";
 import personasJson from "../fixtures/personas.json";
 import { mockBlockHash } from "../cli/sepolia-blocks";
-import { createFixtureEnsReader } from "../src/shared/mocks/fixtures";
+import { bytesToHex } from "viem";
+import { canonicalBytes } from "../src/shared/canonical";
+import { createFixtureEnsReader, fixtureVenue } from "../src/shared/mocks/fixtures";
 import type { EvidenceEnvelope } from "../src/shared/evidence/bundle";
 import type { Hex } from "../src/shared/types/primitives";
 import { assembleBody, prepareWith, RULES, signBody, evaluateWith, type Engine } from "../src/rules";
@@ -56,7 +58,10 @@ export function vectorRecords() {
       creator: org.address,
       byLabel: "organizer",
       at: 9_021_700n,
-      attrs: { version: ["str", "v1 — café 東京 🎪"], payload: ["bytes", "0x7b7d"] },
+      attrs: {
+        version: ["str", "v1 — café 東京 🎪"],
+        payload: ["bytes", bytesToHex(canonicalBytes({ ...fixtureVenue(), name: "Hall — café 東京 🎪" }))],
+      },
     }),
     seat(0x1001n, org.address, "organizer", "zkpay-a.hackers", persona("zkpay-a").address),
     seat(0x1002n, ravi.address, ravi.by, "zkpay-b.hackers", persona("zkpay-b").address),

@@ -11,6 +11,7 @@ import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
 import { evaluateWith, type Engine } from "./engine";
 import * as authority from "./kinds/authority";
+import * as duty from "./kinds/duty";
 import { prepareWith, type Prepared } from "./prepare";
 import type { RuleSet, RulesOutput } from "./types";
 import { RULES_VERSION } from "./version.generated";
@@ -25,6 +26,9 @@ export const RULES: RuleSet = Object.freeze({
   rubric: authority.rubric,
   results: authority.results,
   drip: authority.drip,
+  shift: duty.shift,
+  clock: duty.clock,
+  duty_pass: duty.duty_pass,
 });
 
 export const ENGINE: Engine = Object.freeze({ rules: RULES, version: RULES_VERSION });
@@ -53,6 +57,8 @@ export { decodeRecord, type DecodedRecord } from "./decode";
 export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./snapshot";
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
 export * from "./types";
+export * from "./state";
+export { evaluationView, type EvaluationView, type ShiftView } from "./views";
 export {
   assembleBody,
   firstDifference,
