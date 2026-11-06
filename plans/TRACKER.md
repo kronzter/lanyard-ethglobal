@@ -95,7 +95,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 | Spec | Owner | Status | Commit | Notes |
 | --- | --- | --- | --- | --- |
 | P0.6 Wallet and chain spike | pair | todo | | |
-| P0.1 Repo skeleton and CI | B (swapped from A) | doing | | |
+| P0.1 Repo skeleton and CI | B (swapped from A) | done | bd95a4b | PR #1; CI green ([run 42172719701](https://github.com/kronzter/lanyard-ethglobal/actions/runs/42172719701)). Single Expo app (SDK 58, Node 24, pnpm hoisted), `lanyard/boundaries` lint rule, context-aware secret scan (fake key rejected, hashes and Anvil keys allowed, verified in a fresh clone), one Foundry project with Soldeer forge-std 1.17.0, CODEOWNERS test. ENSv2 pin deferred to A1 |
 | P0.2 Shared types, config, deployments | B | todo | | |
 | P0.3 Interfaces, mocks, conformance | pair | todo | | |
 | P0.4 Fixtures | B | todo | | |
