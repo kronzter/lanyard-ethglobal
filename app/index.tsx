@@ -1,28 +1,42 @@
 import { Link } from "expo-router";
-import { ScrollView, Text, View } from "react-native";
+import { Pressable, ScrollView, Text, View } from "react-native";
 import { providers } from "@/providers";
 import { DevWalletPicker } from "@/shell/DevWalletPicker";
 import { RolePanel } from "@/shell/RolePanel";
 import { ROUTES } from "@/shell/routes";
 import { useSession } from "@/shell/session";
 import { styles } from "@/shell/styles";
+import { useWallet } from "@/shell/wallet/useWallet";
 
 export default function Home() {
   const { address } = useSession();
+  const wallet = useWallet();
   const mock = providers.flags.ens === "mock";
 
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
       <Text style={{ fontSize: 22, fontWeight: "600" }}>Lanyard · {providers.config.edition}</Text>
 
-      {!address &&
-        (mock ? (
-          <DevWalletPicker />
-        ) : (
-          <View style={styles.card}>
-            <Text>Wallet connection arrives with AppKit (P0.5-R3).</Text>
-          </View>
-        ))}
+      {!address && (
+        <View style={styles.card}>
+          {wallet.status === "unavailable" ? (
+            <Text testID="wallet-unavailable" style={styles.muted}>
+              {wallet.reason}
+            </Text>
+          ) : (
+            <Pressable
+              testID="wallet-connect"
+              accessibilityRole="button"
+              onPress={wallet.connect}
+              style={styles.chip}
+            >
+              <Text>Connect wallet</Text>
+            </Pressable>
+          )}
+          {mock && <Text style={styles.muted}>or act as a test persona</Text>}
+        </View>
+      )}
+      {!address && mock && <DevWalletPicker />}
       <RolePanel />
 
       <View>

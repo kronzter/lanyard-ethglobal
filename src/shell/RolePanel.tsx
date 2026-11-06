@@ -7,6 +7,7 @@ import { ensName, roleKey, roleTitle, screensFor, type ShellRole } from "./roles
 import { routeInfo } from "./routes";
 import { useSession } from "./session";
 import { styles } from "./styles";
+import { useWallet } from "./wallet/useWallet";
 
 const names = { edition: providers.config.edition, baseName: providers.config.baseName };
 
@@ -15,7 +16,12 @@ const subtitle = (r: ShellRole) =>
 
 export function RolePanel() {
   const { address, at, lookup, active, choose, disconnect } = useSession();
+  const wallet = useWallet();
   if (!address) return null;
+  const switchWallet = () => {
+    if (wallet.address) wallet.disconnect();
+    disconnect();
+  };
 
   return (
     <View style={styles.card}>
@@ -24,7 +30,7 @@ export function RolePanel() {
           Wallet <Text style={styles.mono}>{address}</Text>
           {at ? <Text style={styles.muted}> · block {at.sepoliaBlock.toString()}</Text> : null}
         </Text>
-        <Pressable accessibilityRole="button" onPress={disconnect} style={styles.chip}>
+        <Pressable accessibilityRole="button" onPress={switchWallet} style={styles.chip}>
           <Text>Switch wallet</Text>
         </Pressable>
       </View>
