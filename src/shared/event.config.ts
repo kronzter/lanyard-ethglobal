@@ -5,7 +5,8 @@
 //   - authorities: mock wallets from the public `test … junk` mnemonic (HD indices 0, 1, 5, 6,
 //     matching fixtures/personas.json); real wallets replace them before any live deploy
 // Spike-measured values stay `unmeasured` until P0.6 records evidence in plans/TRACKER.md.
-import { unmeasured } from "./config/unmeasured";
+// Measured so far: both chain identities (S7, S10) and the funding profile (S6).
+import { measured, unmeasured } from "./config/unmeasured";
 import type { EventConfigInput } from "./config/schema";
 import { validateEventConfig } from "./config/validate";
 
@@ -39,13 +40,33 @@ export const eventConfigInput = {
     },
   },
   chains: {
-    sepolia: { chainId: 11155111, confirmations: unmeasured("P0.6-S7"), resetId: unmeasured("P0.6-S7") },
-    rabdi: { chainId: 7794095, confirmations: unmeasured("P0.6-S10"), resetId: unmeasured("P0.6-S10") },
+    sepolia: {
+      chainId: 11155111,
+      // `latest − finalized` lag 71–83 blocks (6 samples over 2.5 min, 2026-11-06) and finality
+      // advances in 32-block epochs; rounded up to the next epoch boundary.
+      confirmations: measured(96, "P0.6-S7 2026-11-06: max finalized lag 83 blocks, rounded up to 3 × 32"),
+      resetId: measured(
+        "0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9",
+        "P0.6-S7 2026-11-06: Sepolia genesis block hash, read via the archive RPC",
+      ),
+    },
+    rabdi: {
+      chainId: 7794095,
+      // `latest − finalized` lag 66–95 blocks (24 samples over 4 min, 2026-11-06; 65–93 earlier)
+      // with `finalized` stepping exactly 32 blocks; rounded up to the next epoch boundary.
+      confirmations: measured(96, "P0.6-S10 2026-11-06: max finalized lag 95 blocks, rounded up to 3 × 32"),
+      resetId: measured(
+        "0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce",
+        "P0.6-S10 2026-11-06: Rabdi genesis block hash, re-read and unchanged",
+      ),
+    },
   },
   venue: { cellSizeMm: 1000 },
   scoreCipher: unmeasured("P0.6-S11"),
   shiftWriteProfile: unmeasured("P0.6-S12"),
-  fundingProfile: unmeasured("P0.6-S6"),
+  // Rabdi refuses contract creation ("contract creation is disabled (no-EVM Arkiv executor)"), so
+  // no Faucet contract: a desk wallet sends tGLM and writes a readonly `drip` record (B1.1-R7–R9).
+  fundingProfile: measured("desk-wallet", "P0.6-S6 2026-11-06: Rabdi has no EVM; native tGLM transfer works"),
   evidenceSchemaVersion: 1,
 } satisfies EventConfigInput;
 
