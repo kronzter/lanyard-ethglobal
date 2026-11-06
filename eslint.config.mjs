@@ -17,6 +17,7 @@ export default tseslint.config(
       "spike/**",
       "contracts/**",
       "plans/**",
+      ".agents/**",
     ],
   },
   js.configs.recommended,
