@@ -12,7 +12,8 @@ import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.
 ///         registry-wide REGISTRAR and RENEW holder. The organizer drives it; it cannot be upgraded and
 ///         keeps no bootstrap authority after `seal()`.
 /// @dev Setup order, one transaction each, all organizer-only:
-///      1. `bootstrapEdition()` deploys the edition registry and reserves the protected labels.
+///      1. `bootstrapEdition()` deploys the edition registry, reserves the protected labels and creates
+///         the four badge books (each a separate registry, registered to the organizer).
 ///      2. The organizer registers the edition label in the base registry to this contract, with
 ///         `editionNameRoles()` and the edition registry as its subregistry (done by the deploy script).
 ///      3. `seal()` verifies step 2, sets the parent pointer, revokes every temporary role and checks
@@ -44,8 +45,10 @@ contract LanyardRegistrar {
     error PublicationResolverAlreadySet();
     error ResolverHasNoCode(address resolver);
     error UnexpectedToken();
+    error UnexpectedBookRoles(bytes32 book, uint256 roleCount);
 
     event EditionBootstrapped(address indexed edition, string label);
+    event BookCreated(bytes32 indexed book, string label, address registry);
     event EditionSealed(address indexed edition);
     event PublicationResolverSet(address indexed resolver);
 
@@ -61,6 +64,26 @@ contract LanyardRegistrar {
     ///      except REGISTRAR and RENEW is revoked by `seal()`.
     uint256 internal constant BOOTSTRAP_ROOT_ROLES =
         R.ROLE_REGISTRAR | R.ROLE_RENEW | R.ROLE_SET_PARENT | R.ROLE_SET_PARENT_ADMIN;
+    bytes32 public constant HACKERS = keccak256("hackers");
+    bytes32 public constant JUDGES = keccak256("judges");
+    bytes32 public constant VOLUNTEERS = keccak256("volunteers");
+    bytes32 public constant PARTNERS = keccak256("partners");
+
+    /// @dev Roles this contract holds on a book registry root while creating it (set-parent is revoked at once).
+    uint256 internal constant BOOK_BOOTSTRAP_ROOT_ROLES = BOOTSTRAP_ROOT_ROLES;
+    /// @dev Roles that stay on a book registry root, held by this contract: issue and renew badges.
+    uint256 internal constant BOOK_REGISTRAR_ROLES = R.ROLE_REGISTRAR | R.ROLE_RENEW;
+    /// @dev Roles the organizer holds on every book registry root: the managed-registry authority.
+    uint256 internal constant BOOK_ORGANIZER_ROLES =
+        R.ROLE_REGISTRAR | R.ROLE_UNREGISTER | R.ROLE_RENEW | R.ROLE_SET_RESOLVER;
+    /// @dev Expected assignee counts on a book root: two registrars, two renewers, one unregisterer, one
+    ///      resolver setter. Equal to this means nobody else holds anything.
+    uint256 internal constant BOOK_ROOT_COUNTS =
+        2 * R.ROLE_REGISTRAR + R.ROLE_UNREGISTER + 2 * R.ROLE_RENEW + R.ROLE_SET_RESOLVER;
+    /// @dev What the organizer holds on each book name in the edition: renew it, set its resolver. No
+    ///      transfer, no unregister, no set-subregistry.
+    uint256 internal constant BOOK_NAME_ROLES = R.ROLE_RENEW | R.ROLE_SET_RESOLVER;
+
     /// @dev Roles that must remain on the edition registry root after sealing, held by this contract only.
     uint256 internal constant FINAL_ROOT_ROLES = R.ROLE_REGISTRAR | R.ROLE_RENEW;
     /// @dev Name-level roles this contract must hold on the edition label in the base registry.
@@ -87,6 +110,8 @@ contract LanyardRegistrar {
     Phase public phase;
     IPermissionedRegistry public edition;
     address public publicationResolver;
+    /// @notice Book registries by `keccak256(label)` (HACKERS, JUDGES, VOLUNTEERS, PARTNERS).
+    mapping(bytes32 book => IPermissionedRegistry) public bookRegistry;
 
     ////////////////////////////////////////////////////////////////////////
     // Initialization
@@ -149,6 +174,10 @@ contract LanyardRegistrar {
             // Owner 0 and no roles: reserved. Nobody holds ROLE_REGISTER_RESERVED, so these stay unregistrable.
             edition.register(protectedLabels[i], address(0), IRegistry(address(0)), address(0), 0, FAR_FUTURE);
         }
+        string[4] memory books = ["hackers", "judges", "volunteers", "partners"];
+        for (uint256 i; i < books.length; ++i) {
+            _createBook(books[i]);
+        }
         emit EditionBootstrapped(proxy, editionLabel);
     }
 
@@ -198,6 +227,35 @@ contract LanyardRegistrar {
         baseRegistry.setResolver(labelId, resolver);
         baseRegistry.revokeRoles(labelId, R.ROLE_SET_RESOLVER | R.ROLE_SET_RESOLVER_ADMIN, address(this));
         emit PublicationResolverSet(resolver);
+    }
+
+    /// @dev A book is its own registry: the organizer manages it, this contract issues badges in it, nobody
+    ///      else holds anything. Its name is registered to the organizer in the edition, so books exist before
+    ///      any team can register.
+    function _createBook(string memory label) internal {
+        bytes32 book = keccak256(bytes(label));
+        IPermissionedRegistry edition_ = edition;
+
+        Grant[] memory grants = new Grant[](2);
+        grants[0] = Grant({account: address(this), roleBitmap: BOOK_BOOTSTRAP_ROOT_ROLES});
+        grants[1] = Grant({account: organizer, roleBitmap: BOOK_ORGANIZER_ROLES});
+        IPermissionedRegistry registry = IPermissionedRegistry(
+            factory.deployProxy(
+                userRegistryImplementation,
+                uint256(keccak256(abi.encode("lanyard.book", editionLabel, label))),
+                abi.encodeCall(IEACGrantInitializable.initialize, (grants))
+            )
+        );
+        registry.setParent(IRegistry(address(edition_)), label);
+        registry.revokeRootRoles(R.ROLE_SET_PARENT | R.ROLE_SET_PARENT_ADMIN, address(this));
+        uint256 counts = registry.roleCount(0);
+        if (counts != BOOK_ROOT_COUNTS) revert UnexpectedBookRoles(book, counts);
+
+        edition_.register(
+            label, organizer, IRegistry(address(registry)), address(0), BOOK_NAME_ROLES, namespaceExpiry
+        );
+        bookRegistry[book] = registry;
+        emit BookCreated(book, label, address(registry));
     }
 
     ////////////////////////////////////////////////////////////////////////

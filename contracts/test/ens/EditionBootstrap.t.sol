@@ -202,7 +202,7 @@ contract EditionBootstrapTest is EnsFixture {
             assertEq(edition.getExpiry(id(labels[i])), FAR_FUTURE);
             assertEq(edition.getOwner(id(labels[i])), address(0));
         }
-        assertEq(uint8(edition.getStatus(id("hackers"))), uint8(IPermissionedRegistry.Status.AVAILABLE));
+        assertEq(uint8(edition.getStatus(id("teamx"))), uint8(IPermissionedRegistry.Status.AVAILABLE));
     }
 
     function test_R3_aReservedLabelCannotBeRegisteredByAnyone() public {
