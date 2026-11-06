@@ -1,9 +1,8 @@
 // ENSv2 infrastructure on Sepolia, from ensdomains/contracts-v2 at tag
 // sepolia-deployment-2026-09-15 (f2f0a05): contracts/deployments/sepolia/addresses.md.
 //
-// These live here, not in deployments/sepolia.json, because that file's live mode also needs the
-// chain reset identity (P0.6-S7) and the edition's public https origin, neither chosen yet. A1's
-// live deploy moves them across (plans/A1-namespace.md › A1.1 tasks).
+// The deploy scripts read them from here; deployments/sepolia.json repeats them (as `ens*`) next
+// to Lanyard's own contracts for readers outside src/ens.
 import type { Address } from "../shared/types/primitives";
 
 export const ENSV2_SEPOLIA_TAG = "sepolia-deployment-2026-09-15";
