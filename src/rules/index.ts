@@ -11,6 +11,7 @@ import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
 import { evaluateWith, type Engine } from "./engine";
 import * as authority from "./kinds/authority";
+import * as judging from "./kinds/judging";
 import * as duty from "./kinds/duty";
 import * as tickets from "./kinds/tickets";
 import { prepareWith, type Prepared } from "./prepare";
@@ -23,8 +24,10 @@ export { RULES_VERSION };
 export const RULES: RuleSet = Object.freeze({
   venue: authority.venue,
   seat_assignment: authority.seat_assignment,
-  acceptance: authority.acceptance,
-  rubric: authority.rubric,
+  acceptance: judging.acceptance,
+  submission: judging.submission,
+  judge_assignment: judging.judge_assignment,
+  rubric: judging.rubric,
   results: authority.results,
   drip: authority.drip,
   shift: duty.shift,

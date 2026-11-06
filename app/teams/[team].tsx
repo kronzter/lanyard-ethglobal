@@ -3,7 +3,12 @@
 // submission and, after publication, the verified frozen bundle.
 import { useLocalSearchParams } from "expo-router";
 import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from "react-native";
-import { mockTeamPageState } from "@/shared/fixtures/team-pages";
+import { useEffect, useState } from "react";
+import { useEvaluation } from "@/arkiv/app-hooks";
+import { publishedBundle } from "@/arkiv/published";
+import { submissionContent } from "@/rules/kinds/judging";
+import { decodeRecord, str } from "@/rules/decode";
+import { isTeamLabel } from "@/shared/labels";
 import { toFullName } from "@/shared/labels";
 import { teamPageUrl, type TeamPageLinks, type TeamPageState } from "@/shared/types/team-page";
 import { providers } from "@/providers";
@@ -68,7 +73,68 @@ function Body({ state }: { state: TeamPageState }) {
 
 export default function TeamPage() {
   const { team = "" } = useLocalSearchParams<{ team: string }>();
-  const state = mockTeamPageState(team);
+  const { evaluation, error } = useEvaluation();
+  const [resolved, setResolved] = useState<TeamPageState>({ status: "loading", team });
+  useEffect(() => {
+    let cancelled = false;
+    setResolved({ status: "loading", team });
+    void (async (): Promise<TeamPageState> => {
+      if (!isTeamLabel(team)) return { status: "unknown-team", team };
+      const ens = providers.ensReader();
+      const bundle = await publishedBundle(providers.config, ens, async (uri) => {
+        const response = await fetch(uri);
+        if (!response.ok) throw new Error(`Bundle HTTP ${response.status}`);
+        return response.text();
+      });
+      if (bundle) {
+        const verdicts = new Map(bundle.output.verdicts.map((v) => [v.key, v]));
+        const selected = bundle.envelope.body.records
+          .flatMap((o) => {
+            const r = decodeRecord(o);
+            return r.ok ? [r.record] : [];
+          })
+          .find((r) => r.kind === "submission" && str(r, "team") === team && verdicts.get(r.key)?.counts);
+        if (!selected) return { status: "awaiting-submission", team };
+        const parsed = submissionContent(selected);
+        if (!parsed.success) throw new Error("Committed submission content is unavailable");
+        const prize = bundle.envelope.body.prizes.find((p) => p.team === team);
+        return {
+          status: "published",
+          team,
+          track: parsed.data.track,
+          content: parsed.data.content.page,
+          winner: prize ? { prizes: prize.prizes } : null,
+        };
+      }
+      if (error) throw new Error(error);
+      if (!evaluation) return { status: "loading", team };
+      const owner = await ens.owner(team, { sepoliaBlock: evaluation.context.sepoliaCutoff.number });
+      if (!owner) return { status: "unknown-team", team };
+      const selected = evaluation.view
+        .records("submission")
+        .find((r) => str(r, "team") === team && evaluation.view.verdict(r.key)?.counts);
+      if (!selected) return { status: "awaiting-submission", team };
+      const parsed = submissionContent(selected);
+      if (!parsed.success) throw new Error("Submission content is unavailable");
+      return {
+        status: "published",
+        team,
+        track: parsed.data.track,
+        content: parsed.data.content.page,
+        winner: null,
+      };
+    })()
+      .then((s) => {
+        if (!cancelled) setResolved(s);
+      })
+      .catch((e) => {
+        if (!cancelled) setResolved({ status: "unavailable", team, reason: (e as Error).message });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [team, evaluation, error]);
+  const state: TeamPageState = resolved.team === team ? resolved : { status: "loading", team };
   const origin = providers.deployments.sepolia.publicAppOrigin;
   return (
     <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
