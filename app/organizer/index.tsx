@@ -8,6 +8,9 @@ export default function Screen() {
     <View style={{ flex: 1 }}>
       <Placeholder path="/organizer" />
       <View style={{ padding: 16, alignItems: "center" }}>
+        <Link href={"/organizer/judging" as never} style={styles.link}>
+          Judging desk: submissions, rubrics and assignments
+        </Link>
         <Link href={"/organizer/faucet" as never} style={styles.link}>
           Desk faucet: first-time tGLM (B1.1)
         </Link>

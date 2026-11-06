@@ -7,23 +7,29 @@ import type { AtBlock } from "@/shared/interfaces/ens-reader";
 import type { IdentityDirectory } from "@/shared/interfaces/identity-directory";
 import type { Address, Label } from "@/shared/types/primitives";
 
-export type Authority = "organizer" | "results" | `partner:${string}`;
+export type Authority = "organizer" | "results" | "headJudge" | `partner:${string}`;
 
 export type ShellRole =
   { kind: "authority"; authority: Authority } | { kind: "badge"; label: Label; role: string };
 
 type AuthorityConfig = {
-  authorities: { organizer: Address; results: Address; partners: Record<string, Address> };
+  authorities: {
+    organizer: Address;
+    results: Address;
+    headJudge?: Address;
+    partners: Record<string, Address>;
+  };
 };
 
 const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 
 /** Configured authority wallets matching `address`, in a fixed order. */
 export function authorityRoles(address: Address, config: AuthorityConfig): ShellRole[] {
-  const { organizer, results, partners } = config.authorities;
+  const { organizer, results, headJudge, partners } = config.authorities;
   const found: Authority[] = [];
   if (same(address, organizer)) found.push("organizer");
   if (same(address, results)) found.push("results");
+  if (headJudge && same(address, headJudge)) found.push("headJudge");
   for (const [id, wallet] of Object.entries(partners).sort(([a], [b]) => (a < b ? -1 : 1)))
     if (same(address, wallet)) found.push(`partner:${id}`);
   return found.map((authority) => ({ kind: "authority", authority }));
@@ -58,6 +64,7 @@ export function roleTitle(r: ShellRole): string {
   if (r.kind === "authority") {
     if (r.authority === "organizer") return "Organizer";
     if (r.authority === "results") return "Results key";
+    if (r.authority === "headJudge") return "Head judge";
     return `Partner · ${r.authority.slice("partner:".length)}`;
   }
   const [kind, scope] = [prefix(r.role), r.role.split(":")[1]];
@@ -86,7 +93,7 @@ export function screensFor(r: ShellRole): string[] {
   if (r.kind === "authority") {
     if (r.authority === "organizer") return ["/organizer", "/admin/ens", "/venue"];
     if (r.authority === "results") return []; // acts through the local freeze CLI only
-    return ["/admin/ens"];
+    return ["/organizer/judging", "/admin/ens"];
   }
   switch (prefix(r.role)) {
     case "hacker":
@@ -106,7 +113,7 @@ export function screensFor(r: ShellRole): string[] {
     case "partner-sub-book-owner":
     case "book-owner":
     case "edition-owner":
-      return ["/admin/ens"];
+      return ["/organizer/judging", "/admin/ens"];
     default:
       return [];
   }
