@@ -1,7 +1,23 @@
 {
   "network": "sepolia",
   "chainId": 11155111,
-  "mode": "mock",
-  "note": "Placeholder: no ENS contracts are deployed yet. A1 writes the live file.",
-  "publicAppOrigin": "http://localhost:8081"
+  "mode": "live",
+  "resetId": "0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9",
+  "deployedAtBlock": "12078370",
+  "publicAppOrigin": "https://lanyard-eth.vercel.app",
+  "contracts": {
+    "lanyardRegistrar": "0x4b042d6dd5e2646fc7d286169ee7d9a03d85ebb5",
+    "baseRegistry": "0xc1fda44b724b057066791ac3fc12292d0269071d",
+    "editionRegistry": "0xd4d6546e12a0dcf25b46eb9637431dda2cff54ba",
+    "hackersResolver": "0xd62fb6197921392e65dd2bbe894660a186cfa7b8",
+    "staffResolver": "0x5acf42b6507c7a6cdb20b0032136de56a97d6836",
+    "publicationResolver": "0x8dc784393f1ef24dc304e7b86f231d8ea65e7e4e",
+    "ensRootRegistry": "0x9703dbd26dab89504490994138cf2c575251a9ce",
+    "ensEthRegistry": "0x657ea849311d3d5823348dded7c2aaafb3ede09e",
+    "ensEthRegistrar": "0xabe76f6c8dfced81aa5a2bb8034202a7136b94ca",
+    "ensVerifiableFactory": "0x9e726eb570beb6bceb495ab8cda7df517d4e841c",
+    "ensUserRegistryImpl": "0xa80338aaa8d23831cea25e858d1774534abb0263",
+    "ensPermissionedResolverImpl": "0x14f09fd05d4585759e54844dc9b00147131cf243",
+    "ensUniversalResolverV2": "0x5d25c1d6acbb71b7a28aa7899618a3412a8303e3"
+  }
 }
