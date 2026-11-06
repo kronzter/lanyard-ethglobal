@@ -4,3 +4,5 @@
  * Owner: Track B (@arnavmahajan630). Filled by B2–B4.
  */
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
+export { decodeRecord, type DecodedRecord } from "./decode";
+export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./snapshot";
