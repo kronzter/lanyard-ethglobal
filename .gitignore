@@ -29,3 +29,6 @@ contracts/cache/
 contracts/out/
 contracts/dependencies/
 contracts/broadcast/*/31337/
+
+# local CLI state (mock publisher journal)
+.lanyard/
