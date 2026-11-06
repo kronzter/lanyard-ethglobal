@@ -53,6 +53,20 @@ describe("canonicalJson", () => {
     expect(canonicalJson({ a: 1, b: undefined })).toBe('{"a":1}');
   });
 
+  it.each([1, 2, 5])("rejects a sparse array of length %i before hashing", (length) => {
+    const sparse = new Array(length);
+    expect(() => canonicalJson(sparse)).toThrow(CanonicalError);
+    expect(() => canonicalHash(sparse)).toThrow(CanonicalError);
+  });
+
+  it("rejects deleted elements and reports their nested index", () => {
+    const sparse = [1, 2, 3];
+    delete sparse[1];
+    expect(() => canonicalJson({ rows: sparse })).toThrow(/\.rows\[1\]/);
+    expect(canonicalJson([])).toBe("[]");
+    expect(canonicalJson([null])).toBe("[null]");
+  });
+
   it("normalizes negative zero", () => {
     expect(canonicalJson(-0)).toBe("0");
   });
