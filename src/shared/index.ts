@@ -21,3 +21,4 @@ export * from "./fixtures/team-pages";
 export * from "./interfaces";
 export * from "./ens";
 export * from "./fixtures/timeline";
+export * from "./fixtures/ens-history";
