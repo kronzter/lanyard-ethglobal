@@ -121,8 +121,12 @@ export const compareEnsEntries = (a: PreparedEnsEntry, b: PreparedEnsEntry): num
                   ? 1
                   : 0;
 
-/** Parse and check a bundle body: ordering, capture consistency, config hash and the freeze window. */
-export function parseEvidenceBody(value: unknown): EvidenceBody {
+/**
+ * Parse and check a bundle body: ordering, capture consistency, config hash and the freeze window.
+ * `allowOutOfWindow` admits an explicit development context (`lanyard hash`); such a body can
+ * never back a published-result verdict.
+ */
+export function parseEvidenceBody(value: unknown, opts: { allowOutOfWindow?: boolean } = {}): EvidenceBody {
   const body = EvidenceBodySchema.parse(value);
   const sorted = sortRecords(body.records);
   if (sorted.some((r, i) => r.key !== body.records[i]!.key))
@@ -140,7 +144,7 @@ export function parseEvidenceBody(value: unknown): EvidenceBody {
   const times = EventTimesSchema.safeParse(body.config.times);
   if (!times.success) throw new EvidenceError("config.times is missing or malformed");
   for (const cutoff of ["arkivCutoff", "sepoliaCutoff"] as const) {
-    if (!isCutoffInWindow(body.context[cutoff].timestamp, times.data)) {
+    if (!opts.allowOutOfWindow && !isCutoffInWindow(body.context[cutoff].timestamp, times.data)) {
       throw new EvidenceError(`${cutoff} timestamp is outside the freeze window [results, freezeDeadline)`);
     }
   }

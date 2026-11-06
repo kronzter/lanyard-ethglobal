@@ -53,3 +53,13 @@ export { decodeRecord, type DecodedRecord } from "./decode";
 export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./snapshot";
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
 export * from "./types";
+export {
+  assembleBody,
+  firstDifference,
+  outputHashOf,
+  parseBundleText,
+  reproduce,
+  signBody,
+  type BodyInput,
+  type Reproduction,
+} from "./bundle";
