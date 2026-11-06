@@ -6,7 +6,7 @@ import { fakeArkiv } from "../app-arkiv";
 import { evaluateCurrent } from "../evaluate-current";
 
 describe("fake mode", () => {
-  it("seeds a venue, shifts and lead clock-ins that all count", async () => {
+  it("seeds a venue, seats, shifts, clock-ins and tickets that all count", async () => {
     const app = fakeArkiv(eventConfig, fixtureTimeline());
     await app.fake!.seeded;
     const { output, view } = await evaluateCurrent({
@@ -20,6 +20,7 @@ describe("fake mode", () => {
     expect(view.ticketsAt().map((t) => [t.zone, t.state.state])).toEqual([
       ["west", "open"],
       ["east", "open"],
+      ["west", "open"],
     ]);
   });
 });

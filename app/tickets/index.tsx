@@ -10,7 +10,7 @@ import type { CurrentEvaluation } from "@/arkiv/evaluate-current";
 import { clockTime, countdown, describeSubmit, DevClock } from "@/arkiv/ui";
 import { buildCreate } from "@/arkiv/writers";
 import { providers } from "@/providers";
-import { str, type TicketView } from "@/rules";
+import { staffPartnerOf, str, type TicketView } from "@/rules";
 import { ticketCategories, ticketCategory } from "@/shared/config/tickets";
 import { DEFAULT_ALPHA_MM_PER_MINUTE } from "@/shared/interfaces/router";
 import type { Address, Hex } from "@/shared/types/primitives";
@@ -204,14 +204,14 @@ const seatCell = (venue: Venue, seat: string): CellRef | undefined =>
 function usePosition(
   store: Writer["store"],
   label: string,
-  sessionKey: Hex | undefined,
+  sessionKey: string | undefined,
   start: CellRef | undefined,
 ) {
   const [pos, setPos] = useState<CellRef | null>(null);
   const k = `pos:${providers.config.edition}:${label}`;
   useEffect(() => {
     void (async () => {
-      const saved = JSON.parse((await store.get(k)) ?? "null") as { session: Hex; cell: CellRef } | null;
+      const saved = JSON.parse((await store.get(k)) ?? "null") as { session: string; cell: CellRef } | null;
       if (saved && saved.session === sessionKey) setPos(saved.cell);
       else if (sessionKey && start) {
         setPos(start);
@@ -233,10 +233,17 @@ function Helper({ evaluation, writer, refresh }: Props) {
   const router = providers.router();
   const VenueMap = providers.venueMap();
   const now = view.now;
-  const sessions = view.sessionsOf(label);
+  // Partner staff answer their partner's tickets anywhere, without shifts (B3.3-R3).
+  const partner = staffPartnerOf(label);
+  const sessions = partner ? [] : view.sessionsOf(label);
   const zones = new Set(sessions.map((s) => s.shift.zone));
   const startPoi = view.helperStart(label);
-  const { pos, moveTo } = usePosition(writer.store, label, sessions[0]?.clockIn.key, startPoi?.cell);
+  const { pos, moveTo } = usePosition(
+    writer.store,
+    label,
+    partner ? "staff" : sessions[0]?.clockIn.key,
+    startPoi?.cell,
+  );
   const { message, busy, submit } = useSubmit(writer, evaluation, refresh);
   const venue = view.venueAt()?.venue;
   const tickets = view.ticketsAt();
@@ -253,20 +260,18 @@ function Helper({ evaluation, writer, refresh }: Props) {
   const offer = useMemo(() => {
     if (!venue || !pos) return null;
     const open = tickets.flatMap((t) => {
-      if (
-        t.state.state !== "open" ||
-        !zones.has(t.zone) ||
-        ticketCategory(providers.config, t.category)?.partner
-      )
-        return [];
+      // Volunteers take general tickets in their zones; staff take their partner's, anywhere.
+      const forPartner = ticketCategory(providers.config, t.category)?.partner ?? null;
+      const mine = partner ? forPartner === partner : forPartner === null && zones.has(t.zone);
+      if (t.state.state !== "open" || !mine) return [];
       const cell = seatCell(t.venue.venue, t.seat);
       return cell ? [{ key: t.record.key, cell, createdAtSeconds: t.record.obs.createdAtTimestamp }] : [];
     });
     const best = router.nextTicket(venue, pos, open, now, DEFAULT_ALPHA_MM_PER_MINUTE);
     return best ? tickets.find((t) => t.record.key === best.key)! : null;
-  }, [venue, pos, tickets, zones, router, now]);
+  }, [venue, pos, tickets, zones, router, now, partner]);
 
-  if (sessions.length === 0)
+  if (!partner && sessions.length === 0)
     return <Text style={styles.muted}>You are off duty. Clock in (or ask a lead) to see tickets.</Text>;
   if (!venue || !pos) return <Text style={styles.muted}>Finding your position…</Text>;
 
@@ -286,7 +291,7 @@ function Helper({ evaluation, writer, refresh }: Props) {
   return (
     <>
       <Text style={styles.muted}>
-        On duty in {[...zones].join(", ")} · you are at ({pos.x}, {pos.y})
+        {partner ? `${partner} staff` : `On duty in ${[...zones].join(", ")}`} · you are at ({pos.x}, {pos.y})
         {startPoi ? `, starting from ${startPoi.name}` : ""}
       </Text>
       <VenueMap venue={venue} highlight={target ? [target.seat] : []} path={path} />
@@ -324,7 +329,9 @@ function Helper({ evaluation, writer, refresh }: Props) {
           </Pressable>
         </View>
       ) : (
-        <Text style={styles.muted}>No open tickets in your zone.</Text>
+        <Text style={styles.muted}>
+          {partner ? `No open ${partner} tickets.` : "No open tickets in your zone."}
+        </Text>
       )}
       {message && <Text>{message}</Text>}
       {lost.slice(-1).map((v) => (

@@ -84,7 +84,9 @@ export function useWriter() {
   const wallet = useWallet();
   const arkiv = providers.arkiv();
   const address = session.address;
-  const byLabel = session.active?.kind === "badge" ? session.active.label : null;
+  // A badge writes under its label; an authority wallet (organizer, desk…) under its authority name.
+  const active = session.active;
+  const byLabel = !active ? null : active.kind === "badge" ? active.label : String(active.authority);
   const queue = useMemo(
     () =>
       address

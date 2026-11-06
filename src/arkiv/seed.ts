@@ -1,7 +1,7 @@
 // The demo event for fake mode (development only): what the organizer, leads and hackers would
 // have written by event start + 2 h. Four leads schedule ten volunteers across the two zones of the
-// small venue; some are already clocked in with a lead pass, others are due to self-start. Two
-// hackers have open help tickets.
+// small venue; some are already clocked in with a lead pass, others are due to self-start. Every
+// hacker has a seat, and three have open tickets (one for the Arkiv booth).
 //
 // Each persona writes as itself through FakeArkiv, so the same rules decide what counts.
 import personasJson from "../../fixtures/personas.json";
@@ -65,8 +65,19 @@ export async function seedFakeEvent(fake: FakeArkiv, config: EventConfig): Promi
       ["duty_pass", { volunteer, shift: shifts[id]!, endsAt: start + offset + length }],
     ]);
   }
-  // Two hackers already waiting for help, one per zone.
+  // Every hacker has an assigned seat (prefilled on their ticket form).
+  const seats = ["w1", "w2", "w3", "w4", "e1", "e2", "e3", "e4", "w5", "w6", "e5", "e6-walled"];
+  const hackers = personas.filter((p) => p.role === "hacker");
+  await write(
+    "organizer",
+    hackers.map((h, i) => [
+      "seat_assignment",
+      { hackerAddress: h.address as Address, hackerLabel: h.by, seat: seats[i]!, venue: venue! },
+    ]),
+  );
+  // Hackers already waiting for help: one per zone, and one for the Arkiv booth.
   await write("zkpay-b", [["ticket", { seat: "w3", venue: venue!, category: "wifi" }]]);
-  await write("chainchat-a", [["ticket", { seat: "e2", venue: venue!, category: "power" }]]);
+  await write("chainchat-a", [["ticket", { seat: "e1", venue: venue!, category: "power" }]]);
+  await write("seatsense-a", [["ticket", { seat: "w5", venue: venue!, category: "partner:arkiv" }]]);
   return { venue: venue!, shifts };
 }
