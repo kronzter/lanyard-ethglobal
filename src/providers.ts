@@ -10,6 +10,8 @@ import { parseRabdiDeployment, parseSepoliaDeployment } from "@/shared/deploymen
 import { eventConfig } from "@/shared/event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { IdentityDirectory } from "@/shared/interfaces/identity-directory";
+import type { Router } from "@/shared/interfaces/router";
+import { StubRouter } from "@/shared/mocks/stub-router";
 import { createFixtureEnsReader, createFixtureIdentityDirectory } from "@/shared/mocks/fixtures";
 import { flags as defaultFlags, type Flags } from "./flags";
 
@@ -23,6 +25,7 @@ export class ProviderNotWiredError extends Error {
 export function createProviders(flags: Flags = defaultFlags) {
   let ensReader: EnsReader | undefined;
   let identityDirectory: IdentityDirectory | undefined;
+  let router: Router | undefined;
   return {
     flags,
     config: eventConfig,
@@ -39,10 +42,9 @@ export function createProviders(flags: Flags = defaultFlags) {
         return (identityDirectory ??= createFixtureIdentityDirectory(createFixtureEnsReader()));
       throw new ProviderNotWiredError("Sepolia IdentityDirectory", "A2.4, switched on at I2");
     },
-    router(): never {
-      throw flags.router === "stub"
-        ? new ProviderNotWiredError("StubRouter", "P0.3 (before B3)")
-        : new ProviderNotWiredError("GridRouter", "A3.2, switched on at I3");
+    router(): Router {
+      if (flags.router === "stub") return (router ??= new StubRouter());
+      throw new ProviderNotWiredError("GridRouter", "A3.2, switched on at I3");
     },
   };
 }
