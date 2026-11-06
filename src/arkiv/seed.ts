@@ -11,6 +11,7 @@ import { parsePersonas } from "@/shared/fixtures/personas";
 import type { Address, Hex } from "@/shared/types/primitives";
 import type { FakeArkiv } from "./fake";
 import type { Kind } from "./kinds";
+import { seedJudging } from "./judging-seed";
 import { buildCreate, type KindInputs } from "./writers";
 
 export type Seeded = { venue: Hex; shifts: Record<string, Hex> };
@@ -79,5 +80,6 @@ export async function seedFakeEvent(fake: FakeArkiv, config: EventConfig): Promi
   await write("zkpay-b", [["ticket", { seat: "w3", venue: venue!, category: "wifi" }]]);
   await write("chainchat-a", [["ticket", { seat: "e1", venue: venue!, category: "power" }]]);
   await write("seatsense-a", [["ticket", { seat: "w5", venue: venue!, category: "partner:arkiv" }]]);
+  await seedJudging(fake, config);
   return { venue: venue!, shifts };
 }
