@@ -23,3 +23,4 @@ export * from "./ens";
 export * from "./fixtures/timeline";
 export * from "./fixtures/ens-history";
 export * from "./mocks";
+export * from "./evidence";
