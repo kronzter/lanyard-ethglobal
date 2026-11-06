@@ -1,4 +1,4 @@
-// Mock mode only, until AppKit's useWallet() lands (P0.5-R3): act as a fixture persona's wallet,
+// Mock mode only, beside the real wallet button (P0.5-R3): act as a fixture persona's wallet,
 // or paste any address, at a chosen moment of the fixture chain. Roles still come from the
 // IdentityDirectory; the persona list only supplies addresses.
 import { useMemo, useState } from "react";
@@ -25,8 +25,8 @@ export function DevWalletPicker() {
     <View style={styles.card}>
       <Text style={styles.h2}>Connect a test wallet (mock mode)</Text>
       <Text style={styles.muted}>
-        Wallet connection arrives with AppKit. Until then, pick a fixture wallet. Its roles are read from the
-        mock ENS chain at the chosen moment.
+        Pick a fixture wallet instead of a real one. Its roles are read from the mock ENS chain at the chosen
+        moment.
       </Text>
 
       <Text style={styles.h3}>Moment</Text>

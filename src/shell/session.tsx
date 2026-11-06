@@ -1,6 +1,6 @@
 // The shell's session: which wallet is connected, at which Sepolia block its roles were read, the
-// roles found and the one the user is acting as (P0.5-R6). Until AppKit lands (R3), mock mode
-// connects a fixture wallet chosen in the dev picker.
+// roles found and the one the user is acting as (P0.5-R6). A real wallet is bridged in by
+// WalletBridge (R3); mock mode can also connect a fixture wallet chosen in the dev picker.
 import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from "react";
 import { providers } from "@/providers";
 import type { AtBlock } from "@/shared/interfaces/ens-reader";
