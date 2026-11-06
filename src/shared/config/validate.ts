@@ -51,6 +51,8 @@ export function validateEventConfig(input: unknown): EventConfig {
   if (new Set(trackIds).size !== trackIds.length) issues.push("track ids must be unique");
   const openTracks = cfg.tracks.filter((t) => t.partner === null);
   if (openTracks.length !== 1) issues.push("exactly one non-partner track is required");
+  if (openTracks.length === 1 && openTracks[0]!.id !== "main")
+    issues.push('the non-partner track must have id "main"');
   for (const id of partnerIds) {
     if (cfg.tracks.filter((t) => t.partner === id).length !== 1)
       issues.push(`partner ${id} needs exactly one track`);
