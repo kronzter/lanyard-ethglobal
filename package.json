@@ -25,7 +25,7 @@
     "forge:install": "cd contracts && forge soldeer install",
     "forge:fmt": "forge fmt --root contracts --check",
     "forge:test": "forge test --root contracts",
-    "lanyard": "tsx cli/index.ts",
+    "lanyard": "node --env-file-if-exists=.env --import tsx cli/index.ts",
     "web:export": "expo export --platform web --output-dir dist",
     "ci:local": "pnpm secret-scan:all && pnpm lint && pnpm typecheck && pnpm test && pnpm vectors:browser && pnpm forge:install && pnpm forge:fmt && pnpm forge:test && pnpm web:export && pnpm smoke:web",
     "smoke:web": "node scripts/smoke-web-deeplink.mjs",

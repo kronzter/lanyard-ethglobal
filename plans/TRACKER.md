@@ -268,15 +268,19 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| B4.1 Projects, submission, acceptance | done | b7c501b, 61d772f | Immutable content/lead/hash validation, earliest captured submission/rubric, acceptance and track-scoped assignments; configured head-judge authority. Team draft editor, web judging desk, validated public team pages and checked bundle retrieval. `pnpm ci:local` passes (670 tests, browser vectors, contracts, web export/deeplink smoke). Interactive Android/web-wallet checks remain for phase bug hunt. |
-| B4.2 Judge flow | todo | | |
-| B4.3 Aggregation and leaderboard | todo | | |
-| B4.4 Freeze pipeline | todo | | |
+| B4.1 Projects, submission, acceptance | done | b7c501b, 61d772f | Immutable content/lead/hash validation, earliest captured submission/rubric, acceptance and track-scoped assignments; configured head-judge authority. Team draft editor, web judging desk, validated public team pages and checked bundle retrieval. `pnpm ci:local` passes (670 tests, browser vectors, contracts, web export/deeplink smoke). Browser flows verified during B4.4; physical Android tests skipped at user request. |
+| B4.2 Judge flow | done | cbfcb8b, 6dba235 | Device-local AsyncStorage/IndexedDB drafts, wallet/context isolation, separate encrypted Arkiv mirror, reconciled final sealing and recusal UI; submitted-lead seat routing. Metadata/registration/recusal eligibility precedes authenticated decryption, pinned cipher self-test, per-row rejection and earliest valid final selection; reproduction reopens ciphertext. `pnpm ci:local` passes (683 tests). Browser recovery/isolation checked during B4.4; physical Android tests skipped at user request. |
+| B4.3 Aggregation and leaderboard | done | da98aaa, da5696b | Exact bigint rational raw weighted means, stable ties, unranked zero-judge projects and strict spread flags. Organizer progress has no numeric preview; published rankings require checked signed evidence. `pnpm ci:local` passes (689 tests). |
+| B4.4 Freeze pipeline | done | 3c5e89c, 98a2630, ed80340, 2ec241b | Healthy continuous capture with independent write-ahead key inventory; confirmed freeze window before key disclosure; signed bundle staging/two local copies/download check; operation-bound raw transaction journals, receipt/state reconciliation, compact summary, winners and lock. Seed three tracks/projects and nine judges, revocation/recusal fixtures and manual demo prizes. `pnpm ci:local` passes (716 tests, Chromium vectors, Foundry, web export/deeplink smoke); separate Node verifier process prints MATCH after source expiry. Chromium exercised immutable public content, mirror sync, IndexedDB restart recovery, wallet isolation and final reconciliation. Live Sepolia adapter remains I4. |
 
-**Bug hunt:** todo · **Merged:** no
+**Bug hunt:** started, then stopped at the user’s explicit request (2026-11-07); known findings below fixed with regressions. Remaining review and physical Android tests skipped. · **Merged:** no
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
+| B4-H1 | Independent review | Remove retained submission/rubric/assignment/acceptance bytes, including decrementing the derived count | Freeze stops before decryption/publication | Originally completed with dependent rows rejected | High | fixed: independent write-ahead inventory, trusted authority dependency closure and loss regressions (98a2630, ed80340) |
+| B4-H2 | Independent review | Lock a matching event commitment with no declared winners although bundle prizes name a team | Verifier rejects incomplete publication | Originally returned MATCH | High | fixed: compare complete locked winner payloads with signed manual prizes; regression in freeze suite (98a2630, ed80340) |
+| B4-M1 | Independent review | Expose edition bundle commitments before atomic winner lock | App withholds frozen prizes/rankings | App reader had no completion-lock gate | Medium | fixed: require same-block atomic lanyard.locked sentinel; A4/I4 contract gate documented and app regression added (3c5e89c, 98a2630) |
+
 
 ---
 
@@ -339,3 +343,7 @@ Every change to `src/shared/interfaces` after P0 gets a row here. Either person 
 | 25b47df | `fixtures/venue.small.json` | `table-arkiv` (13, 7) and `table-ens` (17, 6) `partner-table` POIs in the east hall | yes | `fixtures/README.md`, `fixtures/test/venue-small.test.ts` |
 
 | b7c501b / 61d772f | `EventConfig.authorities.headJudge`, `providers.winnerBadge()` | Optional frozen head-judge wallet (set to public fixture address); assignment authority for main only. No-op winner badge component hook until I4. | yes | rules/config, shell roles, mocks use existing config; public team page bundle reproduction |
+
+| 3c5e89c | `PreparedResultsPublisher` | Additive Node-only preparation, pending inventory, saved bytes/hash/nonce, broadcast and prepared-state reconciliation; existing `ResultsPublisher` preserved. Mock persists canonical mock envelopes; live I4 adapter must pass both conformance suites. | yes | CLI composition; A4/I4 gate documented |
+| 98a2630 / ed80340 | Evidence diagnostics and capture inventory | Optional signed `inputKeys` must match retained inputs; freeze requires an independent write-ahead key inventory and trusted authority dependency closure. Full locked winner declarations must match signed prizes. | yes (stricter invalid-evidence rejection; rules version regenerated) | capture, freeze, reproduce, verify, browser bundle readers |
+| 3c5e89c / 98a2630 | Edition publication lock sentinel | `lanyard.locked = "1"` written atomically by A4 lock; app readers gate frozen prizes/rankings on it. CLI independently checks stored locked state and full winners. | additive | A4 lock and I4 acceptance documented; app remains fail-closed until live integration |

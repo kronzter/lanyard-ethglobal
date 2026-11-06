@@ -154,9 +154,12 @@ export function createArkivReader(access: RabdiAccess = {}): ArkivReader {
 function observed(
   route: (method: string, params: unknown) => Promise<unknown>,
   onTxHash?: (hash: Hex) => void,
+  beforeRawBroadcast?: (raw: Hex) => Promise<void>,
 ): Transport {
   return custom({
     async request({ method, params }) {
+      if (method === "eth_sendRawTransaction" && beforeRawBroadcast)
+        await beforeRawBroadcast((params as [Hex])[0]);
       const result = await route(method, params);
       if (
         (method === "eth_sendTransaction" || method === "eth_sendRawTransaction") &&
@@ -204,10 +207,15 @@ export function createKeyWriter(
   privateKey: Hex,
   access: RabdiAccess = {},
   onTxHash?: (hash: Hex) => void,
+  beforeRawBroadcast?: (raw: Hex) => Promise<void>,
 ): ArkivWriter {
   const account = privateKeyToAccount(privateKey);
   const chain = rabdiChain(access);
   const reads = createPublicClient({ chain, transport: http(rabdiRpcUrl(access)) });
-  const transport = observed((method, params) => reads.request({ method, params } as never), onTxHash);
+  const transport = observed(
+    (method, params) => reads.request({ method, params } as never),
+    onTxHash,
+    beforeRawBroadcast,
+  );
   return writerOver(createWalletClient({ chain, transport, account }) as never, account.address);
 }

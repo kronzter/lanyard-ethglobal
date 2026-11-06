@@ -101,3 +101,7 @@ Follow [the publication/recovery contract](01-evidence-and-interfaces.md). One p
 - [ ] Bug hunt run; Highs fixed with regression tests; Mediums fixed or in Known limitations
 - [ ] README/demo distinguish locked publication bytes from namespace availability: base-name renewal and surviving ancestor authority remain trusted. On a fork, demonstrate any ancestor redirection still permitted by actual grants rather than claiming it is impossible
 - [ ] Merged into `main`
+
+**B4 local preparation interface:** The Node publisher adapter must implement `PreparedResultsPublisher` (see `01-evidence-and-interfaces.md`): raw signed bytes/hash/nonce are available durably before broadcast, prepared/pending states survive restart, and pending transaction inventory blocks a new freeze. Pass both ordinary and prepared publication conformance suites. This is an additive CLI interface; the app still cannot import the publisher.
+
+**App lock sentinel:** `lockResults` writes edition text `lanyard.locked = "1"` inside the same atomic lock transaction, before revoking resolver grants. App bundle readers require that sentinel at the same evaluation block before displaying frozen prizes/rankings. The contract’s stored `locked` state remains the CLI verifier’s independent authority; setting the event commitment alone is insufficient.

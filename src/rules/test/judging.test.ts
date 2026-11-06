@@ -1,78 +1,18 @@
-import { describe, expect, it } from "vitest";
 import { bytesToHex } from "viem";
-import { canonicalBytes } from "@/shared/canonical";
-import { submissionSnapshot } from "@/arkiv/writers";
-import { context, key, obs, persona, run, timeline } from "./harness";
-
-const AT = 9_022_000n;
-const lead = persona("zkpay-a");
-const org = persona("organizer");
-const content = {
-  page: {
-    title: "ZK Pay",
-    description: "Private payments",
-    members: ["Person A"],
-    links: { ethglobal: "https://ethglobal.com/showcase/zkpay" },
-  },
-};
-function submission(at = AT, extra: Partial<Parameters<typeof obs>[0]> = {}) {
-  const sealed = submissionSnapshot({
-    project: key(999n),
-    team: "zkpay",
-    track: "main",
-    lead: lead.address,
-    content,
-  });
-  return obs({
-    kind: "submission",
-    creator: lead.address,
-    byLabel: "zkpay",
-    at,
-    flags: { readonly: true, permissionlessExtension: true },
-    attrs: {
-      project: ["key", key(999n)],
-      team: ["str", "zkpay"],
-      track: ["str", "main"],
-      snapshot: ["bytes", bytesToHex(sealed.bytes)],
-      content_hash: ["str", sealed.contentHash],
-    },
-    ...extra,
-  });
-}
-function rubric(
-  at = AT - 2n,
-  track = "main",
-  payload: unknown = { criteria: [{ id: "impact", name: "Impact", weight: 2 }], scale: 10 },
-) {
-  return obs({
-    kind: "rubric",
-    creator: org.address,
-    byLabel: "organizer",
-    at,
-    attrs: { track: ["str", track], payload: ["bytes", bytesToHex(canonicalBytes(payload))] },
-  });
-}
-function dependencies() {
-  const s = submission();
-  const r = rubric();
-  const a = obs({
-    kind: "acceptance",
-    creator: org.address,
-    byLabel: "organizer",
-    at: AT + 1n,
-    attrs: { submission: ["key", s.key], track: ["str", "main"] },
-  });
-  const assignment = (judge = "gita.judges", creator = org.address) =>
-    obs({
-      kind: "judge_assignment",
-      creator,
-      byLabel: "organizer",
-      at: AT + 2n,
-      attrs: { submission: ["key", s.key], rubric: ["key", r.key], judge: ["str", judge] },
-    });
-  return { s, r, a, assignment };
-}
+import { describe, expect, it } from "vitest";
+import { context, key, persona, run, timeline } from "./harness";
+import { AT, content, submission, rubric, dependencies } from "./judging-fixtures";
 describe("immutable judging inputs", () => {
+  it("requires exact canonical snapshot bytes, not a whitespace variant with the same semantic hash", async () => {
+    const s = submission();
+    const attr = s.attributes.find((a) => a.name === "snapshot")!;
+    const raw = new TextDecoder().decode(
+      Uint8Array.from(attr.value.slice(2).match(/../g) ?? [], (b) => parseInt(b, 16)),
+    );
+    attr.value = bytesToHex(new TextEncoder().encode(" " + raw));
+    expect((await run([s])).verdict(s).reason).toMatch(/hash mismatch/);
+  });
+
   it("accepts the team owner's immutable snapshot without needing a mutable project", async () => {
     const s = submission();
     const result = await run([s]);
