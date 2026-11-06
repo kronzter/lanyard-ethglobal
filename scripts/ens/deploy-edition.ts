@@ -55,6 +55,7 @@ import {
   userRegistryInitAbi,
   verifiableFactoryAbi,
 } from "../../src/ens/ensv2-abi";
+import { fixedResolverRoleProblems } from "../../src/ens/deploy-guards";
 import { ensv2Sepolia } from "../../src/ens/ensv2-sepolia";
 import { BOOKS } from "../../src/shared/labels";
 import { namespaceExpiry } from "../../src/shared/config/validate";
@@ -74,6 +75,7 @@ const issuanceAbi = parseAbi([
 const resolverAbi = parseAbi([
   "function hasRoles(uint256 resource,uint256 roleBitmap,address account) view returns (bool)",
   "function roles(uint256 resource,address account) view returns (uint256)",
+  "function roleCount(uint256 resource) view returns (uint256)",
   "function grantSetterRoles(bytes setter,address account) returns (bool)",
   "function supportsInterface(bytes4 interfaceId) view returns (bool)",
 ]);
@@ -402,6 +404,50 @@ async function observe(ctx: Ctx, state: State, expectedIssuance: IssuanceConfig)
   return { observation, baseRegistry, editionRegistry };
 }
 
+/**
+ * A1-D7: the full root-role inventory of the hackers and staff resolvers, read-only. Run before `seal`
+ * (a resolver admin or UPGRADE holder could later stop the registrar's address writes, and with them all
+ * issuance, for good) and again in the final verify. Returns problems; empty means clean.
+ */
+async function fixedResolverProblems(
+  ctx: Ctx,
+  registrar: Address,
+  resolvers: ResolverMetadata,
+): Promise<string[]> {
+  const pc = ctx.publicClient;
+  const coin60 = BigInt(keccak256(encodePacked(["uint256"], [60n])));
+  const url = BigInt(keccak256(toHex("url")));
+  const problems: string[] = [];
+  for (const kind of ["hackers", "staff"] as const) {
+    const address = resolvers[kind];
+    const rolesOf = (resource: bigint, account: Address) =>
+      pc.readContract({ address, abi: resolverAbi, functionName: "roles", args: [resource, account] });
+    const countOf = (resource: bigint) =>
+      pc.readContract({ address, abi: resolverAbi, functionName: "roleCount", args: [resource] });
+    const [rootCounts, organizerRoot, registrarRoot, registrarCoin60, coin60Counts, urlCounts] =
+      await Promise.all([
+        countOf(0n),
+        rolesOf(0n, ctx.organizer),
+        rolesOf(0n, registrar),
+        rolesOf(coin60, registrar),
+        countOf(coin60),
+        countOf(url),
+      ]);
+    problems.push(
+      ...fixedResolverRoleProblems({
+        kind,
+        rootCounts,
+        organizerRoot,
+        registrarRoot,
+        registrarCoin60,
+        coin60Counts,
+        urlCounts,
+      }),
+    );
+  }
+  return problems;
+}
+
 async function send(ctx: Ctx, label: string, request: Promise<Hex>): Promise<void> {
   const hash = await request;
   const receipt = await ctx.publicClient.waitForTransactionReceipt({ hash });
@@ -590,7 +636,11 @@ async function runStep(
       );
       return;
     }
-    case "seal-edition":
+    case "seal-edition": {
+      // Sealing is the point of no return for the resolver wiring: refuse before sending anything.
+      const resolverProblems = await fixedResolverProblems(ctx, requireRegistrar(state), resolvers);
+      if (resolverProblems.length > 0)
+        throw new Error(`refusing to seal, nothing sent: ${resolverProblems.join("; ")}`);
       return send(
         ctx,
         step,
@@ -601,6 +651,7 @@ async function runStep(
           ...common,
         }),
       );
+    }
   }
 }
 
@@ -654,6 +705,7 @@ async function verifyFinal(
   baseRegistry: Address,
   state: State,
   expectedIssuance: IssuanceConfig,
+  resolvers: ResolverMetadata,
 ): Promise<Address> {
   const pc = ctx.publicClient;
   const registrar = requireRegistrar(state);
@@ -682,7 +734,7 @@ async function verifyFinal(
     pc.readContract({ ...reg, functionName: "getParent" }),
     pc.readContract({ ...reg, functionName: "hasRootRoles", args: [ROLE.UPGRADE, registrar] }),
   ]);
-  const problems: string[] = [];
+  const problems: string[] = await fixedResolverProblems(ctx, registrar, resolvers);
   if (!emancipated) problems.push("edition registry is not emancipated");
   if (counts !== (ROLE.REGISTRAR | ROLE.RENEW)) problems.push(`edition root role counts are ${counts}`);
   if (upgrade) problems.push("registrar holds ROLE_UPGRADE");
@@ -788,7 +840,7 @@ async function main(): Promise<void> {
   const left = planEditionSteps(after.observation);
   if (left.status !== "ready" || left.steps.length > 0)
     throw new Error("steps ran but the chain still needs work");
-  const editionRegistry = await verifyFinal(ctx, baseRegistry, state, issuance);
+  const editionRegistry = await verifyFinal(ctx, baseRegistry, state, issuance, resolverMetadata);
   writeState(ctx.statePath, {
     registrar: requireRegistrar(state),
     baseRegistry,
