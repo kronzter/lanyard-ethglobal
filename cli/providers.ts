@@ -7,10 +7,11 @@ import path from "node:path";
 import { eventConfig } from "@/shared/event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { ResultsPublisher } from "@/shared/interfaces/results-publisher";
-import { createFixtureEnsReader } from "@/shared/mocks/fixtures";
 import { MockResultsPublisher } from "@/shared/mocks/mock-results-publisher";
 import { createSerializedStore, type PublisherStore } from "@/shared/mocks/publisher-store";
+import { createFixtureEnsReader, fixtureTimeline } from "@/shared/mocks/fixtures";
 import { parseCliFlags, type CliFlags } from "./flags";
+import { mockSepoliaBlocks, type SepoliaBlocks } from "./sepolia-blocks";
 
 export const DEFAULT_MOCK_PUBLISHER_FILE = ".lanyard/mock-publisher.json";
 
@@ -52,6 +53,11 @@ export function createCliProviders(
     ensReader(): EnsReader {
       if (flags.ens === "mock") return createFixtureEnsReader();
       throw new CliProviderNotWiredError("SepoliaEnsReader", "A2.4, switched on at I2");
+    },
+    /** Sepolia block identity for verify; follows the ENS flag (the archive RPC client lands at I2). */
+    sepoliaBlocks(): SepoliaBlocks {
+      if (flags.ens === "mock") return mockSepoliaBlocks(fixtureTimeline());
+      throw new CliProviderNotWiredError("Sepolia block source", "I2, with the SepoliaEnsReader");
     },
     resultsPublisher(): ResultsPublisher {
       if (flags.results === "mock") return new MockResultsPublisher({ store: fileStore(publisherFile) });

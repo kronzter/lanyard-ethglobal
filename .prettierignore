@@ -14,3 +14,5 @@ contracts/
 # Symlinks into plans/ (agent context).
 AGENTS.md
 CLAUDE.md
+# Canonical JSON (one line, exact bytes): the cross-runtime rules vector.
+src/rules/test/vectors/rules-bundle.json

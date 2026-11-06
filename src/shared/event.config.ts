@@ -39,6 +39,9 @@ export const eventConfigInput = {
       arkiv: "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
       ens: "0x976ea74026e726554db657fa54763abd0c3a0aa9",
     },
+    // The live desk wallet from `pnpm lanyard desk-keygen` (deployments/rabdi.json, B1.1-R9); the
+    // B2 `drip` rule counts only records it wrote, and configHash commits to it.
+    desk: "0x6f383cb1a6770386c81e66ea0373436280ad6e16",
   },
   chains: {
     sepolia: {

@@ -54,6 +54,8 @@ export const EventConfigSchema = z
         organizer: AddressSchema,
         results: AddressSchema,
         partners: z.record(z.string(), AddressSchema),
+        /** The desk wallet that sends first-time tGLM and writes `drip` records (desk-wallet profile). */
+        desk: AddressSchema.optional(),
       })
       .strict(),
     chains: z.object({ sepolia: ChainPolicy(SEPOLIA_CHAIN_ID), rabdi: ChainPolicy(RABDI_CHAIN_ID) }).strict(),

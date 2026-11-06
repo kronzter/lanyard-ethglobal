@@ -78,8 +78,18 @@ describe("live deployments", () => {
   });
 
   it("match the measured Rabdi identity and desk-wallet funding in the event config", () => {
-    const rabdi = { ...liveRabdi({ profile: "desk-wallet", deskWallet: ADDR }), resetId: RABDI_GENESIS };
+    const desk = eventConfig.authorities.desk!;
+    const rabdi = { ...liveRabdi({ profile: "desk-wallet", deskWallet: desk }), resetId: RABDI_GENESIS };
     expect(requireLive(parseRabdiDeployment(rabdi), eventConfig).network).toBe("rabdi");
+    expect(() =>
+      requireLive(
+        parseRabdiDeployment({
+          ...liveRabdi({ profile: "desk-wallet", deskWallet: ADDR }),
+          resetId: RABDI_GENESIS,
+        }),
+        eventConfig,
+      ),
+    ).toThrow(/desk wallet .* does not match config authorities\.desk/);
     expect(() =>
       requireLive(parseRabdiDeployment({ ...liveRabdi(), resetId: RABDI_GENESIS }), eventConfig),
     ).toThrow(/funding profile faucet-contract does not match the config \(desk-wallet\)/);

@@ -37,8 +37,21 @@ export const RulesManifestSchema = z
     const strictlySorted = (xs: string[]) => xs.every((x, i) => i === 0 || xs[i - 1]! < x);
     if (!strictlySorted(m.files.map((f) => f.path)))
       ctx.addIssue({ code: "custom", message: "files must be sorted by path and unique" });
-    if (!strictlySorted(m.dependencies.map((d) => d.name)))
-      ctx.addIssue({ code: "custom", message: "dependencies must be sorted by name and unique" });
+    // One package can resolve at two versions (a dependency's own pinned copy), so entries are
+    // unique by name *and* version, sorted by name then version.
+    const deps = m.dependencies;
+    if (
+      !deps.every(
+        (d, i) =>
+          i === 0 ||
+          deps[i - 1]!.name < d.name ||
+          (deps[i - 1]!.name === d.name && deps[i - 1]!.version < d.version),
+      )
+    )
+      ctx.addIssue({
+        code: "custom",
+        message: "dependencies must be sorted by name then version, and unique",
+      });
   });
 
 export type RulesManifest = z.output<typeof RulesManifestSchema>;
