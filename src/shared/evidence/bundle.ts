@@ -35,19 +35,26 @@ export const ENS_QUERIES = [
   "expiry",
   "registrationId",
   "unregisteredBetween",
+  "sepoliaBlockAt",
 ] as const;
 
-/** One prepared historical ENS read, as `prepare` fetched it (operator-attested offline). */
+/**
+ * One prepared historical ENS read, as `prepare` fetched it (operator-attested offline).
+ * A `sepoliaBlockAt` entry records the Arkiv-to-Sepolia time mapping: `label` is "", `key`
+ * is the Unix timestamp in decimal, `block` is the Sepolia block it maps to and `result` is null.
+ */
 export const PreparedEnsEntrySchema = z
   .object({
     label: z.string(),
     block: big,
     query: z.enum(ENS_QUERIES),
-    /** Text key, or the interval end block for unregisteredBetween; "" when unused. */
+    /** Text key, the interval end block for unregisteredBetween, the timestamp for sepoliaBlockAt; "" when unused. */
     key: z.string(),
     result: z.union([z.string(), z.boolean(), z.null()]),
   })
   .strict();
+export type PreparedEnsEntry = z.output<typeof PreparedEnsEntrySchema>;
+export type EnsQuery = (typeof ENS_QUERIES)[number];
 
 const IntervalSchema = z.object({ fromBlock: big, toBlock: big }).strict();
 export const CaptureDiagnosticsSchema = z
@@ -94,10 +101,8 @@ export class EvidenceError extends Error {
   }
 }
 
-const compareEns = (
-  a: z.output<typeof PreparedEnsEntrySchema>,
-  b: z.output<typeof PreparedEnsEntrySchema>,
-): number =>
+/** Bundle order for prepared ENS entries: label, then block, then query, then key. */
+export const compareEnsEntries = (a: PreparedEnsEntry, b: PreparedEnsEntry): number =>
   a.label < b.label
     ? -1
     : a.label > b.label
@@ -125,7 +130,7 @@ export function parseEvidenceBody(value: unknown): EvidenceBody {
   if (dedupeObservations(body.records).length !== body.records.length)
     throw new EvidenceError("records must hold one observation per key");
   for (let i = 1; i < body.ens.length; i++) {
-    if (compareEns(body.ens[i - 1]!, body.ens[i]!) >= 0)
+    if (compareEnsEntries(body.ens[i - 1]!, body.ens[i]!) >= 0)
       throw new EvidenceError(
         "ENS entries must be sorted by label, block, query and key, without duplicates",
       );
