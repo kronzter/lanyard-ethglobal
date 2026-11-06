@@ -1,0 +1,446 @@
+#!/usr/bin/env tsx
+// Creates the ENS name tree's top two levels on Sepolia (plans/A1-namespace.md › A1.1):
+//   lanyard.eth ─ base UserRegistry ─ mumbai2026 ─ edition registry (emancipated, owned by LanyardRegistrar)
+// Idempotent and resumable: it reads the chain, plans only the missing steps (src/ens/edition-plan.ts)
+// and runs them in order, so a stopped run continues and a finished run does nothing.
+//
+//   pnpm exec tsx scripts/ens/deploy-edition.ts --plan   # read-only: print what would run
+//   pnpm exec tsx scripts/ens/deploy-edition.ts --fork   # against a local `anvil --fork-url` node
+//   pnpm exec tsx scripts/ens/deploy-edition.ts          # live Sepolia (needs lanyard.eth registered first)
+//
+// Environment (read from process.env only; this script never opens a .env file):
+//   SEPOLIA_RPC_URL        live RPC endpoint
+//   FORK_RPC_URL           --fork endpoint (default http://127.0.0.1:8545)
+//   ORGANIZER_PRIVATE_KEY  the organizer wallet's key (not needed for --plan)
+// Run `forge build --root contracts` first: the registrar bytecode comes from contracts/out.
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import {
+  createPublicClient,
+  createWalletClient,
+  encodeFunctionData,
+  getAddress,
+  http,
+  keccak256,
+  toHex,
+  type Address,
+  type Hex,
+  type PublicClient,
+  type WalletClient,
+} from "viem";
+import { privateKeyToAccount, type PrivateKeyAccount } from "viem/accounts";
+import { sepolia } from "viem/chains";
+import {
+  baseRegistrySalt,
+  planEditionSteps,
+  predictVerifiableProxy,
+  type EditionObservation,
+  type EditionStep,
+} from "../../src/ens/edition-plan";
+import {
+  admin,
+  BASE_SETUP_ROLES,
+  EDITION_NAME_ROLES,
+  FAR_FUTURE,
+  lanyardRegistrarAbi,
+  permissionedRegistryAbi,
+  REGISTRAR_PHASE,
+  ROLE,
+  userRegistryInitAbi,
+  verifiableFactoryAbi,
+} from "../../src/ens/ensv2-abi";
+import { ensv2Sepolia } from "../../src/ens/ensv2-sepolia";
+import { namespaceExpiry } from "../../src/shared/config/validate";
+import { eventConfig } from "../../src/shared/event.config";
+
+const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const ARTIFACT = resolve(ROOT, "contracts/out/LanyardRegistrar.sol/LanyardRegistrar.json");
+
+const idOf = (label: string): bigint => BigInt(keccak256(toHex(label)));
+const lower = (a: string): Address => a.toLowerCase() as Address;
+const sameAddress = (a: string, b: string): boolean => a.toLowerCase() === b.toLowerCase();
+
+type Ctx = {
+  fork: boolean;
+  publicClient: PublicClient;
+  walletClient: WalletClient | null;
+  organizer: Address;
+  account: PrivateKeyAccount | null;
+  statePath: string;
+};
+
+type State = { registrar?: Address };
+
+const edition = eventConfig.edition;
+const baseLabel = eventConfig.baseName.replace(/\.eth$/, "");
+const nsExpiry = namespaceExpiry(eventConfig.times);
+
+function readState(path: string): State {
+  try {
+    return JSON.parse(readFileSync(path, "utf8")) as State;
+  } catch {
+    return {};
+  }
+}
+
+function writeState(path: string, state: State & Record<string, unknown>): void {
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, `${JSON.stringify(state, null, 2)}\n`);
+}
+
+/** Everything the planner needs, read from the chain (and the local state file for the registrar). */
+async function observe(ctx: Ctx, state: State) {
+  const { publicClient: pc, organizer } = ctx;
+  const eth = ensv2Sepolia.ethRegistry;
+
+  const lanyardOwner = await pc.readContract({
+    address: eth,
+    abi: permissionedRegistryAbi,
+    functionName: "getOwner",
+    args: [idOf(baseLabel)],
+  });
+  const lanyardExpiry = await pc.readContract({
+    address: eth,
+    abi: permissionedRegistryAbi,
+    functionName: "getExpiry",
+    args: [idOf(baseLabel)],
+  });
+  const proxyLogic = await pc.readContract({
+    address: ensv2Sepolia.verifiableFactory,
+    abi: verifiableFactoryAbi,
+    functionName: "proxyLogic",
+  });
+  const baseRegistry = predictVerifiableProxy({
+    factory: ensv2Sepolia.verifiableFactory,
+    proxyLogic,
+    sender: organizer,
+    salt: baseRegistrySalt(eventConfig.baseName),
+  });
+  const baseDeployed = ((await pc.getCode({ address: baseRegistry })) ?? "0x") !== "0x";
+
+  let baseAttached = false;
+  let parentSet = false;
+  let parentLocked = false;
+  if (baseDeployed) {
+    const sub = await pc.readContract({
+      address: eth,
+      abi: permissionedRegistryAbi,
+      functionName: "getSubregistry",
+      args: [baseLabel],
+    });
+    baseAttached = sameAddress(sub, baseRegistry);
+    const [parent, label] = await pc.readContract({
+      address: baseRegistry,
+      abi: permissionedRegistryAbi,
+      functionName: "getParent",
+    });
+    parentSet = sameAddress(parent, eth) && label === baseLabel;
+    const held = await pc.readContract({
+      address: baseRegistry,
+      abi: permissionedRegistryAbi,
+      functionName: "roles",
+      args: [0n, organizer],
+    });
+    parentLocked = (held & (ROLE.SET_PARENT | admin(ROLE.SET_PARENT))) === 0n;
+  }
+
+  let registrarPhase: EditionObservation["registrarPhase"] = null;
+  let editionNameAttached = false;
+  let editionRegistry: Address | null = null;
+  if (state.registrar && ((await pc.getCode({ address: state.registrar })) ?? "0x") !== "0x") {
+    const r = state.registrar;
+    const [org, base, phase] = await Promise.all([
+      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "organizer" }),
+      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "baseRegistry" }),
+      pc.readContract({ address: r, abi: lanyardRegistrarAbi, functionName: "phase" }),
+    ]);
+    if (!sameAddress(org, organizer) || !sameAddress(base, baseRegistry)) {
+      throw new Error(`recorded registrar ${r} belongs to a different organizer or base registry`);
+    }
+    registrarPhase = REGISTRAR_PHASE[phase] ?? null;
+    if (registrarPhase !== "created") {
+      editionRegistry = await pc.readContract({
+        address: r,
+        abi: lanyardRegistrarAbi,
+        functionName: "edition",
+      });
+    }
+    if (baseDeployed) {
+      const owner = await pc.readContract({
+        address: baseRegistry,
+        abi: permissionedRegistryAbi,
+        functionName: "getOwner",
+        args: [idOf(edition)],
+      });
+      editionNameAttached = sameAddress(owner, r);
+    }
+  }
+
+  const observation: EditionObservation = {
+    lanyardOwnedByOrganizer: sameAddress(lanyardOwner, organizer),
+    lanyardExpiry,
+    namespaceExpiry: nsExpiry,
+    baseRegistryDeployed: baseDeployed,
+    baseAttachedToLanyard: baseAttached,
+    baseParentSet: parentSet,
+    baseParentLocked: parentLocked,
+    registrarPhase,
+    editionNameAttached,
+  };
+  return { observation, baseRegistry, editionRegistry };
+}
+
+async function send(ctx: Ctx, label: string, request: Promise<Hex>): Promise<void> {
+  const hash = await request;
+  const receipt = await ctx.publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== "success") throw new Error(`${label} reverted in ${hash}`);
+  console.log(`  ok  ${label}  ${hash}`);
+}
+
+async function runStep(ctx: Ctx, step: EditionStep, baseRegistry: Address, state: State): Promise<void> {
+  const wc = ctx.walletClient;
+  const account = ctx.account;
+  if (!wc || !account) throw new Error("ORGANIZER_PRIVATE_KEY is required to send transactions");
+  const eth = ensv2Sepolia.ethRegistry;
+  const common = { account, chain: wc.chain } as const;
+  const base = { address: baseRegistry, abi: permissionedRegistryAbi, ...common } as const;
+
+  switch (step) {
+    case "deploy-base-registry": {
+      const init = encodeFunctionData({
+        abi: userRegistryInitAbi,
+        functionName: "initialize",
+        args: [[{ account: ctx.organizer, roleBitmap: BASE_SETUP_ROLES }]],
+      });
+      await send(
+        ctx,
+        step,
+        wc.writeContract({
+          address: ensv2Sepolia.verifiableFactory,
+          abi: verifiableFactoryAbi,
+          functionName: "deployProxy",
+          args: [ensv2Sepolia.userRegistryImpl, baseRegistrySalt(eventConfig.baseName), init],
+          ...common,
+        }),
+      );
+      return;
+    }
+    case "attach-base-registry":
+      return send(
+        ctx,
+        step,
+        wc.writeContract({
+          address: eth,
+          abi: permissionedRegistryAbi,
+          functionName: "setSubregistry",
+          args: [idOf(baseLabel), baseRegistry],
+          ...common,
+        }),
+      );
+    case "set-base-parent":
+      return send(
+        ctx,
+        step,
+        wc.writeContract({ ...base, functionName: "setParent", args: [eth, baseLabel] }),
+      );
+    case "lock-base-parent":
+      return send(
+        ctx,
+        step,
+        wc.writeContract({
+          ...base,
+          functionName: "revokeRootRoles",
+          args: [ROLE.SET_PARENT | admin(ROLE.SET_PARENT), ctx.organizer],
+        }),
+      );
+    case "deploy-registrar": {
+      const artifact = readArtifact();
+      const hash = await wc.deployContract({
+        abi: lanyardRegistrarAbi,
+        bytecode: artifact,
+        args: [
+          ctx.organizer,
+          ensv2Sepolia.verifiableFactory,
+          ensv2Sepolia.userRegistryImpl,
+          baseRegistry,
+          edition,
+          eventConfig.times.eventEnd,
+          eventConfig.times.freezeDeadline,
+        ],
+        ...common,
+      });
+      const receipt = await ctx.publicClient.waitForTransactionReceipt({ hash });
+      if (receipt.status !== "success" || !receipt.contractAddress)
+        throw new Error(`${step} failed in ${hash}`);
+      state.registrar = lower(receipt.contractAddress);
+      writeState(ctx.statePath, state); // record at once so a stopped run resumes with this registrar
+      console.log(`  ok  ${step}  ${state.registrar}  ${hash}`);
+      return;
+    }
+    case "bootstrap-edition":
+      return send(
+        ctx,
+        step,
+        wc.writeContract({
+          address: requireRegistrar(state),
+          abi: lanyardRegistrarAbi,
+          functionName: "bootstrapEdition",
+          ...common,
+        }),
+      );
+    case "attach-edition-name": {
+      const registrar = requireRegistrar(state);
+      const editionRegistry = await ctx.publicClient.readContract({
+        address: registrar,
+        abi: lanyardRegistrarAbi,
+        functionName: "edition",
+      });
+      await send(
+        ctx,
+        step,
+        wc.writeContract({
+          ...base,
+          functionName: "register",
+          args: [
+            edition,
+            registrar,
+            editionRegistry,
+            "0x0000000000000000000000000000000000000000",
+            EDITION_NAME_ROLES,
+            FAR_FUTURE,
+          ],
+        }),
+      );
+      return;
+    }
+    case "seal-edition":
+      return send(
+        ctx,
+        step,
+        wc.writeContract({
+          address: requireRegistrar(state),
+          abi: lanyardRegistrarAbi,
+          functionName: "seal",
+          ...common,
+        }),
+      );
+  }
+}
+
+function requireRegistrar(state: State): Address {
+  if (!state.registrar) throw new Error("no registrar recorded");
+  return state.registrar;
+}
+
+function readArtifact(): Hex {
+  let raw: string;
+  try {
+    raw = readFileSync(ARTIFACT, "utf8");
+  } catch {
+    throw new Error(
+      "contracts/out/LanyardRegistrar.sol is missing; run `forge build --root contracts` first",
+    );
+  }
+  const bytecode = (JSON.parse(raw) as { bytecode?: { object?: string } }).bytecode?.object;
+  if (!bytecode || !bytecode.startsWith("0x")) throw new Error("LanyardRegistrar artifact has no bytecode");
+  return bytecode as Hex;
+}
+
+/** Re-reads the chain after the last step and fails loudly if the end state is not what A1.1 promises. */
+async function verifyFinal(ctx: Ctx, baseRegistry: Address, state: State): Promise<Address> {
+  const pc = ctx.publicClient;
+  const registrar = requireRegistrar(state);
+  const editionRegistry = await pc.readContract({
+    address: registrar,
+    abi: lanyardRegistrarAbi,
+    functionName: "edition",
+  });
+  const reg = { address: editionRegistry, abi: permissionedRegistryAbi } as const;
+  const [emancipated, counts, parent, upgrade] = await Promise.all([
+    pc.readContract({ ...reg, functionName: "isEmancipated" }),
+    pc.readContract({ ...reg, functionName: "roleCount", args: [0n] }),
+    pc.readContract({ ...reg, functionName: "getParent" }),
+    pc.readContract({ ...reg, functionName: "hasRootRoles", args: [ROLE.UPGRADE, registrar] }),
+  ]);
+  const problems: string[] = [];
+  if (!emancipated) problems.push("edition registry is not emancipated");
+  if (counts !== (ROLE.REGISTRAR | ROLE.RENEW)) problems.push(`edition root role counts are ${counts}`);
+  if (upgrade) problems.push("registrar holds ROLE_UPGRADE");
+  if (!sameAddress(parent[0], baseRegistry) || parent[1] !== edition)
+    problems.push("edition parent pointer is wrong");
+  if (problems.length > 0) throw new Error(`final state check failed: ${problems.join("; ")}`);
+  return editionRegistry;
+}
+
+async function main(): Promise<void> {
+  const args = new Set(process.argv.slice(2));
+  const planOnly = args.has("--plan");
+  const fork = args.has("--fork");
+  for (const a of args) if (!["--plan", "--fork"].includes(a)) throw new Error(`unknown argument ${a}`);
+
+  const rpcUrl = fork ? (process.env.FORK_RPC_URL ?? "http://127.0.0.1:8545") : process.env.SEPOLIA_RPC_URL;
+  if (!rpcUrl) throw new Error("SEPOLIA_RPC_URL is not set");
+  const key = process.env.ORGANIZER_PRIVATE_KEY;
+  if (!planOnly && !key) throw new Error("ORGANIZER_PRIVATE_KEY is not set");
+
+  const account = key ? privateKeyToAccount(key as Hex) : null;
+  const organizer = account?.address ?? getAddress(eventConfig.authorities.organizer);
+  if (!fork && account && !sameAddress(account.address, eventConfig.authorities.organizer)) {
+    throw new Error(
+      "ORGANIZER_PRIVATE_KEY does not match authorities.organizer in src/shared/event.config.ts",
+    );
+  }
+
+  const transport = http(rpcUrl);
+  const publicClient = createPublicClient({ chain: sepolia, transport });
+  const chainId = await publicClient.getChainId();
+  if (chainId !== sepolia.id)
+    throw new Error(`RPC reports chain ${chainId}, expected Sepolia (${sepolia.id})`);
+  const walletClient = account ? createWalletClient({ account, chain: sepolia, transport }) : null;
+  const ctx: Ctx = {
+    fork,
+    publicClient,
+    walletClient,
+    organizer,
+    account,
+    statePath: resolve(ROOT, `.lanyard/edition-${fork ? "fork" : "sepolia"}.json`),
+  };
+  const state = readState(ctx.statePath);
+
+  const { observation, baseRegistry } = await observe(ctx, state);
+  const plan = planEditionSteps(observation);
+  console.log(
+    `edition ${edition}.${eventConfig.baseName} on ${fork ? "fork" : "sepolia"}, organizer ${organizer}`,
+  );
+  if (plan.status === "blocked") throw new Error(`blocked: ${plan.reason}`);
+  console.log(plan.steps.length === 0 ? "nothing to do" : `plan: ${plan.steps.join(" → ")}`);
+  if (planOnly) return;
+
+  for (const step of plan.steps) {
+    console.log(`> ${step}`);
+    await runStep(ctx, step, baseRegistry, state);
+  }
+  const after = await observe(ctx, state);
+  const left = planEditionSteps(after.observation);
+  if (left.status !== "ready" || left.steps.length > 0)
+    throw new Error("steps ran but the chain still needs work");
+  const editionRegistry = await verifyFinal(ctx, baseRegistry, state);
+  writeState(ctx.statePath, {
+    registrar: requireRegistrar(state),
+    baseRegistry,
+    editionRegistry,
+    verifiedAt: new Date().toISOString(),
+  });
+  console.log(
+    `done. base ${baseRegistry}, registrar ${state.registrar}, edition registry ${editionRegistry}`,
+  );
+}
+
+main().catch((err: unknown) => {
+  const text =
+    err instanceof Error ? ((err as { shortMessage?: string }).shortMessage ?? err.message) : String(err);
+  const urls = [process.env.SEPOLIA_RPC_URL, process.env.FORK_RPC_URL].filter((u): u is string => !!u);
+  console.error(`deploy-edition: ${urls.reduce((t, u) => t.split(u).join("<rpc-url>"), text)}`);
+  process.exit(1);
+});
