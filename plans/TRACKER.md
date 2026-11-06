@@ -140,7 +140,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 2. ~~Set up an Expo account and eas-cli, get a Reown project ID and an archive Sepolia RPC key~~ done 2026-11-06.
 3. Phone half of the spike: ~~S1, S2, S7~~ done 2026-11-06; S8 done (phone reads + B's Node load and watchers). **Deferred by user decision until before I1:** S5 on web (Chrome + MetaMask at `/spike`), and with B: S3, S4 and the Hermes vector run (S3 first).
 4. ~~Rest of the app shell (R2, R3, R5, R6, R7 on Android)~~ merged 2026-11-06. Open: merge #15, a `preview` APK (`pnpm app:apk`) on both phones.
-5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) in a draft PR from `a1/namespace` into `phase/A` (Track A base, cut from `main`); supersedes #14. Review findings A1-D4–D6 fixed; Sepolia fork mode A passes on the fixed branch (2026-11-06). Next: the deploy-time checks A1-D7/D8, then the live deploy.
+5. A1 (A1.1–A1.3 plus the contract parts of A2.1–A2.3) in a draft PR from `a1/namespace` into `phase/A` (Track A base, cut from `main`); supersedes #14. Review findings A1-D4–D6 fixed; Sepolia fork mode A passes on the fixed branch (2026-11-06). Deploy-time checks A1-D7/D8 fixed. Next: the live deploy.
 6. A3: move #11 (Mumbai venue) and the A3.2 router onto `a3/venue` from `phase/A`.
 
 ---
@@ -169,8 +169,8 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 | A1-D4 | Independent contract review | Let a promoted `winner` name expire | `winner` stays the verified winner | No forwarder renews `winner`; after expiry the team lead (root REGISTRAR on the team registry) can re-register it to anyone | Major | fixed 01d9122 (`promoteWinner` requires `FAR_FUTURE`) |
 | A1-D5 | Independent contract review | `seal` with an edition name that expires soon after `namespaceExpiry` | Far-future edition expiry (A1.1-R4) | `seal` only checks `>= namespaceExpiry`; the deploy script uses `FAR_FUTURE`, but the contract does not enforce it | Major | fixed 8741955 (`seal` and the deploy check require `FAR_FUTURE`) |
 | A1-D6 | Independent contract review | Deploy with a non-canonical `editionLabel` | Rejected | The constructor does not validate it; records would land under the wrong node, unrepairably | Minor | fixed 9d7dd24 |
-| A1-D7 | Independent contract review | Resolver admin revokes the registrar's SET_ADDRESS, or upgrades a resolver | Issuance keeps working | Every issuance path writes an address record atomically, so issuance stops for good | Major | open (deploy-time check: assert each fixed resolver's full root-role inventory, no UPGRADE or extra admin, before `seal`) |
-| A1-D8 | Independent contract review | Call one-shot `setWinnerRegistrar` / `setPublicationResolver` with the wrong contract | Rejected | Only code/ERC165 is checked; a wrong address is permanent | Minor | open (deploy script verifies the target read-only before calling) |
+| A1-D7 | Independent contract review | Resolver admin revokes the registrar's SET_ADDRESS, or upgrades a resolver | Issuance keeps working | Every issuance path writes an address record atomically, so issuance stops for good | Major | fixed 61c6f76 (deploy-edition asserts each fixed resolver's exact root-role inventory before `seal` and in verify) |
+| A1-D8 | Independent contract review | Call one-shot `setWinnerRegistrar` / `setPublicationResolver` with the wrong contract | Rejected | Only code/ERC165 is checked; a wrong address is permanent | Minor | fixed ac46e09 (set-registrar-targets.ts verifies the target read-only; winner registrar needs an explicit override until A4.1) |
 | A1-D9 | Independent contract review | Team lead loses their key | Team can still be promoted | The winner flow is bound to the original lead | Minor | known limitation |
 
 ### A2 · Permissions and EnsReader
