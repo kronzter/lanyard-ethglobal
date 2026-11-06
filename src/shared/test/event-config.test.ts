@@ -69,6 +69,13 @@ describe("mumbai2026 config", () => {
     expect(configHash(eventConfig)).toBe(configHash(eventConfig));
   });
 
+  it("sets a positive desk drip amount and rejects a zero one", () => {
+    expect(eventConfig.funding?.dripWei).toBe(500_000_000_000_000_000n);
+    const c = clone();
+    c.funding = { dripWei: 0n };
+    expect(() => validateEventConfig(c)).toThrow();
+  });
+
   it("still blocks a config with any gate left unmeasured, naming its spike check", () => {
     const c = clone();
     c.scoreCipher = unmeasured("P0.6-S11");

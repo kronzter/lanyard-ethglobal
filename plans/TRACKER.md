@@ -208,7 +208,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| B1.1 Chain and faucet (or desk-wallet `drip` fallback) | todo | | |
+| B1.1 Chain and faucet (or desk-wallet `drip` fallback) | done | 1de5e98 | Desk-wallet profile (P0.6-S6: no EVM, so R3/R6 dropped, R7–R9 apply). `src/arkiv`: `ArkivReader`/`ArkivWriter` surface; SDK client with a wallet signer (routing transport: signing to the EIP-1193 wallet, reads to the Rabdi RPC) and a Node key signer, both reporting the tx hash before the receipt; keyless `wallet_addEthereumChain` params and URL redaction (R1, R2). `FakeArkiv` enforces owner/creator, readonly, permissionless extension, block expiry ≤ `MAX_LIFETIME`, no earlier extension, atomic batches and 100-row pages, with rejection/pending/quiet-delete/page-drift/lost-watcher hooks (R5). Dedicated desk wallet `0x6f38…6e16` (`pnpm lanyard desk-keygen`, funded 25 tGLM at block 291725) recorded in live `deployments/rabdi.json` (R9); `funding.dripWei` = 0.5 tGLM. `drip`: refuses when a desk-wallet `drip` record exists (others ignored), journals before sending, reconciles uncertain transfers by hash, writes only a missing record, drops declined sends (R7, R8); `/organizer/faucet` web screen (paste; QR scan with A4.3) and `pnpm lanyard drip <address>`. Real client checked live on Rabdi (write, get, query, receipts, transfer, watcher). **Pending:** live drip smoke once `DESK_WALLET_PRIVATE_KEY` is in `.env` |
 | B1.2 Record kinds and writers | todo | | |
 | B1.3 Queue, batches, readers, watcher | todo | | |
 
@@ -297,3 +297,4 @@ Every change to `src/shared/interfaces` after P0 gets a row here. Either person 
 
 | Commit | Interface | Change | Additive? | Real impl updated in |
 | --- | --- | --- | --- | --- |
+| 7f9216c | `EventConfig` (`src/shared/config/schema.ts`) | Optional `funding.dripWei` (desk-wallet first-time tGLM, 0.5 tGLM for mumbai2026) | yes | `src/shared/event.config.ts` |

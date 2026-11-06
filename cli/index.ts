@@ -3,6 +3,8 @@
 // Signing and decryption keys come only from the local .env, never from the app.
 // The app (app/, src/) must never import this folder (enforced by lanyard/boundaries).
 import path from "node:path";
+import { runDeskKeygen } from "./desk-keygen";
+import { runDrip } from "./drip";
 import { runScoreKeygen } from "./score-keygen";
 
 const commands: Record<string, string> = {
@@ -11,13 +13,18 @@ const commands: Record<string, string> = {
   capture: "B1.3 · retain observed readonly Arkiv records for an event",
   freeze: "B4.4 · resumable freeze pipeline: capture → rules → bundle → publish → lock",
   "score-keygen": "P0.6-S11 · create the edition score keypair (secret to .lanyard/secrets, never printed)",
+  "desk-keygen": "B1.1 · create the desk wallet key (secret to .lanyard/secrets, never printed)",
+  drip: "B1.1 · send first-time tGLM from the desk wallet and record it: drip <address>",
 };
 
-const implemented: Record<string, () => number> = {
-  "score-keygen": () => runScoreKeygen(path.resolve(import.meta.dirname, "..")),
+const root = path.resolve(import.meta.dirname, "..");
+const implemented: Record<string, (args: string[]) => number | Promise<number>> = {
+  "score-keygen": () => runScoreKeygen(root),
+  "desk-keygen": () => runDeskKeygen(root),
+  drip: (args) => runDrip(root, args),
 };
 
-const [command] = process.argv.slice(2);
+const [command, ...rest] = process.argv.slice(2);
 
 if (!command || command === "--help" || command === "-h") {
   console.log("usage: lanyard <command>\n");
@@ -25,12 +32,21 @@ if (!command || command === "--help" || command === "-h") {
   process.exit(0);
 }
 
-if (command in implemented) process.exit(implemented[command]!());
-
-if (command in commands) {
+if (command in implemented) {
+  // The CLI runs as CommonJS under tsx, so no top-level await: settle the promise explicitly.
+  Promise.resolve()
+    .then(() => implemented[command]!(rest))
+    .then(
+      (code) => process.exit(code),
+      (e: unknown) => {
+        console.error(`lanyard ${command}: ${(e as Error).message}`);
+        process.exit(1);
+      },
+    );
+} else if (command in commands) {
   console.error(`lanyard ${command}: not implemented yet (${commands[command]}).`);
   process.exit(2);
+} else {
+  console.error(`lanyard: unknown command '${command}'. Run 'pnpm lanyard --help'.`);
+  process.exit(1);
 }
-
-console.error(`lanyard: unknown command '${command}'. Run 'pnpm lanyard --help'.`);
-process.exit(1);

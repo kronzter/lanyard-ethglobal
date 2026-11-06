@@ -19,10 +19,10 @@ describe("parseFlags", () => {
 });
 
 describe("createProviders", () => {
-  it("exposes the config and mock-mode deployments", () => {
+  it("exposes the config, the live Rabdi deployment and the mock Sepolia one", () => {
     const p = createProviders({ ens: "mock", router: "stub" });
     expect(p.config.edition).toBe("mumbai2026");
-    expect(p.deployments.rabdi.mode).toBe("mock");
+    expect(p.deployments.rabdi.mode).toBe("live");
     expect(p.deployments.sepolia.mode).toBe("mock");
   });
 
