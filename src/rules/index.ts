@@ -26,6 +26,8 @@ export const RULES: RuleSet = Object.freeze({
   seat_assignment: authority.seat_assignment,
   acceptance: judging.acceptance,
   submission: judging.submission,
+  final_score: judging.final_score,
+  recusal: judging.recusal,
   judge_assignment: judging.judge_assignment,
   rubric: judging.rubric,
   results: authority.results,

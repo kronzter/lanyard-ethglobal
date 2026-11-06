@@ -210,13 +210,16 @@ describe("screening", () => {
 
   it("keeps kinds without a rule visible and never counted", async () => {
     const shift = obs({
-      kind: "recusal",
+      kind: "unimplemented_kind",
       creator: persona("priya").address,
       byLabel: "priya.volunteers",
       at: AT,
     });
     const { verdict } = await run([shift]);
-    expect(verdict(shift)).toMatchObject({ counts: false, reason: "no rule registered for kind 'recusal'" });
+    expect(verdict(shift)).toMatchObject({
+      counts: false,
+      reason: "no rule registered for kind 'unimplemented_kind'",
+    });
   });
 
   it("excludes records observed after the Arkiv cutoff or captured on another network", async () => {
