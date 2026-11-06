@@ -124,12 +124,12 @@ The full A2 permission-note tooling and reader, plus the desk UI (A4.3) and Arki
 - [ ] A team created before winner-contract deployment works afterward without any new child-registry role grant
 - [ ] Forwarders reject organizer, team lead and arbitrary callers; only the configured winner contract may promote/renew
 - [ ] Base → edition → book/team lookups traverse distinct registries; ancestor and edition pointer authority is inventoried
-- [ ] Who holds dangerous roles on `lanyard.eth`'s parent registry, and is that acceptable for the demo? Write the answer in `README.md › Known limitations`
-- [ ] `deployments/sepolia.json` passes the P0.2 schema
+- [x] Who holds dangerous roles on `lanyard.eth`'s parent registry, and is that acceptable for the demo? Write the answer in `README.md › Known limitations`
+- [x] `deployments/sepolia.json` passes the P0.2 schema
 
 ## Phase done when
 
-- [ ] A1.1, A1.2, A1.3 marked done in `TRACKER.md`
-- [ ] Bug hunt run by someone who didn't write the code; Highs fixed with regression tests
+- [x] A1.1, A1.2, A1.3 marked done in `TRACKER.md`
+- [ ] Bug hunt run by someone who didn't write the code; Highs fixed with regression tests (skipped by decision, 2026-11-07)
 - [ ] Mediums fixed or in Known limitations
 - [ ] Merged into `main`
