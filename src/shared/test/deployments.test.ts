@@ -16,6 +16,7 @@ import { isAppOrigin, parseWebUrl } from "../url";
 
 const RESET_RABDI = `0x${"2".repeat(64)}`;
 const RABDI_GENESIS = "0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce";
+const SEPOLIA_GENESIS = "0x25a5cc106eea7138acab33231d7160d69cb777ee0c2c553fcddf5138993e6dd9";
 const RESET_SEPOLIA = `0x${"1".repeat(64)}`;
 const ADDR = "0x00000000000000000000000000000000000000aa";
 
@@ -46,11 +47,11 @@ const measuredConfig = () => {
 };
 
 describe("committed deployment files", () => {
-  it("keep Sepolia a mock placeholder until A1 deploys", () => {
-    expect(parseSepoliaDeployment(sepoliaJson).mode).toBe("mock");
-    expect(() => requireLive(parseSepoliaDeployment(sepoliaJson), measuredConfig())).toThrow(
-      /mock placeholder/,
-    );
+  it("make Sepolia live from A1's deploy, matching the measured edition config", () => {
+    const live = requireLive(parseSepoliaDeployment(sepoliaJson), eventConfig);
+    expect(live.resetId).toBe(SEPOLIA_GENESIS);
+    expect(live.publicAppOrigin).toBe("https://lanyard-eth.vercel.app");
+    expect(live.contracts.lanyardRegistrar).toBe("0x4b042d6dd5e2646fc7d286169ee7d9a03d85ebb5");
   });
 
   it("make Rabdi live with the desk wallet, matching the measured edition config", () => {

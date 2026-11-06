@@ -68,7 +68,9 @@ Recorded here as phases find them (see `plans/00-README.md` › Evidence and pro
   `0x36b7C556c584d65bd44Ae57656B64b68Bb88E2cF` likewise holds its name's subregistry/resolver controls
   and admins, plus transfer-admin. The base registry intentionally leaves organizer register/renew
   authority. Sealed edition/team permissions and winner publication locks do not remove these
-  ancestor controls or the need to renew names.
+  ancestor controls or the need to renew names. **Accepted for the demo:** the head organizer
+  (`0x36b7…E2cF`) holds these roles on `lanyard.eth` and its base registry, so trust in the
+  namespace ends at the organizer's key and at ENS's own `eth` owner above it.
 - The organizer retains raw register/unregister/renew/resolver roles on managed badge books and
   partner sub-books. That trusted path can bypass the application's fixed badge policy, including
   by issuing transferable tokens. Head-judge and partner delegates have no raw registration role;
@@ -78,3 +80,6 @@ Recorded here as phases find them (see `plans/00-README.md` › Evidence and pro
   Version `lanyard.registrar/2` requires fixed resolver and head-judge configuration before
   bootstrap. The A2 historical reader, permission-note and team-URL workflows remain separate
   implementation work; local/fork verification does not constitute live phase acceptance.
+- A1 shipped without the planned independent bug hunt (organizer's decision, 2026-11-07). Its
+  coverage is the 129 Foundry tests, fork modes A and B against the live Sepolia edition, and the
+  earlier reviewer findings A1-D1–D9.
