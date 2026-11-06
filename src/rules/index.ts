@@ -1,8 +1,8 @@
 /**
  * Pure rules engine: runs unchanged on Hermes, in the browser and on Node.
  *
- * Owner: Track B (@arnavmahajan630). B2 ships the engine and `prepare`; B3 and B4 add their kinds
- * to `RULES`. A kind without a rule never counts.
+ * Owner: Track B (@arnavmahajan630). B2 ships the engine, `prepare` and the authority-only kinds;
+ * B3 and B4 add their kinds to `RULES`. A kind without a rule never counts.
  */
 import type { PreparedEnsEntry } from "@/shared/evidence/bundle";
 import type { CapturedObservation } from "@/shared/evidence/observation";
@@ -10,6 +10,7 @@ import type { EnsReader } from "@/shared/interfaces/ens-reader";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
 import { evaluateWith, type Engine } from "./engine";
+import * as authority from "./kinds/authority";
 import { prepareWith, type Prepared } from "./prepare";
 import type { RuleSet, RulesOutput } from "./types";
 import { RULES_VERSION } from "./version.generated";
@@ -17,7 +18,14 @@ import { RULES_VERSION } from "./version.generated";
 export { RULES_VERSION };
 
 /** Every registered kind rule. Explicit, so import order can never change a result. */
-export const RULES: RuleSet = Object.freeze({});
+export const RULES: RuleSet = Object.freeze({
+  venue: authority.venue,
+  seat_assignment: authority.seat_assignment,
+  acceptance: authority.acceptance,
+  rubric: authority.rubric,
+  results: authority.results,
+  drip: authority.drip,
+});
 
 export const ENGINE: Engine = Object.freeze({ rules: RULES, version: RULES_VERSION });
 
