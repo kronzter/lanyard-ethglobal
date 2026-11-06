@@ -63,6 +63,7 @@ export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
 export * from "./types";
 export * from "./state";
+export { staffPartnerOf } from "./kinds/tickets";
 export { evaluationView, type EvaluationView, type ShiftView, type TicketView } from "./views";
 export {
   assembleBody,
