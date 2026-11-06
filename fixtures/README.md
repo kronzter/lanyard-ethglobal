@@ -62,6 +62,19 @@ registry holding its children (`@base` holds the edition itself).
 | `results` + 1 h                               | `gita.judges` is unregistered                                                                                                                                  | Revocation after a freeze cutoff at `results`                                              |
 | Block 9,471,000 (`namespaceExpiry` + 30 days) | The edition lapses while team names are still unexpired                                                                                                        | Ancestor expiry: children stop resolving                                                   |
 
+## `venue.small.json`
+
+A hand-made 20×12 hall with 1 m cells, used until A3.1 exports the real Mumbai venue.
+
+- Zones `west` (columns 0–9) and `east` (10–19), split by a wall in column 10 that is open from
+  row 8 down.
+- A row of tables walls off row 6 between columns 3 and 8.
+- Twelve seats: `w1`–`w6` in the west, `e1`–`e5` plus `e6-walled` in the east.
+- Points of interest: a `help-desk` in each zone (helpers start there when they clock in) and the
+  main `stage`.
+- `e6-walled` at (16, 9) is surrounded on all eight sides by walls. Grid routing must report it
+  unreachable; the stub router, which ignores walls, still gives it a distance.
+
 ## Deferred
 
-`venue.small.json` lands before B3 and the evidence edge-case scenarios before B4 (`plans/P0-foundation.md` › Track B slice).
+The evidence edge-case scenarios land before B4 (`plans/P0-foundation.md` › Track B slice).
