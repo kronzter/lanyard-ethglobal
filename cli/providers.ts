@@ -1,4 +1,3 @@
-import { durableWrite } from "./files";
 // The Node composition root (plans/01-evidence-and-interfaces.md §3): the only CLI file allowed
 // to pick concrete implementations across tracks. ENS is live at I2; results stay mock until I4.
 // The mock publisher persists to a local file so freeze runs survive a
@@ -9,8 +8,7 @@ import sepoliaJson from "../deployments/sepolia.json";
 import { parseSepoliaDeployment, requireLive } from "@/shared/deployments/load";
 import { createSepoliaEnsReader } from "../src/ens/sepolia-ens-reader";
 import { MemoryEnsCache } from "../src/ens/ens-cache";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { eventConfig } from "@/shared/event.config";
 import { sepoliaEventConfig } from "@/shared/live-event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
@@ -18,6 +16,7 @@ import type { PreparedResultsPublisher } from "@/shared/interfaces/results-publi
 import { MockResultsPublisher } from "@/shared/mocks/mock-results-publisher";
 import { createSerializedStore, type PublisherStore } from "@/shared/mocks/publisher-store";
 import { createFixtureEnsReader, fixtureTimeline } from "@/shared/mocks/fixtures";
+import { durableWrite } from "./files";
 import { parseCliFlags, type CliFlags } from "./flags";
 import { liveSepoliaBlocks, mockSepoliaBlocks, type SepoliaBlocks } from "./sepolia-blocks";
 
