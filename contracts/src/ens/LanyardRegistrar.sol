@@ -294,8 +294,9 @@ contract LanyardRegistrar {
         if (base.getOwner(labelId) != address(this)) {
             revert EditionNotAttached("name is not owned by the registrar");
         }
-        if (base.getExpiry(labelId) < namespaceExpiry) {
-            revert EditionNotAttached("name expires before namespaceExpiry");
+        // The locked results hang off this name, and nothing here can renew it later (A1.1-R4).
+        if (base.getExpiry(labelId) != FAR_FUTURE) {
+            revert EditionNotAttached("name expiry is not far-future");
         }
         uint256 held = base.roles(labelId, address(this));
         if (held & R.ROLE_WAS_RESERVED != 0) {

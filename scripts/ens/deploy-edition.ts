@@ -742,7 +742,7 @@ async function verifyFinal(
     pc.readContract({ address: registrar, abi: lanyardRegistrarAbi, functionName: "publicationResolver" }),
   ]);
   if (!sameAddress(nameOwner, registrar)) problems.push("edition name is not owned by the registrar");
-  if (nameExpiry < nsExpiry) problems.push(`edition name expires at ${nameExpiry}, before ${nsExpiry}`);
+  if (nameExpiry !== FAR_FUTURE) problems.push(`edition name expires at ${nameExpiry}, not far-future`);
   const resolverFrozen = !sameAddress(resolverSet, "0x0000000000000000000000000000000000000000");
   const expectedNameRoles = resolverFrozen ? ROLE.RENEW : EDITION_NAME_ROLES;
   if (nameRoles !== expectedNameRoles) problems.push(`registrar roles on the edition name are ${nameRoles}`);

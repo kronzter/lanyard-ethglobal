@@ -147,20 +147,26 @@ contract EditionBootstrapTest is EnsFixture {
         registrar.seal();
     }
 
-    function test_R1_sealRevertsWhenTheNameExpiresBeforeNamespaceExpiry() public {
-        IPermissionedRegistry edition = _bootstrap();
-        uint256 roles = registrar.editionNameRoles();
-        vm.prank(organizer);
-        base.register(
-            EDITION, address(registrar), IRegistry(address(edition)), address(0), roles, NAMESPACE_EXPIRY - 1
-        );
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                LanyardRegistrar.EditionNotAttached.selector, "name expires before namespaceExpiry"
-            )
-        );
-        vm.prank(organizer);
-        registrar.seal();
+    function test_R4_sealRevertsUnlessTheNameExpiryIsFarFuture() public {
+        // Covering namespaceExpiry is not enough: the locked results hang off this name (A1.1-R4).
+        uint64[3] memory expiries = [NAMESPACE_EXPIRY - 1, NAMESPACE_EXPIRY, FAR_FUTURE - 1];
+        for (uint256 i; i < expiries.length; ++i) {
+            uint256 snapshot = vm.snapshotState();
+            IPermissionedRegistry edition = _bootstrap();
+            uint256 roles = registrar.editionNameRoles();
+            vm.prank(organizer);
+            base.register(
+                EDITION, address(registrar), IRegistry(address(edition)), address(0), roles, expiries[i]
+            );
+            vm.expectRevert(
+                abi.encodeWithSelector(
+                    LanyardRegistrar.EditionNotAttached.selector, "name expiry is not far-future"
+                )
+            );
+            vm.prank(organizer);
+            registrar.seal();
+            vm.revertToState(snapshot);
+        }
     }
 
     // ----------------------------------------------------------------- A1.1-R2
