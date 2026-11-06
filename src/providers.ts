@@ -14,7 +14,12 @@ import type { IdentityDirectory } from "@/shared/interfaces/identity-directory";
 import type { Router } from "@/shared/interfaces/router";
 import type { VenueMapProps } from "@/shared/interfaces/venue-map";
 import { StubRouter } from "@/shared/mocks/stub-router";
-import { createFixtureEnsReader, createFixtureIdentityDirectory } from "@/shared/mocks/fixtures";
+import {
+  createFixtureEnsReader,
+  createFixtureIdentityDirectory,
+  fixtureTimeline,
+} from "@/shared/mocks/fixtures";
+import { fakeArkiv, rabdiArkiv, type AppArkiv } from "./arkiv/app-arkiv";
 import { flags as defaultFlags, type Flags } from "./flags";
 
 export class ProviderNotWiredError extends Error {
@@ -35,6 +40,7 @@ export function createProviders(flags: Flags = defaultFlags) {
   let ensReader: EnsReader | undefined;
   let identityDirectory: IdentityDirectory | undefined;
   let router: Router | undefined;
+  let arkiv: AppArkiv | undefined;
   return {
     flags,
     config: eventConfig,
@@ -50,6 +56,16 @@ export function createProviders(flags: Flags = defaultFlags) {
       if (flags.ens === "mock")
         return (identityDirectory ??= createFixtureIdentityDirectory(createFixtureEnsReader()));
       throw new ProviderNotWiredError("Sepolia IdentityDirectory", "A2.4, switched on at I2");
+    },
+    /** Rabdi (testnet), or the development-only fake on the fixture timeline. Public RPC values only. */
+    arkiv(): AppArkiv {
+      return (arkiv ??=
+        flags.arkiv === "fake"
+          ? fakeArkiv(eventConfig, fixtureTimeline())
+          : rabdiArkiv({
+              rpcUrl: process.env.EXPO_PUBLIC_RABDI_RPC_URL,
+              accessKey: process.env.EXPO_PUBLIC_RABDI_ACCESS_KEY,
+            }));
     },
     router(): Router {
       if (flags.router === "stub") return (router ??= new StubRouter());
