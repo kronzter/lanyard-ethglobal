@@ -172,7 +172,7 @@ Scope approved in conversation: the user shared the ETHGlobal Mumbai floor plan,
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| A3.1 Venue editor and export | todo | | |
+| A3.1 Venue editor and export | todo | | **Mumbai venue drafted ahead of A3 (branch `a3/A3.1-mumbai-venue`):** `src/venue/layout.ts` builds a venue from areas (seat · table · seat rows, blocked items, POIs snapped off blocked cells, `scaleLayout`); `src/venue/layouts/mumbai.ts` traces the floor plan; `pnpm venue:mumbai` writes `fixtures/venue.mumbai.json` (96 × 60, 801 seats, 36 POIs, ~48 KB compact); tests check R4/R6/R7, every seat reachable from its zone's help point and the committed file matching the layout. Hall size is an estimate; editor still todo |
 | A3.2 GridRouter | todo | | |
 | A3.3 Real VenueMap | todo | | |
 
