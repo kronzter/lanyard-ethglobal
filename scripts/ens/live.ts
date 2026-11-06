@@ -10,6 +10,8 @@ import { ROOT } from "./connect";
 export type LiveSepolia = {
   registrar: Address;
   edition: Address;
+  baseRegistry: Address;
+  ethRegistry: Address;
   hackersResolver: Address;
   staffResolver: Address;
   publicationResolver: Address;
@@ -29,6 +31,8 @@ export function loadLiveSepolia(): LiveSepolia {
   return {
     registrar: need("lanyardRegistrar"),
     edition: need("editionRegistry"),
+    baseRegistry: need("baseRegistry"),
+    ethRegistry: need("ensEthRegistry"),
     hackersResolver: need("hackersResolver"),
     staffResolver: need("staffResolver"),
     publicationResolver: need("publicationResolver"),
