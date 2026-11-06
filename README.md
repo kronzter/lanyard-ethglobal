@@ -60,3 +60,21 @@ values; never store a signing, operator or decryption key as an EAS secret.
 ## Known limitations
 
 Recorded here as phases find them (see `plans/00-README.md` › Evidence and product guarantees).
+
+- ENS ancestor authority remains a trust boundary. At Sepolia block **12077035**, both the Root
+  and ETH registries report emancipated roots, but the `eth` name inside RootRegistry is owned by
+  `0x84D3a426D4E12E955d1DF95db0B24fe26afE39D3`, its sole subregistry/resolver setter and corresponding
+  admin. That account can redirect the `.eth` subtree. The `lanyard.eth` owner
+  `0x36b7C556c584d65bd44Ae57656B64b68Bb88E2cF` likewise holds its name's subregistry/resolver controls
+  and admins, plus transfer-admin. The base registry intentionally leaves organizer register/renew
+  authority. Sealed edition/team permissions and winner publication locks do not remove these
+  ancestor controls or the need to renew names.
+- The organizer retains raw register/unregister/renew/resolver roles on managed badge books and
+  partner sub-books. That trusted path can bypass the application's fixed badge policy, including
+  by issuing transferable tokens. Head-judge and partner delegates have no raw registration role;
+  their registrar entrypoints enforce policy. Raw organizer issuance must explicitly initialize
+  its fixed resolver's address record too.
+- The immutable registrar must be deployed with its A1/A2 contract boundary already present.
+  Version `lanyard.registrar/2` requires fixed resolver and head-judge configuration before
+  bootstrap. The A2 historical reader, permission-note and team-URL workflows remain separate
+  implementation work; local/fork verification does not constitute live phase acceptance.
