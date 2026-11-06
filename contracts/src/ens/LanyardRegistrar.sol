@@ -73,6 +73,7 @@ contract LanyardRegistrar {
     error UnknownTeam(bytes32 labelHash);
     error TeamIdentityChanged(bytes32 labelHash);
     error WinnerNotReserved(bytes32 labelHash);
+    error WinnerExpiryNotFarFuture(uint64 expiry);
     error IssuanceNotConfigured();
     error IssuanceAlreadyConfigured();
     error InvalidIssuanceConfiguration();
@@ -391,7 +392,8 @@ contract LanyardRegistrar {
         bytes32 labelHash = keccak256(bytes(team));
         IPermissionedRegistry child = _registeredTeam(labelHash);
         if (lead != teamLead[labelHash] || lead == address(0)) revert InvalidTeamLead();
-        if (expiry <= block.timestamp) revert RenewalNotInFuture(expiry, uint64(block.timestamp));
+        // A lapsed winner could be re-registered by the lead, who holds root REGISTRAR on the team registry.
+        if (expiry != FAR_FUTURE) revert WinnerExpiryNotFarFuture(expiry);
         if (child.getStatus(uint256(keccak256("winner"))) != IPermissionedRegistry.Status.RESERVED) {
             revert WinnerNotReserved(labelHash);
         }

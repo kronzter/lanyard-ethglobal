@@ -133,19 +133,18 @@ contract WinnerForwardersTest is TeamFixture {
         winner.promote(forwarders, "zkpay", stranger, FAR_FUTURE);
     }
 
-    function test_zeroOrExpiredWinnerExpiryRejectedWithoutTouchingReservation() public {
+    function test_promotionRequiresAFarFutureWinnerExpiry() public {
+        // A lapsed winner could be re-registered by the lead (root REGISTRAR on the team registry), so
+        // the registrar only promotes with the far-future expiry A4.1 specifies.
         child = _register("zkpay", lead);
         _configure();
-        vm.expectRevert(
-            abi.encodeWithSelector(LanyardRegistrar.RenewalNotInFuture.selector, 0, uint64(block.timestamp))
-        );
-        winner.promote(forwarders, "zkpay", lead, 0);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                LanyardRegistrar.RenewalNotInFuture.selector, uint64(block.timestamp), uint64(block.timestamp)
-            )
-        );
-        winner.promote(forwarders, "zkpay", lead, uint64(block.timestamp));
+        uint64[4] memory expiries = [0, uint64(block.timestamp), uint64(block.timestamp + 10), FAR_FUTURE - 1];
+        for (uint256 i; i < expiries.length; ++i) {
+            vm.expectRevert(
+                abi.encodeWithSelector(bytes4(keccak256("WinnerExpiryNotFarFuture(uint64)")), expiries[i])
+            );
+            winner.promote(forwarders, "zkpay", lead, expiries[i]);
+        }
         assertEq(uint8(child.getStatus(id("winner"))), uint8(IPermissionedRegistry.Status.RESERVED));
     }
 
@@ -160,15 +159,15 @@ contract WinnerForwardersTest is TeamFixture {
         assertEq(child.getOwner(id("winner")), lead);
     }
 
-    function test_expiredWinnerCannotBeReissued() public {
+    function test_promotedWinnerNeverLapsesForTheLeadToReissue() public {
         child = _register("zkpay", lead);
         _configure();
-        winner.promote(forwarders, "zkpay", lead, uint64(block.timestamp + 10));
-        vm.warp(block.timestamp + 10);
-        vm.expectRevert(
-            abi.encodeWithSelector(bytes4(keccak256("WinnerNotReserved(bytes32)")), keccak256("zkpay"))
-        );
         winner.promote(forwarders, "zkpay", lead, FAR_FUTURE);
+        vm.warp(uint256(FAR_FUTURE) - 1);
+        vm.prank(lead);
+        vm.expectRevert();
+        child.register("winner", stranger, IRegistry(address(0)), address(0), 0, FAR_FUTURE);
+        assertEq(child.getOwner(id("winner")), lead);
     }
 
     function test_renewalCanReviveExpiredOriginalTeamWithSameLeadAndChild() public {
