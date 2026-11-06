@@ -9,6 +9,7 @@ import { dedupeObservations, type CapturedObservation } from "@/shared/evidence/
 import type { PreparedEnsEntry } from "@/shared/evidence/bundle";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
+import { aggregateRankings } from "./rankings";
 import { processScores, type DecryptionMaterial } from "./scores";
 import { resolveWriter, screen } from "./base";
 import { rulesConfigOf, type RulesConfig } from "./config";
@@ -84,7 +85,7 @@ export function evaluateWith(
     verdicts.set(obs.key, verdict);
     out.push(verdict);
   }
-  return processScores(
+  const scored = processScores(
     decoded,
     {
       schemaVersion: 1,
@@ -98,6 +99,8 @@ export function evaluateWith(
     context,
     decryption,
   );
+  const rankings = aggregateRankings(decoded, scored, config);
+  return rankings ? { ...scored, rankings } : scored;
 }
 
 function judge(

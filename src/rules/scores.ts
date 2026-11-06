@@ -79,7 +79,11 @@ export function processScores(
         reason: "judge recused from this submission",
       });
   const base = { ...output, verdicts: verdicts.map((v) => byKey.get(v.key)!) };
-  if (!material || finals.length === 0) return base;
+  if (
+    !material ||
+    (finals.length === 0 && !records.some((r) => r.kind === "submission" && byKey.get(r.key)?.counts))
+  )
+    return base;
   if (
     !isCutoffInWindow(context.arkivCutoff.timestamp, config.times) ||
     !isCutoffInWindow(context.sepoliaCutoff.timestamp, config.times)
