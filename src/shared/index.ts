@@ -5,3 +5,4 @@
  */
 export * from "./types/primitives";
 export * from "./labels";
+export * from "./canonical";
