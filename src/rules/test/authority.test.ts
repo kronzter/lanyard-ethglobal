@@ -1,5 +1,7 @@
 // The shipped B2 kinds (B2.2-R3) and the engine's screening, context and snapshot guarantees.
 import { describe, expect, it } from "vitest";
+import { canonicalBytes } from "@/shared/canonical";
+import { bytesToHex } from "viem";
 import { KINDS } from "@/arkiv/kinds";
 import { EnsReadError } from "@/shared/interfaces/ens-reader";
 import { createFixtureEnsReader } from "@/shared/mocks/fixtures";
@@ -95,7 +97,10 @@ describe("organizer-only kinds", () => {
       attrs: attrs("defi"),
     });
     const { verdict } = await run([good, unknown]);
-    expect(verdict(good).counts).toBe(true);
+    expect(verdict(good)).toMatchObject({
+      counts: false,
+      reason: expect.stringMatching(/counted submission/),
+    });
     expect(verdict(unknown)).toMatchObject({ counts: false, reason: expect.stringMatching(/unknown track/) });
   });
 });
@@ -107,7 +112,13 @@ describe("rubric", () => {
       creator: creator as `0x${string}`,
       byLabel,
       at: AT,
-      attrs: { track: ["str", track], payload: ["bytes", "0x00"] },
+      attrs: {
+        track: ["str", track],
+        payload: [
+          "bytes",
+          bytesToHex(canonicalBytes({ criteria: [{ id: "impact", name: "Impact", weight: 1 }], scale: 10 })),
+        ],
+      },
     });
   const arkiv = persona("partner-arkiv");
 

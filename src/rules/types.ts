@@ -14,7 +14,7 @@ export const ok: RuleResult = { counts: true };
 export const reject = (reason: string): RuleResult => ({ counts: false, reason });
 
 /** Independently configured wallets that need no badge. */
-export type AuthorityName = "organizer" | "results" | "desk";
+export type AuthorityName = "organizer" | "results" | "desk" | "headJudge";
 
 /** Who may write a kind. A record counts only through one writer that fully checks out. */
 export type Writer =

@@ -71,6 +71,9 @@ export function createProviders(flags: Flags = defaultFlags) {
       if (flags.router === "stub") return (router ??= new StubRouter());
       throw new ProviderNotWiredError("GridRouter", "A3.2, switched on at I3");
     },
+    winnerBadge(): ComponentType<{ team: string }> {
+      return () => null;
+    },
     venueMap(): ComponentType<VenueMapProps> {
       if (flags.router === "stub") return StubVenueMap;
       throw new ProviderNotWiredError("VenueMap", "A3.3, switched on at I3");

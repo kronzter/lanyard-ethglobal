@@ -17,6 +17,7 @@ export const RulesConfigSchema = z.object({
   authorities: z.object({
     organizer: AddressSchema,
     results: AddressSchema,
+    headJudge: AddressSchema.optional(),
     partners: z.record(z.string(), AddressSchema),
     desk: AddressSchema.optional(),
   }),

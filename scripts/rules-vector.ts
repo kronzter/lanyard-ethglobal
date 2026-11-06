@@ -72,7 +72,13 @@ export function vectorRecords() {
       creator: arkiv.address,
       byLabel: arkiv.by,
       at: 9_023_000n,
-      attrs: { track: ["str", "arkiv"], payload: ["bytes", "0x01"] },
+      attrs: {
+        track: ["str", "arkiv"],
+        payload: [
+          "bytes",
+          bytesToHex(canonicalBytes({ criteria: [{ id: "impact", name: "Impact", weight: 1 }], scale: 10 })),
+        ],
+      },
     }),
     obs({
       key: key(0x1005n),

@@ -247,7 +247,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| B4.1 Projects, submission, acceptance | todo | | |
+| B4.1 Projects, submission, acceptance | done | b7c501b, 61d772f | Immutable content/lead/hash validation, earliest captured submission/rubric, acceptance and track-scoped assignments; configured head-judge authority. Team draft editor, web judging desk, validated public team pages and checked bundle retrieval. `pnpm ci:local` passes (670 tests, browser vectors, contracts, web export/deeplink smoke). Interactive Android/web-wallet checks remain for phase bug hunt. |
 | B4.2 Judge flow | todo | | |
 | B4.3 Aggregation and leaderboard | todo | | |
 | B4.4 Freeze pipeline | todo | | |
@@ -306,3 +306,5 @@ Every change to `src/shared/interfaces` after P0 gets a row here. Either person 
 | 39ae5cd | `fixtures/ens-history.json` | `vikram.volunteers` and `tara.staff.arkiv.partners` unregistered at block 9,033,000 (+38 h) for the revoked-on-duty and revoked-staff checks | yes | `fixtures/README.md` |
 | eca25af | `EventConfig.help` (`src/shared/config/schema.ts`), `ticketCategories` (`src/shared/config/tickets.ts`) | Required `help: {staffPhone, deskLocation}` shown for medical/safety; general ticket categories plus one `partner:<id>` per configured partner; `configHash` commits to `help` | yes (new required field, set in the only config) | `src/shared/event.config.ts` |
 | 25b47df | `fixtures/venue.small.json` | `table-arkiv` (13, 7) and `table-ens` (17, 6) `partner-table` POIs in the east hall | yes | `fixtures/README.md`, `fixtures/test/venue-small.test.ts` |
+
+| b7c501b / 61d772f | `EventConfig.authorities.headJudge`, `providers.winnerBadge()` | Optional frozen head-judge wallet (set to public fixture address); assignment authority for main only. No-op winner badge component hook until I4. | yes | rules/config, shell roles, mocks use existing config; public team page bundle reproduction |
