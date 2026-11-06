@@ -3,6 +3,7 @@
 // Signing and decryption keys come only from the local .env, never from the app.
 // The app (app/, src/) must never import this folder (enforced by lanyard/boundaries).
 import path from "node:path";
+import { runDeskKeygen } from "./desk-keygen";
 import { runScoreKeygen } from "./score-keygen";
 
 const commands: Record<string, string> = {
@@ -11,10 +12,12 @@ const commands: Record<string, string> = {
   capture: "B1.3 · retain observed readonly Arkiv records for an event",
   freeze: "B4.4 · resumable freeze pipeline: capture → rules → bundle → publish → lock",
   "score-keygen": "P0.6-S11 · create the edition score keypair (secret to .lanyard/secrets, never printed)",
+  "desk-keygen": "B1.1 · create the desk wallet key (secret to .lanyard/secrets, never printed)",
 };
 
 const implemented: Record<string, () => number> = {
   "score-keygen": () => runScoreKeygen(path.resolve(import.meta.dirname, "..")),
+  "desk-keygen": () => runDeskKeygen(path.resolve(import.meta.dirname, "..")),
 };
 
 const [command] = process.argv.slice(2);

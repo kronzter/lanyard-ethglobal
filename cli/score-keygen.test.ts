@@ -1,9 +1,12 @@
 import { mkdtempSync, readFileSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
+import { privateKeyToAddress } from "viem/accounts";
 import { afterEach, describe, expect, it } from "vitest";
 import { operatorKeyMatches, scoreKeyId } from "../src/shared/crypto/score-cipher";
 import type { Hex } from "../src/shared/types/primitives";
+import { deskKeygen } from "./desk-keygen";
+import { KeyExistsError } from "./keygen";
 import { scoreKeygen } from "./score-keygen";
 
 const roots: string[] = [];
@@ -29,6 +32,18 @@ describe("lanyard score-keygen", () => {
   it("refuses to overwrite an existing key", () => {
     const root = freshRoot();
     scoreKeygen(root, "testedition");
-    expect(() => scoreKeygen(root, "testedition")).toThrow(/EEXIST/);
+    expect(() => scoreKeygen(root, "testedition")).toThrow(KeyExistsError);
+  });
+});
+
+describe("lanyard desk-keygen", () => {
+  it("writes an owner-only private key whose address is the one printed", () => {
+    const root = freshRoot();
+    const out = deskKeygen(root, "testedition");
+    const file = path.join(root, out.file);
+    expect(statSync(file).mode & 0o777).toBe(0o600);
+    const key = readFileSync(file, "utf8").trim() as Hex;
+    expect(privateKeyToAddress(key).toLowerCase()).toBe(out.address);
+    expect(() => deskKeygen(root, "testedition")).toThrow(KeyExistsError);
   });
 });
