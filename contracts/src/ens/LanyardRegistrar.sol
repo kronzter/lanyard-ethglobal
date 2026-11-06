@@ -191,6 +191,8 @@ contract LanyardRegistrar {
         freezeDeadline = freezeDeadline_;
         namespaceExpiry = (eventEnd_ > freezeDeadline_ ? eventEnd_ : freezeDeadline_) + NAMESPACE_GRACE;
         registrySetup = new LanyardRegistrySetup(factory_, userRegistryImplementation_, organizer_);
+        // Records are written under this label's node, so a bad label would be unrepairable.
+        registrySetup.validatePartnerLabel(editionLabel_);
     }
 
     modifier onlyOrganizer() {

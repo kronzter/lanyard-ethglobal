@@ -9,6 +9,7 @@ import {IRegistry} from "ens-v2/registry/interfaces/IRegistry.sol";
 import {RegistryRolesLib as R} from "ens-v2/registry/libraries/RegistryRolesLib.sol";
 
 import {LanyardRegistrar} from "../../src/ens/LanyardRegistrar.sol";
+import {LanyardRegistrySetup} from "../../src/ens/LanyardRegistrySetup.sol";
 import {EnsFixture} from "./helpers/EnsFixture.sol";
 
 contract Resolver is IERC165 {
@@ -86,6 +87,22 @@ contract EditionBootstrapTest is EnsFixture {
         );
         vm.expectRevert(LanyardRegistrar.InvalidTimes.selector);
         new LanyardRegistrar(organizer, factory, address(userRegistryImpl), base, EDITION, 0, FREEZE_DEADLINE);
+    }
+
+    function test_constructorRejectsANonCanonicalEditionLabel() public {
+        string[5] memory labels = [
+            "Mumbai2026",
+            "mumbai.2026",
+            "-mumbai",
+            "xn--mumbai",
+            "a123456789012345678901234567890123456789012345678901234567890123"
+        ];
+        for (uint256 i; i < labels.length; ++i) {
+            vm.expectRevert(LanyardRegistrySetup.InvalidIssuanceConfiguration.selector);
+            new LanyardRegistrar(
+                organizer, factory, address(userRegistryImpl), base, labels[i], EVENT_END, FREEZE_DEADLINE
+            );
+        }
     }
 
     // ----------------------------------------------------------------- A1.1-R1
