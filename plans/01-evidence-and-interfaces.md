@@ -76,7 +76,7 @@ interface EnsReader {
 
 The empty relative label `""` denotes the edition itself for owner/address/text/expiry lookups; it is the only empty-label exception. Thus app readers can fetch the locked edition results/bundle commitment without importing the CLI-only publisher. Other labels must pass canonical validation.
 
-Authority-only kinds use independently configured organizer/results/partner wallet addresses. Those actors need not invent a badge: `by` is a descriptive persona label; badge ownership is required only for kinds whose policy calls for a badge/team name. Mixed-case labels and whitespace are rejected by the application's stricter canonical-label policy after ENSIP-15 validation; this is not a claim that ENSIP-15 prohibits all emoji.
+Authority-only kinds use independently configured organizer/results/partner wallet addresses. Those actors need not invent a badge: `by_label` is a descriptive persona label; badge ownership is required only for kinds whose policy calls for a badge/team name. Mixed-case labels and whitespace are rejected by the application's stricter canonical-label policy after ENSIP-15 validation; this is not a claim that ENSIP-15 prohibits all emoji.
 
 The app's `IdentityDirectory.labelsFor(address, at)` discovers candidate labels from configured registration events and verifies each with `EnsReader.owner`. It returns all matching roles and requires an explicit active-role selection; reverse ENS or fixture personas alone are not production badge discovery. P0 provides the interface/mock; A2 implements bounded event discovery and records log-range limits. The CLI shares the same authority config and lookup policy.
 

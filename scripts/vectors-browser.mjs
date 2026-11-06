@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Runs the pinned canonical-encoding vectors in a headless browser and fails on any mismatch.
+// Runs the pinned canonical-encoding and score-cipher vectors in a headless browser and fails
+// on any mismatch.
 // The same checkVectors code runs under vitest on Node; together they show canonical bytes and
 // hashes agree across runtimes (the Hermes leg runs with spike S11 on a dev build).
 // Uses `chromium` locally and `google-chrome` on the GitHub ubuntu runner, or $BROWSER.
@@ -75,7 +76,7 @@ try {
   if (report.failures.length > 0)
     fail(`${report.failures.length} mismatch(es):\n${JSON.stringify(report.failures, null, 2)}`);
   console.log(
-    `vectors-browser: all ${report.count} canonical vectors match in ${browser} (${report.userAgent.split(" ").find((p) => /Chrome\//.test(p)) ?? "browser"})`,
+    `vectors-browser: all ${report.count} canonical and ${report.cipherCount} score-cipher vectors match in ${browser} (${report.userAgent.split(" ").find((p) => /Chrome\//.test(p)) ?? "browser"})`,
   );
 } finally {
   server.close();

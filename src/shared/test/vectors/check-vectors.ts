@@ -3,6 +3,16 @@
 // tagged JSON so bigints, bytes and maps survive the trip: {"$bigint": "…"}, {"$bytes": "0x…"},
 // {"$map": [[key, value], …]}.
 import { canonicalHash, canonicalJson } from "../../canonical";
+import {
+  openScore,
+  scoreAad,
+  ScoreCipherError,
+  scorePublicKey,
+  sealScore,
+  type ScoreCipherFailure,
+  type ScoreContext,
+} from "../../crypto/score-cipher";
+import type { Hex } from "../../types/primitives";
 
 export type CanonicalVector = { name: string; input: unknown; canonical: string; keccak: string };
 export type VectorFailure = {
@@ -42,6 +52,63 @@ export function checkVectors(vectors: CanonicalVector[]): VectorFailure[] {
         failures.push({ name: v.name, field: "keccak", expected: v.keccak, actual: hash });
     } catch (e) {
       failures.push({ name: v.name, field: "error", expected: "no error", actual: String(e) });
+    }
+  }
+  return failures;
+}
+
+// Score-cipher vectors (spike S11): the same seals must come out byte for byte, open to the same
+// plaintext, and every tampered case must fail with its pinned reason, in every runtime.
+export type CipherSealVector = {
+  name: string;
+  recipientScalar: Hex;
+  recipientPublic: Hex;
+  ephemeralScalar: Hex;
+  nonce: Hex;
+  context: ScoreContext;
+  plaintext: Hex;
+  envelope: Hex;
+};
+export type CipherRejectVector = {
+  name: string;
+  envelope: Hex;
+  context: ScoreContext;
+  scalar: Hex;
+  reason: ScoreCipherFailure;
+};
+export type CipherVectors = { suite: string; seals: CipherSealVector[]; rejects: CipherRejectVector[] };
+
+const hexOf = (b: Uint8Array): Hex => `0x${Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("")}`;
+
+/** Every mismatch between this runtime's cipher and the pinned vectors (empty when they agree). */
+export function checkCipherVectors(v: CipherVectors): VectorFailure[] {
+  const failures: VectorFailure[] = [];
+  const fail = (name: string, field: VectorFailure["field"], expected: string, actual: string) =>
+    failures.push({ name: `cipher: ${name}`, field, expected, actual });
+  for (const s of v.seals) {
+    try {
+      if (scorePublicKey(s.recipientScalar) !== s.recipientPublic)
+        fail(s.name, "canonical", s.recipientPublic, scorePublicKey(s.recipientScalar));
+      const aad = scoreAad(s.context);
+      const plaintext = decodeTagged({ $bytes: s.plaintext }) as Uint8Array;
+      const sealed = sealScore(s.recipientPublic, plaintext, aad, {
+        ephemeralSecret: s.ephemeralScalar,
+        nonce: s.nonce,
+      });
+      if (sealed !== s.envelope) fail(s.name, "canonical", s.envelope, sealed);
+      const opened = hexOf(openScore(s.recipientScalar, s.envelope, aad));
+      if (opened !== s.plaintext) fail(s.name, "canonical", s.plaintext, opened);
+    } catch (e) {
+      fail(s.name, "error", "no error", String(e));
+    }
+  }
+  for (const r of v.rejects) {
+    try {
+      openScore(r.scalar, r.envelope, scoreAad(r.context));
+      fail(r.name, "error", `rejected: ${r.reason}`, "opened");
+    } catch (e) {
+      const reason = e instanceof ScoreCipherError ? e.reason : String(e);
+      if (reason !== r.reason) fail(r.name, "error", r.reason, reason);
     }
   }
   return failures;

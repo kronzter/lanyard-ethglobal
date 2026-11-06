@@ -10,11 +10,11 @@ Follow [the evidence contract](01-evidence-and-interfaces.md): live rows are cur
 
 ## Out of scope
 
-Deciding whether a record *counts* (B2). ENS reads: until I2, `by` labels come from `fixtures/personas.json`.
+Deciding whether a record *counts* (B2). ENS reads: until I2, `by_label` values come from `fixtures/personas.json`.
 
 ## Record kinds
 
-Every record carries `app: "lanyard"`, `event: "mumbai2026"`, `kind`, and `by` (the writer's relative ENS label).
+Every record carries `app: "lanyard"`, `event: "mumbai2026"`, `kind`, and `by_label` (the writer's relative ENS label). The attribute is not named `by`: the Arkiv SDK rejects it as a reserved query keyword (P0.6-S9).
 
 | `kind` | Owner | Flags | Expires | Other attributes |
 | --- | --- | --- | --- | --- |

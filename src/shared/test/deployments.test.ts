@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import rabdiJson from "../../../deployments/rabdi.json";
 import sepoliaJson from "../../../deployments/sepolia.json";
+import { configHash } from "../config/hash";
 import type { EventConfigInput } from "../config/schema";
-import { BlockedCapabilityError, measured } from "../config/unmeasured";
+import { measured } from "../config/unmeasured";
 import { validateEventConfig } from "../config/validate";
 import {
   DeploymentError,
@@ -14,6 +15,7 @@ import { eventConfig, eventConfigInput } from "../event.config";
 import { isAppOrigin, parseWebUrl } from "../url";
 
 const RESET_RABDI = `0x${"2".repeat(64)}`;
+const RABDI_GENESIS = "0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce";
 const RESET_SEPOLIA = `0x${"1".repeat(64)}`;
 const ADDR = "0x00000000000000000000000000000000000000aa";
 
@@ -70,8 +72,19 @@ describe("live deployments", () => {
     );
   });
 
-  it("stay blocked while the reset identity is unmeasured", () => {
-    expect(() => requireLive(parseRabdiDeployment(liveRabdi()), eventConfig)).toThrow(BlockedCapabilityError);
+  it("match the measured Rabdi identity and desk-wallet funding in the event config", () => {
+    const rabdi = { ...liveRabdi({ profile: "desk-wallet", deskWallet: ADDR }), resetId: RABDI_GENESIS };
+    expect(requireLive(parseRabdiDeployment(rabdi), eventConfig).network).toBe("rabdi");
+    expect(() =>
+      requireLive(parseRabdiDeployment({ ...liveRabdi(), resetId: RABDI_GENESIS }), eventConfig),
+    ).toThrow(/funding profile faucet-contract does not match the config \(desk-wallet\)/);
+    expect(() =>
+      requireLive(parseRabdiDeployment(liveRabdi({ profile: "desk-wallet", deskWallet: ADDR })), eventConfig),
+    ).toThrow(/reset identity .* does not match/);
+  });
+
+  it("freeze the edition config once every gate is measured", () => {
+    expect(configHash(eventConfig)).toMatch(/^0x[0-9a-f]{64}$/);
   });
 
   it.each([

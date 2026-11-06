@@ -58,6 +58,9 @@ export type EvidenceScenarios = z.output<typeof EvidenceScenariosSchema>;
 export const parseEvidenceScenarios = (value: unknown): EvidenceScenarios =>
   EvidenceScenariosSchema.parse(value);
 
-/** The `by` label an observation carries, if any. */
+/** The Arkiv attribute holding the writer's relative ENS label (`by` is a reserved query word). */
+export const BY_LABEL_ATTRIBUTE = "by_label";
+
+/** The `by_label` an observation carries, if any. */
 export const byLabelOf = (o: { attributes: { name: string; value: string }[] }): string | undefined =>
-  o.attributes.find((a) => a.name === "by")?.value;
+  o.attributes.find((a) => a.name === BY_LABEL_ATTRIBUTE)?.value;
