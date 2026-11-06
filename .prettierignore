@@ -11,3 +11,6 @@ ios/
 pnpm-lock.yaml
 # Solidity is formatted by `forge fmt`.
 contracts/
+# Symlinks into plans/ (agent context).
+AGENTS.md
+CLAUDE.md
