@@ -1,0 +1,22 @@
+{
+  "expo": {
+    "name": "Lanyard",
+    "slug": "lanyard",
+    "scheme": "lanyard",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "platforms": ["android", "ios", "web"],
+    "android": {
+      "package": "eth.lanyard.app"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}

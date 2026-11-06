@@ -1,2 +1,31 @@
 .agents
 skills-lock.json
+
+# dependencies
+node_modules/
+
+# secrets: only .env.example is committed
+.env
+.env.*
+!.env.example
+
+# expo / native builds (dev builds are local only)
+.expo/
+expo-env.d.ts
+dist/
+web-build/
+android/
+ios/
+*.apk
+*.aab
+
+# spike code is throwaway (plans/P0-foundation.md › P0.6)
+spike/
+
+# tooling output
+coverage/
+*.tsbuildinfo
+contracts/cache/
+contracts/out/
+contracts/dependencies/
+contracts/broadcast/*/31337/
