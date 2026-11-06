@@ -90,3 +90,10 @@ export function registrarFrom(opts: {
     throw new Error("invalid registrar in the deploy state or deployment");
   return getAddress(candidate);
 }
+
+/** A signing key from the environment, with or without its 0x prefix. Never echoes the value. */
+export function privateKeyFromEnv(raw: string, name: string): `0x${string}` {
+  const key = raw.trim().startsWith("0x") ? raw.trim() : `0x${raw.trim()}`;
+  if (!/^0x[0-9a-fA-F]{64}$/.test(key)) throw new Error(`${name} is not a 32-byte hex private key`);
+  return key as `0x${string}`;
+}

@@ -1,6 +1,6 @@
 import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { assertLoopbackUrl, chooseOrganizer, redactUrls, registrarFrom } from "./safety";
+import { assertLoopbackUrl, chooseOrganizer, privateKeyFromEnv, redactUrls, registrarFrom } from "./safety";
 
 describe("assertLoopbackUrl", () => {
   it.each([
@@ -128,5 +128,16 @@ describe("registrarFrom", () => {
     expect(() => registrarFrom({ stateText: "{}", fork: false, deployment: live })).toThrow(
       /invalid registrar/,
     );
+  });
+});
+
+describe("privateKeyFromEnv", () => {
+  const bare = "11".repeat(32);
+  it("accepts a key with or without 0x, as the B1 drip CLI does", () => {
+    expect(privateKeyFromEnv(bare, "K")).toBe(`0x${bare}`);
+    expect(privateKeyFromEnv(`0x${bare}`, "K")).toBe(`0x${bare}`);
+  });
+  it("rejects anything else without echoing it", () => {
+    expect(() => privateKeyFromEnv("0x1234", "K")).toThrow(/^K is not a 32-byte hex private key$/);
   });
 });

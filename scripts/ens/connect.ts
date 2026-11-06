@@ -20,7 +20,7 @@ import sepoliaJson from "../../deployments/sepolia.json";
 import { parseSepoliaDeployment } from "../../src/shared/deployments/load";
 import { eventConfig } from "../../src/shared/event.config";
 import { sepoliaEventConfig } from "../../src/shared/live-event.config";
-import { assertLoopbackUrl, chooseOrganizer, redactUrls, registrarFrom } from "./safety";
+import { assertLoopbackUrl, chooseOrganizer, privateKeyFromEnv, redactUrls, registrarFrom } from "./safety";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -70,7 +70,7 @@ export async function connect(opts: {
   if (chainId !== sepolia.id)
     throw new Error(`RPC reports chain ${chainId}, expected Sepolia (${sepolia.id})`);
 
-  let account: Account | null = key ? privateKeyToAccount(key as `0x${string}`) : null;
+  let account: Account | null = key ? privateKeyToAccount(privateKeyFromEnv(key, keyEnv)) : null;
   if (impersonate) {
     await publicClient.request({
       method: "anvil_impersonateAccount" as never,
