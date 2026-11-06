@@ -17,7 +17,10 @@
     "format": "prettier --write . && eslint --fix .",
     "prepare": "husky",
     "secret-scan": "node scripts/secret-scan/cli.mjs --staged",
-    "secret-scan:all": "node scripts/secret-scan/cli.mjs --all"
+    "secret-scan:all": "node scripts/secret-scan/cli.mjs --all",
+    "forge:install": "cd contracts && forge soldeer install",
+    "forge:fmt": "forge fmt --root contracts --check",
+    "forge:test": "forge test --root contracts"
   },
   "dependencies": {
     "@expo/metro-runtime": "58.0.17",
