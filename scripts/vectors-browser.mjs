@@ -4,11 +4,12 @@
 // The same checkVectors code runs under vitest on Node; together they show canonical bytes and
 // hashes agree across runtimes (the Hermes leg runs with spike S11 on a dev build).
 // Uses `chromium` locally and `google-chrome` on the GitHub ubuntu runner, or $BROWSER.
-import { execFile, execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
 import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 import { build } from "esbuild";
+import { findBrowser } from "./browser-discovery.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const fail = (msg) => {
@@ -16,22 +17,8 @@ const fail = (msg) => {
   process.exit(1);
 };
 
-const candidates = [
-  process.env.BROWSER,
-  "chromium",
-  "chromium-browser",
-  "google-chrome",
-  "google-chrome-stable",
-].filter(Boolean);
-const browser = candidates.find((b) => {
-  try {
-    execFileSync("which", [b], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-});
-if (!browser) fail(`no headless browser found (tried ${candidates.join(", ")}); set BROWSER`);
+const browser = findBrowser();
+if (!browser) fail("no headless browser found; set BROWSER to an executable path or command");
 
 const bundle = await build({
   entryPoints: [path.join(root, "src/shared/test/vectors/browser-entry.ts")],

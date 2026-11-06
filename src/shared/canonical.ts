@@ -63,12 +63,13 @@ function encode(value: unknown, path: string, stack: Set<object>): string {
   stack.add(value);
   try {
     if (Array.isArray(value)) {
-      return `[${value
-        .map((v, i) => {
-          if (v === undefined) throw new CanonicalError(`${path}[${i}]`, "undefined array element");
-          return encode(v, `${path}[${i}]`, stack);
-        })
-        .join(",")}]`;
+      const elements: string[] = [];
+      for (let i = 0; i < value.length; i++) {
+        if (!Object.prototype.hasOwnProperty.call(value, i) || value[i] === undefined)
+          throw new CanonicalError(`${path}[${i}]`, "missing or undefined array element");
+        elements.push(encode(value[i], `${path}[${i}]`, stack));
+      }
+      return `[${elements.join(",")}]`;
     }
     if (value instanceof Map) {
       const entries = [...value.entries()].map(([k, v], i) => ({

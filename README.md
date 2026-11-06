@@ -60,3 +60,6 @@ values; never store a signing, operator or decryption key as an EAS secret.
 ## Known limitations
 
 Recorded here as phases find them (see `plans/00-README.md` › Evidence and product guarantees).
+
+The mock publication journal serializes publisher instances within one process. Use one CLI
+process per journal file; independent processes do not share the in-memory queue.

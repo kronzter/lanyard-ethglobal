@@ -149,6 +149,13 @@ describe("structural checks", () => {
   it("rejects a non-canonical edition", () => expectIssue((c) => (c.edition = "Mumbai2026"), /edition/));
   it("rejects a missing non-partner track", () =>
     expectIssue((c) => (c.tracks = c.tracks.filter((t) => t.partner !== null)), /non-partner track/));
+  it("rejects renaming the main track", () =>
+    expectIssue((c) => (c.tracks.find((t) => t.partner === null)!.id = "other"), /non-partner track.*main/));
+  it("does not mistake a partner track named main for the required main track", () =>
+    expectIssue((c) => {
+      c.tracks.find((t) => t.partner === null)!.id = "other";
+      c.tracks.find((t) => t.partner === "arkiv")!.id = "main";
+    }, /non-partner track.*main/));
   it("rejects a partner without a track", () =>
     expectIssue(
       (c) => (c.tracks = c.tracks.filter((t) => t.partner !== "ens")),

@@ -126,26 +126,28 @@ export class MockResultsPublisher implements ResultsPublisher {
   }
 
   private async submit(op: PublisherOp): Promise<ConfirmedTx> {
-    const data = await this.load();
-    this.validate(op, data);
-    const seq = data.nextSeq++;
-    const tx: MockTx = {
-      hash: canonicalHash({ seq, op }),
-      seq,
-      op,
-      status: "pending",
-      blockNumber: null,
-      blockHash: null,
-    };
-    data.txs.push(tx);
-    const outcome = this.opts.outcome?.() ?? "success";
-    if (outcome === "success" || outcome === "crash-after-broadcast") this.confirm(data, tx);
-    if (outcome === "revert") tx.status = "reverted";
-    await this.opts.store.save(data);
-    if (outcome === "crash-after-broadcast") throw new PublisherCrashError(tx.hash);
-    if (tx.status === "reverted") throw new PublicationRevertedError(tx.hash);
-    if (tx.status === "pending") throw new PublicationPendingError(tx.hash);
-    return confirmedTx(tx);
+    return this.opts.store.exclusive(async () => {
+      const data = await this.load();
+      this.validate(op, data);
+      const seq = data.nextSeq++;
+      const tx: MockTx = {
+        hash: canonicalHash({ seq, op }),
+        seq,
+        op,
+        status: "pending",
+        blockNumber: null,
+        blockHash: null,
+      };
+      data.txs.push(tx);
+      const outcome = this.opts.outcome?.() ?? "success";
+      if (outcome === "success" || outcome === "crash-after-broadcast") this.confirm(data, tx);
+      if (outcome === "revert") tx.status = "reverted";
+      await this.opts.store.save(data);
+      if (outcome === "crash-after-broadcast") throw new PublisherCrashError(tx.hash);
+      if (tx.status === "reverted") throw new PublicationRevertedError(tx.hash);
+      if (tx.status === "pending") throw new PublicationPendingError(tx.hash);
+      return confirmedTx(tx);
+    });
   }
 
   async state(): Promise<PublicationState> {
@@ -172,13 +174,15 @@ export class MockResultsPublisher implements ResultsPublisher {
 
   /** Test hook: mine or drop a pending transaction. */
   async settle(txHash: Hex, outcome: "success" | "revert"): Promise<void> {
-    const data = await this.load();
-    const tx = data.txs.find((t) => t.hash === txHash.toLowerCase());
-    if (!tx) throw new UnknownTransactionError(txHash);
-    if (tx.status !== "pending")
-      throw new StateMismatchError(`transaction ${txHash} is already ${tx.status}`);
-    if (outcome === "success") this.confirm(data, tx);
-    else tx.status = "reverted";
-    await this.opts.store.save(data);
+    return this.opts.store.exclusive(async () => {
+      const data = await this.load();
+      const tx = data.txs.find((t) => t.hash === txHash.toLowerCase());
+      if (!tx) throw new UnknownTransactionError(txHash);
+      if (tx.status !== "pending")
+        throw new StateMismatchError(`transaction ${txHash} is already ${tx.status}`);
+      if (outcome === "success") this.confirm(data, tx);
+      else tx.status = "reverted";
+      await this.opts.store.save(data);
+    });
   }
 }

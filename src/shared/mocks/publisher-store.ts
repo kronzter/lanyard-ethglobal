@@ -33,6 +33,45 @@ export type PersistedPublisher = {
 export interface PublisherStore {
   load(): Promise<PersistedPublisher | null>;
   save(data: PersistedPublisher): Promise<void>;
+  exclusive<T>(operation: () => Promise<T>): Promise<T>;
+}
+
+const queues = new WeakMap<object, { tail: Promise<void> }>();
+
+/** Serialize read/validate/write operations sharing the same backing resource. */
+export function serializedStore(
+  io: {
+    read(): Promise<string | null>;
+    write(text: string): Promise<void>;
+  },
+  queueKey: object = io,
+): PublisherStore {
+  let queue = queues.get(queueKey);
+  if (!queue) {
+    queue = { tail: Promise.resolve() };
+    queues.set(queueKey, queue);
+  }
+  const exclusive = async <T>(operation: () => Promise<T>): Promise<T> => {
+    const previous = queue!.tail;
+    let release!: () => void;
+    queue!.tail = new Promise<void>((resolve) => (release = resolve));
+    await previous;
+    try {
+      return await operation();
+    } finally {
+      release();
+    }
+  };
+  return {
+    exclusive,
+    async load() {
+      const text = await io.read();
+      return text === null ? null : deserializePublisher(text);
+    },
+    async save(data) {
+      await io.write(serializePublisher(data));
+    },
+  };
 }
 
 const big = z
@@ -95,20 +134,21 @@ export function createSerializedStore(io: {
   read(): Promise<string | null>;
   write(text: string): Promise<void>;
 }): PublisherStore {
-  return {
-    async load() {
-      const text = await io.read();
-      return text === null ? null : deserializePublisher(text);
-    },
-    async save(data) {
-      await io.write(serializePublisher(data));
-    },
-  };
+  return serializedStore(io);
 }
 
 /** For isolated unit tests only: never use it where a restart must be survived across processes. */
 export class MemoryPublisherStore implements PublisherStore {
   private text: string | null = null;
+  private lock = serializedStore({
+    read: async () => this.text,
+    write: async (text) => {
+      this.text = text;
+    },
+  });
+  exclusive<T>(operation: () => Promise<T>) {
+    return this.lock.exclusive(operation);
+  }
   async load() {
     return this.text === null ? null : deserializePublisher(this.text);
   }
