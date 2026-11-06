@@ -106,6 +106,14 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 | R3 | Linked shift creates need exclusive signer custody that external wallets cannot prove | `shiftWriteProfile = confirmed-sequential` (S12), per the existing fallback; B1/B3 implement the two-step replacement with a visible pending state | revised |
 | R4 | The score cipher had no pinned implementation | Pinned noble X25519 + HKDF-SHA256 + AES-256-GCM, envelope v1 and vectors (S11); B4 uses `src/shared/crypto/score-cipher.ts` | revised |
 
+### Approved plan repair · 2026-11-06 (Mumbai venue size)
+
+Scope approved in conversation: the user shared the ETHGlobal Mumbai floor plan, asked to keep its layout but split the hacking spaces into many more seat slots, estimated the hall at ~80 × 50 m, then chose to scale it to ~96 × 60 m to reach ~800 seats. The event has 6–8 partners, to be named later. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| V1 | A3.1 planned ~60 seats, 3 zones and 2 partner tables | `venue.mumbai.json` traced from the floor plan at ~96 × 60 m with ~800 seats, 5 zones each with a help desk or help point, 8 partner booths (configured partners get `partner-table`s, the rest are placeholders); A3.1 | revised |
+
 ### Specs
 
 | Spec | Owner | Status | Commit | Notes |
@@ -177,10 +185,10 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| A2.1 Resolvers | doing | | Contract-facing fixed hackers/staff resolvers and coin-60 address writes are implemented and locally verified in the A1 handoff repair; A2 reader/integration work remains |
-| A2.2 Scoped grants, `registerJudge` / `registerPartnerBadge` | doing | | Contract entrypoints for global judges, partner onboarding/scoped issuance and partner renewal are implemented and locally verified; A2 permission notes, full integration tools and acceptance remain |
-| A2.3 Revoke and revive | doing | | Contract renewal/revival hook is implemented; history tooling remains unbuilt |
-| A2.4 SepoliaEnsReader | todo | | |
+| A2.1 Resolvers | doing | c941c7a | Resolvers are live since A1. **Tooling done, fork-verified 2026-11-07:** `scripts/ens/set-team-url.ts` (`--team`/`--all`) writes each team's `url` from `teamPageUrl` + `publicAppOrigin` on the hackers resolver, reads it back through the Universal Resolver, skips on rerun, and refuses (even with `--repair`) when a lead repointed its resolver; a lead cannot write another team's URL. No live teams yet, so nothing was written on Sepolia |
+| A2.2 Scoped grants, `registerJudge` / `registerPartnerBadge` | doing | 14b017b | **Tooling done, fork-verified 2026-11-07:** `grant-roles.ts` grants the coordinator the `lanyard.perms`-scoped setter on the staff resolver, verifies (never grants) the head judge's exact UNREGISTER on `judges`, onboards partners once through `onboardPartner`, checks 9 structural names up to `lanyard.eth` outlive `namespaceExpiry`, and `--audit` checks badge role bitmaps and ApprovalForAll. `set-perms.ts` (coordinator) writes the binding-checked envelope and re-reads the binding after the receipt. `ScopedGrants.t.sol` (15 tests; Foundry 142/142) covers key scope, resolver scope, partner/head-judge isolation, resource stability and the EAC limit (15 holders per role per resource; the 16th reverts `EACMaxAssignees`). **Live run pending** real coordinator and partner wallets (config still holds mock partners) |
+| A2.3 Revoke and revive | doing | 91152ab | **Tooling done, fork-verified 2026-11-07:** `revoke.ts` (head judge / partner / organizer, `--as`) and `revive.ts` (organizer, registrar `renew` / `renewPartnerBadge`; refuses reductions and expiries above `namespaceExpiry`; `--expiry` is required once a policy date has passed). Each prints the block and appends to `fixtures/sepolia-history.json` (live) or `.lanyard/sepolia-history-fork.json` (fork); the live file is committed on I2, not here |
+| A2.4 SepoliaEnsReader | doing | b654b9a | **Implemented 2026-11-07; passes `runEnsReaderConformance` (13 checks) and the identity-directory checks on a local fork of live Sepolia** (`src/ens/sepolia-ens-reader.fork.test.ts`, run with the public RPC; skipped without `SEPOLIA_RPC_URL`). Ownership walks the pinned registries located through the registrar's write-once mappings (ENSv2 hides a subregistry once its name expires) and requires every hop up to `lanyard.eth` registered and still pointing at the pinned child; address/text via Universal Resolver v2 at the block; `registrationId` from the holding registry's EAC resource; `sepoliaBlockAt` binary-searches from `deployedAtBlock`. Cache: finalized blocks only, keyed by chain/reset/query/block hash, memory LRU + AsyncStorage adapter. Measured log limits (publicnode, 2026-11-07): 10k-block `eth_getLogs` usually works, 50k fails, one 5k request failed, so scans use 5k chunks that halve down to 100. Historical reads need an archive RPC (the public node prunes old blocks). Not wired into `providers.ts` until I2; Android parity check pending |
 
 **Bug hunt:** todo · **Merged:** no
 
@@ -191,8 +199,8 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| A3.1 Venue editor and export | todo | | |
-| A3.2 GridRouter | todo | | |
+| A3.1 Venue editor and export | doing | 4f5ecbe | **Editor added 2026-11-07:** `src/venue/editor/` (grid model, seat/POI/zone tools, undo, stable seat IDs `s001…`, RLE export) with `validateVenue` for R3/R4/R6/R7 (errors block export, >120 KiB warns); round-trip test (60 seeded cases); `fixtures/venue.mumbai.json` validates clean. Web-only screen `app/venue/editor.tsx` builds in `web:export`; **not yet checked interactively in a browser, and organizer-only gating is a TODO**. **Mumbai venue drafted ahead of A3 (branch `a3/A3.1-mumbai-venue`):** `src/venue/layout.ts` builds a venue from areas (seat · table · seat rows, blocked items, POIs snapped off blocked cells, `scaleLayout`); `src/venue/layouts/mumbai.ts` traces the floor plan; `pnpm venue:mumbai` writes `fixtures/venue.mumbai.json` (96 × 60, 801 seats, 36 POIs, ~48 KB compact); tests check R4/R6/R7, every seat reachable from its zone's help point and the committed file matching the layout. Hall size is an estimate; editor still todo |
+| A3.2 GridRouter | doing | 2af066f | `src/venue/grid-router.ts` (pure TS): 8-direction A* with 1,000/1,414 integer costs, no corner-cutting, (y, x) tie order; one-Dijkstra `distances`; `nextTicket` alpha scoring with future-input rejection; `judgeRoute` nearest-next over `LocatedStop[]`; nearest-walkable snapping. Passes `runRouterConformance` on the small and Mumbai venues (39 tests); unreachable target on Mumbai returns null in 1.4 ms on Node. Phone timing (R7) and I3 wiring pending |
 | A3.3 Real VenueMap | todo | | |
 
 **Bug hunt:** todo · **Merged:** no
