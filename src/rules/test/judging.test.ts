@@ -1,7 +1,18 @@
+import { bytesToHex } from "viem";
 import { describe, expect, it } from "vitest";
 import { context, key, persona, run, timeline } from "./harness";
 import { AT, content, submission, rubric, dependencies } from "./judging-fixtures";
 describe("immutable judging inputs", () => {
+  it("requires exact canonical snapshot bytes, not a whitespace variant with the same semantic hash", async () => {
+    const s = submission();
+    const attr = s.attributes.find((a) => a.name === "snapshot")!;
+    const raw = new TextDecoder().decode(
+      Uint8Array.from(attr.value.slice(2).match(/../g) ?? [], (b) => parseInt(b, 16)),
+    );
+    attr.value = bytesToHex(new TextEncoder().encode(" " + raw));
+    expect((await run([s])).verdict(s).reason).toMatch(/hash mismatch/);
+  });
+
   it("accepts the team owner's immutable snapshot without needing a mutable project", async () => {
     const s = submission();
     const result = await run([s]);
