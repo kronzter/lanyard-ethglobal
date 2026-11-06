@@ -23,7 +23,7 @@ This page loads the project context. Read `01-evidence-and-interfaces.md` for th
 
 ## 3 · App, wallets, chains
 
-- Expo + Expo Router at the repo root. **Android** (locally built dev or preview APKs: `eas build --platform android --profile <p> --local`, never in the cloud) and **web**. The code stays iOS-compatible but is never built.
+- Expo + Expo Router at the repo root. **Android** (dev or preview APKs built on EAS cloud: `eas build --platform android --profile <p>`; `--local` optional) and **web**. The code stays iOS-compatible but is never built.
 - Dev builds only. Expo Go can't load Reown AppKit's native modules.
 - **Reown AppKit**: the native SDK on Android, the wagmi adapter on web, both behind one `useWallet()` hook. Chains: Sepolia and Rabdi. The fallback, if P0.6 fails for external wallets, is AppKit's email/social-login wallet.
 - **No server signer.** Actions use the actor's wallet. Deploy, seed, capture and freeze are local CLIs. Read-only, app-restricted RPC keys may ship in the app as public values (rotated if abused); no signing, operator or decryption key ever ships. A read-only RPC proxy is only a P0 fallback and holds no signing/decryption keys; evidence bundles are downloadable and also verifiable from a local file. Declare each service/profile in P0 and I4.
@@ -122,7 +122,7 @@ Full detail is in `00-README.md` and `00-git-workflow.md`.
 - **When commits are requested**, use several small commits per spec whose titles and bodies describe the change itself (spec ID only in a `Refs:` footer; never "wip" or "phase done"), and one per finding with its regression check. Agents may push non-`main` branches and open PRs; the user merges.
 - A bug hunt after **every** phase, by someone who didn't write it (by default a fresh agent session; the prompt is in `00-README.md`). Highs are fixed before merge.
 - Plans change through explicit user-authorized repairs with affected consumers updated together. Progress goes in `plans/TRACKER.md`; a repaired plan is not completed implementation.
-- APK builds always use `--local`.
+- APK builds run on EAS cloud with only public `EXPO_PUBLIC_*` values; no signing, operator or decryption key is ever an EAS secret.
 
 ## 11 · Pitfalls we already know about
 
@@ -152,7 +152,7 @@ Full detail is in `00-README.md` and `00-git-workflow.md`.
 - With an external wallet, every transaction is a switch to the wallet app. Batch writes, and make the write queue survive the app going to the background.
 - The wallet must add Rabdi (`wallet_addEthereumChain`) before the first Arkiv write.
 - Local APK builds need the Android SDK and JDK on the builder's machine.
-- `eas build --local` needs a proven Linux/macOS host; Windows/WSL is not officially supported by Expo. Prove the chosen local build route in P0, without cloud builds.
+- EAS cloud builds need an Expo account and count against its free-tier build quota and queue; keep APK rebuilds to native changes and use Metro reloads otherwise. `--local` needs a Linux/macOS host (Windows only through WSL, not officially supported by Expo).
 
 **General**
 - The organizer key, results key and score-decryption key exist only in the local `.env` of whoever runs the scripts or CLI. They never ship in the app.
@@ -184,7 +184,7 @@ Full detail is in `00-README.md` and `00-git-workflow.md`.
 | --- | --- |
 | Edition label | `mumbai2026` |
 | App | Expo + Expo Router, Android + web; iOS-compatible but never built |
-| APK builds | Always local (`eas build --local`) |
+| APK builds | EAS cloud (`eas build`); `--local` optional on a Linux/macOS/WSL host |
 | Wallets | Reown AppKit with external wallets; fallback to AppKit email/social login if P0.6 fails |
 | Infrastructure | Actor-signed writes, local capture/freeze, downloadable retained bundles; read-only, app-restricted RPC keys ship in the app as public values; a declared read-only proxy only if P0 limits fail, holding RPC credentials but no signing/decryption keys |
 | Badge issue | The organizer issues directly at the desk; no vouchers |

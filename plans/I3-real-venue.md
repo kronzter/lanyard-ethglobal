@@ -25,7 +25,7 @@ B3's volunteer and ticket screens run on the real Mumbai venue and the real `Gri
 4. `test(e2e): I3 two-phone ticket race on the mumbai venue`
 5. `test(e2e): I3 resolve then next ticket follows real walls`
 
-Build a fresh preview APK for both phones with `eas build --platform android --profile preview --local`.
+Build a fresh preview APK for both phones with `pnpm app:apk` (EAS cloud).
 
 ## Smoke test (two Android phones)
 

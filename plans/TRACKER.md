@@ -14,7 +14,7 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 
 | Check | Result | Notes |
 | --- | --- | --- |
-| S1 Local dev APK + AppKit connects MetaMask mobile | todo | **A.** Needs an Android SDK + eas-cli build host, a Reown project ID and MetaMask on a phone |
+| S1 Dev APK (EAS cloud) + AppKit connects MetaMask mobile | todo | **A.** Needs an Expo account + eas-cli, a Reown project ID and MetaMask on a phone |
 | S2 Wallet adds and switches to Rabdi | todo | **A**, with B pairing |
 | S3 Arkiv SDK on Hermes with AppKit signer (record polyfills) | todo | **A + B** pair (phone). Hermes needs `crypto.getRandomValues`: the SDK's random entity salt throws `NoRandomSourceError` without it |
 | S4 `executeBatch` = one approval | todo | **A + B** pair (phone wallet) |
@@ -29,7 +29,7 @@ Status values: `todo` · `doing` · `done` · `blocked`. Finding status: `open` 
 
 **Fallbacks chosen:** none yet.
 
-**Capability evidence:** SDK package/declarations, exact versions, confirmation depths, archive log limits, build host, cipher package/encoding and linked-create prediction/custody or sequential fallback remain unmeasured until P0.6 records them. Revised requirements do not count as passed spike checks.
+**Capability evidence:** SDK package/declarations, exact versions, confirmation depths, archive log limits, APK build route, cipher package/encoding and linked-create prediction/custody or sequential fallback remain unmeasured until P0.6 records them. Revised requirements do not count as passed spike checks.
 
 ### Approved plan repair · 2026-11-06
 
@@ -91,6 +91,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 | S1 | 8-package pnpm monorepo and ENSv2 git submodules add Expo/Metro/EAS friction | One Expo project at the repo root, plain `src/` folders, `cli/`, one `contracts/` Foundry project with Soldeer deps; ESLint import boundaries + CODEOWNERS; all plan paths rewritten | revised |
 | S2 | P0 blocked on both builders | Track B slice (P0.1, P0.2, P0.4a, P0.5a, P0.6a S6/S9/S10/S12) merges first; P0.3, remaining fixtures, AppKit/Android and ENSv2 deferred to before the phase that needs them (`P0-foundation.md`) | revised |
 | S3 | One commit per spec; agents never push | Several small commits per spec ending in a `docs(tracker)` commit; titles describe the change, with the spec ID only in a `Refs:` footer, and no assistant attribution. Agents push non-`main` branches, never `main`. PRs target the phase branch directly: stacked PRs #2–#4 merged into their stacked bases before retargeting, so #5 brought the same commits into `phase/P0-foundation`, and stacking is no longer used | revised |
+| S4 | No local Android build host (Windows, no WSL/SDK); `--local` blocked S1 | APKs build on EAS cloud (`pnpm app:dev-apk`, `pnpm app:apk`); `--local` scripts kept as optional; builds receive only public `EXPO_PUBLIC_*` values and EAS holds no secret; P0/I3/I4/CONTEXT/README/workflow | revised |
 
 ### Specs
 
@@ -123,7 +124,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 **Person A · `@kronzter`**
 
 1. Review the merged P0 work (PRs #1, #5, #6, #7): repo layout, CODEOWNERS, shared types, the ENS, router and publisher mocks and their conformance suites, and the `roleOfLabel` role names.
-2. Set up a local Android build host (Android SDK, JDK, eas-cli) and get a Reown project ID and an archive Sepolia RPC key.
+2. Set up an Expo account and eas-cli for EAS cloud builds, and get a Reown project ID and an archive Sepolia RPC key.
 3. Phone half of the spike: S1–S5, S7, S8 (S3/S4 paired with B).
 4. Rest of the app shell: `eas.json` and the local APK scripts (R2), AppKit `useWallet()` on Android and web (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selector (R6), and the "Open on web" check on a real Android build.
 5. Then A1: add ENSv2 as a Soldeer git dependency (candidate `ensdomains/contracts-v2` tag `sepolia-deployment-2026-09-15` = `f2f0a05`) and verify ABI and on-chain implementation compatibility.

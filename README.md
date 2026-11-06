@@ -53,8 +53,9 @@ Copy `.env.example` to `.env` only when you run scripts that need keys. `.env` i
 | `pnpm lanyard <cmd>`                 | Operator CLI (`verify`, `hash`, `capture`, `freeze`)                     |
 | `pnpm ci:local`                      | Secret scan, lint, typecheck, tests, Foundry and web export, in CI order |
 
-Android APKs are always built locally (`eas build --platform android --profile <p> --local`),
-never in the cloud.
+Android APKs are built on EAS cloud (`pnpm app:dev-apk`, `pnpm app:apk`). A builder with a
+Linux/macOS/WSL host may add `--local` (`pnpm app:apk:local`). Builds get only public `EXPO_PUBLIC_*`
+values; never store a signing, operator or decryption key as an EAS secret.
 
 ## Known limitations
 
