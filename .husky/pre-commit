@@ -1,0 +1,3 @@
+# Reject keys and mnemonics before anything else (plans/P0-foundation.md › P0.1-R2).
+node scripts/secret-scan/cli.mjs --staged
+pnpm exec lint-staged

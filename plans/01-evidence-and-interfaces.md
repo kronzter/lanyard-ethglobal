@@ -80,7 +80,7 @@ Authority-only kinds use independently configured organizer/results/partner wall
 
 The app's `IdentityDirectory.labelsFor(address, at)` discovers candidate labels from configured registration events and verifies each with `EnsReader.owner`. It returns all matching roles and requires an explicit active-role selection; reverse ENS or fixture personas alone are not production badge discovery. P0 provides the interface/mock; A2 implements bounded event discovery and records log-range limits. The CLI shares the same authority config and lookup policy.
 
-The shell adds independently configured organizer/results/partner authority capabilities alongside discovered badge roles; authority wallets do not need fabricated owned labels. App composition lives in `apps/app/src/providers.ts`; Node composition in `packages/cli/src/providers.ts`. These are the only places allowed to import another track's concrete implementations. Both select mocks until their integration is complete, and neither puts signing/decryption credentials in shared config or the app. The Node root is wired to A's reader at I2 and publisher at I4.
+The shell adds independently configured organizer/results/partner authority capabilities alongside discovered badge roles; authority wallets do not need fabricated owned labels. App composition lives in `src/providers.ts`; Node composition in `cli/providers.ts` (same repo and package, enforced by ESLint import rules). These are the only places allowed to import another track's concrete implementations. Both select mocks until their integration is complete, and neither puts signing/decryption credentials in shared config or the app. The Node root is wired to A's reader at I2 and publisher at I4.
 
 ## 3a · Public team pages and ENS website links
 

@@ -6,9 +6,28 @@
 
 Everything the two tracks must agree on, built once and together, so that afterwards neither person ever waits for the other. This is the **only** phase where both people commit to the same branch. Split the specs as marked, and pair on P0.3 and P0.6.
 
-Implement the authoritative [evidence and shared contracts](01-evidence-and-interfaces.md). This approved plan repair precedes implementation; no phase is marked implemented by this document change.
+**Repair 2026-11-06:** Person A was unavailable, so Person B builds the slice of P0 that B1 needs first, in a single Expo-root repo (see Track B slice below). Implement the authoritative [evidence and shared contracts](01-evidence-and-interfaces.md). This approved plan repair precedes implementation; no phase is marked implemented by this document change.
 
 **Run P0.6 (the spike) first.** It decides how P0.5 wires up wallets, and whether any fallback is needed.
+
+### Track B slice (merge to `main` before B1)
+
+| Build now | Why B1 needs it |
+| --- | --- |
+| P0.1 repo, hooks, CI | Somewhere to build, with a safety net |
+| P0.2 shared config, labels, canonical JSON, deployments, venue and team-page types | Record writers need config, labels and deployment shapes |
+| P0.4a `personas.json` + `by`-label test | Writers and seeds need real persona labels |
+| P0.5a Expo web shell (routes, flags, providers, web-only guard, `/teams/[team]`) | A home for B screens; web-export CI |
+| P0.6a Node-side Arkiv checks S6, S9, S10, S12 | Decide Faucet vs fallback, SDK API, capture and shift-write profile |
+
+| Deferred until | Item |
+| --- | --- |
+| Before B2 | P0.3 `EnsReader`/`IdentityDirectory` interfaces, mocks, conformance; `ens-history.json`, `timeline.json` |
+| Before B3 | `StubRouter` + conformance; `venue.small.json`; stub `<VenueMap>` |
+| Before B4 | `MockResultsPublisher` + conformance; S11 cipher; evidence edge-case scenarios |
+| Person A / phone available | AppKit, `useWallet`, Android APK (S1–S5, S7, S8); ENSv2 contracts (A1) |
+
+B1 writers code against a viem `WalletClient`, so Node tests use a local key until AppKit lands. The full P0 phase-done checklist still applies before I1.
 
 ## Out of scope
 
@@ -54,24 +73,23 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 ### P0.1 · Repo skeleton and CI · *Person A*
 
 **Requirements**
-- **P0.1-R1** THE repo SHALL be a pnpm workspace with `packages/{shared,contracts,ens,venue,arkiv,faucet,rules,cli}`, `apps/app`, `fixtures`, `deployments`, `arkiv`, `e2e`, `plans`.
+- **P0.1-R1** THE repo SHALL be one Expo project at the root (one `package.json`, no workspace packages, no git submodules) with `app/`, `src/{shared,arkiv,rules,ens,venue,shell}`, `cli/`, `contracts/`, `fixtures`, `deployments`, `arkiv`, `e2e`, `plans`.
 - **P0.1-R2** WHEN staged files contain a private key or mnemonic pattern, THE `pre-commit` hook SHALL reject the commit.
-- **P0.1-R3** WHEN a pull request or a push to `main` happens, THE CI SHALL run lint, typecheck, `vitest`, `forge test` (both Foundry projects) and, once P0.5 creates `apps/app`, `expo export --platform web` (skipped while no app exists).
+- **P0.1-R3** WHEN a pull request or a push to `main`, `phase/**` or `int/**` happens, THE CI SHALL run the secret scan, lint, typecheck, `vitest`, `forge test` (the one Foundry project) and `expo export --platform web`.
 - **P0.1-R4** THE `CODEOWNERS` file SHALL encode the path-ownership table in `00-README.md`.
 
 **Tasks**
-- [ ] Workspace, TypeScript base config, ESLint, Prettier
-- [ ] Foundry project in `packages/contracts`, with ENSv2 contracts pinned by commit
-- [ ] Foundry project in `packages/faucet` (Rabdi)
+- [ ] Expo project at the root, strict TypeScript, ESLint (with track/runtime import boundaries), Prettier
+- [ ] One Foundry project in `contracts/` with Soldeer-pinned `forge-std`; ENSv2 is added by A1 as a Soldeer git dependency pinned by commit
 - [ ] Husky `pre-commit`: secret scan + lint-staged
 - [ ] GitHub Actions workflow; `pnpm ci:local` runs the same steps
 - [ ] `CODEOWNERS`, `.env.example`, `.gitignore` (`.env`, `android/`, `*.apk`, `spike/`)
 - [ ] Link project context from agent instructions without replacing existing user rules; create the planned context symlinks only where no instruction file already exists
-- [ ] Document the two Foundry dependency roots, use `forge install owner/repo@<commit>` Git submodules under each project's `lib/`, and record exact ENS ABI/implementation commit compatibility
+- [ ] Document the Foundry dependency setup (Soldeer, `dependencies/` git-ignored, no submodules); A1 records exact ENS ABI/implementation commit compatibility
 
 **Done when** a fake key is rejected locally and CI is green on an empty test.
 
-**Commit:** `build: P0.1 repo skeleton, hooks and ci`
+**Commits:** several small `build`/`ci`/`chore` commits tagged `P0.1`, ending with `docs(tracker): P0.1 repo skeleton and ci done`.
 
 ---
 
@@ -82,13 +100,13 @@ Prove the stack works before anyone builds on it. Throwaway code goes in `spike/
 - **P0.2-R2** THE shared `Venue` types SHALL describe the image size, cell size, walkable cells (run-length encoded), seats, points of interest (with a `kind`, including `help-desk` and `partner-table`, and an optional `partner` ID that `partner-table` POIs require) and zones, matching the `venue.json` format A3.1 exports.
 - **P0.2-R3** THE deployment schema SHALL distinguish `mode: "mock"` placeholders from `mode: "live"` addresses. Live providers SHALL reject missing/zero addresses, wrong chain/reset IDs and a faucet address when the selected funding profile is the desk-wallet fallback (which requires a desk wallet address instead). Mock mode requires no secrets or real deployments.
 - **P0.2-R4** THE shared `labels.ts` SHALL convert between relative labels (`priya.volunteers`) and full names (`priya.volunteers.mumbai2026.lanyard.eth`), normalizing with ENSIP-15.
-- **P0.2-R5** THE shared package SHALL import nothing Node-only, so it runs on Hermes, in the browser, and on Node.
-- **P0.2-R6** THE shared package SHALL define `TeamPageContent`, its bounds/link validation and `teamPageUrl(teamLabel, publicAppOrigin)` from the shared contract. Live deployment config SHALL require an edition-specific HTTPS `publicAppOrigin`; mock mode may use localhost. The ENS `url` target is the Lanyard page; the ETHGlobal showcase is a separate content link. P0 provides fixtures for a populated page, a registered team awaiting submission, an unknown team and failed reads.
+- **P0.2-R5** THE shared module (`src/shared`) SHALL import nothing Node-only, so it runs on Hermes, in the browser, and on Node.
+- **P0.2-R6** THE shared module (`src/shared`) SHALL define `TeamPageContent`, its bounds/link validation and `teamPageUrl(teamLabel, publicAppOrigin)` from the shared contract. Live deployment config SHALL require an edition-specific HTTPS `publicAppOrigin`; mock mode may use localhost. The ENS `url` target is the Lanyard page; the ETHGlobal showcase is a separate content link. P0 provides fixtures for a populated page, a registered team awaiting submission, an unknown team and failed reads.
 
 **Tasks**
-- [ ] `packages/shared/src/event.config.ts`
+- [ ] `src/shared/event.config.ts`
 - [ ] `types/venue.ts`: `Venue`, `Cell`, `CellRef`, `Seat`, `Poi`, `Zone`, `RoutingTicket`, `LocatedStop` (as named in `01-evidence-and-interfaces.md`)
-- [ ] `deployments/schema.ts` (zod), plus explicitly mock-mode `deployments/sepolia.json` and `deployments/rabdi.json`; fixtures never masquerade as live deployments
+- [ ] `src/shared/deployments/schema.ts` (zod), plus explicitly mock-mode `deployments/sepolia.json` and `deployments/rabdi.json`; fixtures never masquerade as live deployments
 - [ ] `labels.ts` with tests (mixed case, trailing space and emoji rejected)
 - [ ] `types/team-page.ts`, URL helper/validation, public origin in deployment schema and shared page-state fixtures
 
@@ -106,7 +124,7 @@ Implement the exact `EnsReader`, `EvaluationContext`, `Router`/located-stop and 
 - **P0.3-R1** THE `MockEnsReader` SHALL answer from `fixtures/ens-history.json` by replaying events up to the requested block.
 - **P0.3-R2** THE `StubRouter` SHALL use integer Manhattan distance in millimetres and straight-line display paths, ignoring walls; it SHALL accept explicit evaluation time and located judge stops.
 - **P0.3-R3** THE `MockResultsPublisher` SHALL persist its state through an injected store shared across CLI restarts, expose reconciliation, refuse duplicate declarations and every mutation after lock, and model successful/reverted/pending receipts. In-memory stores are allowed only in isolated unit tests.
-- **P0.3-R4** THE `runEnsReaderConformance`, `runRouterConformance` and `runResultsPublisherConformance` suites SHALL be exported from `packages/shared/testing`, and each mock SHALL pass its suite.
+- **P0.3-R4** THE `runEnsReaderConformance`, `runRouterConformance` and `runResultsPublisherConformance` suites SHALL be exported from `src/shared/testing`, and each mock SHALL pass its suite.
 - **P0.3-R5** A deliberately broken mock (e.g. `owner` ignores the requested block) SHALL fail its conformance suite; the outer self-test asserts that failure.
 
 **Conformance suites must check at least**
@@ -119,7 +137,7 @@ Implement the exact `EnsReader`, `EvaluationContext`, `Router`/located-stop and 
 - [ ] Three mocks
 - [ ] Three conformance suites, each with a broken-mock self-test
 
-**Done when** `pnpm --filter @lanyard/shared test` runs all conformance suites, each broken-mock self-test asserts the expected failure without making the overall run fail, and Node/web/Hermes canonical test vectors match.
+**Done when** `pnpm test src/shared` runs all conformance suites, each broken-mock self-test asserts the expected failure without making the overall run fail, and Node/web/Hermes canonical test vectors match.
 
 **Commit:** `feat(shared): P0.3 interfaces, mocks and conformance suites`
 
@@ -147,7 +165,7 @@ Implement the exact `EnsReader`, `EvaluationContext`, `Router`/located-stop and 
 Uses the wallet setup proven in P0.6, or its fallback.
 
 **Requirements**
-- **P0.5-R1** THE app SHALL be Expo (pinned SDK) + Expo Router + TypeScript at `apps/app`, with route folders created for each owner as in `00-README.md`, each holding a placeholder screen that says which phase fills it.
+- **P0.5-R1** THE app SHALL be Expo (pinned SDK) + Expo Router + TypeScript at the repo root, with route folders created for each owner as in `00-README.md`, each holding a placeholder screen that says which phase fills it.
 - **P0.5-R2** THE `eas.json` SHALL define a `development` profile (dev client APK) and a `preview` profile (installable APK). `pnpm app:apk` and `pnpm app:dev-apk` SHALL run `eas build --platform android --profile <p> --local`. No script runs a cloud build.
 - **P0.5-R3** THE shell SHALL wrap Reown AppKit (native SDK on Android, wagmi adapter on web) behind one `useWallet()` hook that exposes the address, the chain, a viem wallet client, and an EIP-1193 provider for Sepolia and Rabdi.
 - **P0.5-R4** THE `flags.ts` SHALL read `EXPO_PUBLIC_LANYARD_ENS` and `EXPO_PUBLIC_LANYARD_ROUTER`, and `providers.ts` SHALL return the mock or real implementation for each.

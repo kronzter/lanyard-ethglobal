@@ -112,7 +112,7 @@ A `supersedes` replacement must reference an earlier shift for the same voluntee
 - [ ] A wallet with no valid `hackers` badge raises a ticket: greyed out with a reason, never offered to helpers
 - [ ] A ticket from a seat in another zone: that zone's volunteers see it
 - [ ] A helper who just clocked in sees tickets ordered from their zone's help desk
-- [ ] The screens import nothing from `packages/venue`
+- [ ] The screens import nothing from `src/venue`
 - [ ] A scheduled but unclocked shift is off duty; a clock-in cannot outlive shift end or activate an early self-start
 - [ ] Self clock-in shows a countdown without a lead-owned pass; clock-out and prospective replacement end the right sessions
 - [ ] Extending a claim's physical retention cannot extend its lease; losing claims never become later winners

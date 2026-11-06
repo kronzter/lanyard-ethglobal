@@ -1,0 +1,47 @@
+# plans/P0-foundation.md › P0.1-R3. Every step is a package.json script, so
+# `pnpm ci:local` runs exactly what CI runs.
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main, "phase/**", "int/**"]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: secret scan, lint, typecheck, test, web export
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: pnpm/action-setup@v6.1.1
+      - uses: actions/setup-node@v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm secret-scan:all
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm web:export
+
+  contracts:
+    name: forge fmt and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: foundry-rs/foundry-toolchain@v1.9.2
+        with:
+          version: v1.7.1
+      - name: forge soldeer install
+        working-directory: contracts
+        run: forge soldeer install
+      - run: forge fmt --root contracts --check
+      - run: forge test --root contracts

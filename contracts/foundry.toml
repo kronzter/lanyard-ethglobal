@@ -1,0 +1,28 @@
+# One Foundry project for every Lanyard contract (plans/00-README.md › The app).
+# Dependencies come from Soldeer into dependencies/ (git-ignored); never git submodules.
+#   src/faucet, test/faucet  → Track B (Rabdi Faucet, B1.1)
+#   src/ens,    test/ens     → Track A (ENSv2 registrars on Sepolia, A1+)
+
+[profile.default]
+src = "src"
+test = "test"
+script = "script"
+out = "out"
+libs = ["dependencies"]
+solc_version = "0.8.28"
+optimizer = true
+optimizer_runs = 200
+# Sepolia supports cancun. Rabdi's EVM version is measured by P0.6-S6 before the Faucet deploys.
+evm_version = "cancun"
+
+[soldeer]
+remappings_generate = false
+remappings_regenerate = false
+remappings_location = "txt"
+recursive_deps = false
+
+[fmt]
+line_length = 110
+
+[dependencies]
+forge-std = "1.17.0"
