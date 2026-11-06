@@ -1,6 +1,11 @@
 {
   "network": "rabdi",
   "chainId": 7794095,
-  "mode": "mock",
-  "note": "Placeholder: B1.1 writes the live file after P0.6-S6 picks the funding profile."
+  "mode": "live",
+  "resetId": "0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce",
+  "deployedAtBlock": "291725",
+  "funding": {
+    "profile": "desk-wallet",
+    "deskWallet": "0x6f383cb1a6770386c81e66ea0373436280ad6e16"
+  }
 }

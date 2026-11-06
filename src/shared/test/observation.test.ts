@@ -32,6 +32,12 @@ const obs = (patch: Record<string, unknown> = {}): CapturedObservation =>
   CapturedObservationSchema.parse(raw(patch));
 
 describe("CapturedObservation", () => {
+  it("accepts a readonly entity whose updatedAt moved with an ownership transfer", () => {
+    const moved = obs({ updatedAtBlock: "110", owner: "0x00000000000000000000000000000000000000c2" });
+    expect(moved.updatedAtBlock).toBe(110n);
+    expect(dedupeObservations([obs(), { ...moved, observedAtBlock: 130n }])).toHaveLength(1);
+  });
+
   it("parses JSON block numbers into bigints and lowercases hex", () => {
     const o = obs({ key: h("A") });
     expect(o.createdAtBlock).toBe(100n);
@@ -39,7 +45,6 @@ describe("CapturedObservation", () => {
   });
 
   it.each([
-    ["a readonly entity that was updated", { updatedAtBlock: "110" }, /readonly/],
     ["an observation before its creation", { observedAtBlock: "99" }, /observed before/],
     ["an expiry before creation", { expiresAtBlock: "100" }, /expires before/],
     ["a deletion before observation", { deletedAtBlock: "120" }, /deleted at or before/],

@@ -42,8 +42,9 @@ export const CapturedObservationSchema = z
     if (o.updatedAtBlock < o.createdAtBlock) issue("updated before it was created");
     if (o.observedAtBlock < o.updatedAtBlock) issue("observed before its last update");
     if (o.expiresAtBlock <= o.createdAtBlock) issue("expires before it was created");
-    if (o.flags.readonly && o.updatedAtBlock !== o.createdAtBlock)
-      issue("a readonly entity cannot have been updated");
+    // No "readonly ⇒ never updated" rule: on Rabdi an ownership transfer of a readonly entity bumps
+    // $updatedAt (measured 2026-11-06, B1.3). Readonly content is held fixed by dedupeObservations,
+    // which compares attributes, creator, flags and creation data and throws on any difference.
     if (o.deletedAtBlock !== undefined && o.deletedAtBlock <= o.observedAtBlock)
       issue("deleted at or before its observation");
     const names = o.attributes.map((a) => a.name);

@@ -46,16 +46,21 @@ const measuredConfig = () => {
 };
 
 describe("committed deployment files", () => {
-  it("are explicit mock placeholders", () => {
+  it("keep Sepolia a mock placeholder until A1 deploys", () => {
     expect(parseSepoliaDeployment(sepoliaJson).mode).toBe("mock");
-    expect(parseRabdiDeployment(rabdiJson).mode).toBe("mock");
-  });
-
-  it("are rejected by live providers", () => {
-    expect(() => requireLive(parseRabdiDeployment(rabdiJson), measuredConfig())).toThrow(/mock placeholder/);
     expect(() => requireLive(parseSepoliaDeployment(sepoliaJson), measuredConfig())).toThrow(
       /mock placeholder/,
     );
+  });
+
+  it("make Rabdi live with the desk wallet, matching the measured edition config", () => {
+    const rabdi = parseRabdiDeployment(rabdiJson);
+    const live = requireLive(rabdi, eventConfig);
+    expect(live.resetId).toBe(RABDI_GENESIS);
+    expect(live.funding).toEqual({
+      profile: "desk-wallet",
+      deskWallet: "0x6f383cb1a6770386c81e66ea0373436280ad6e16",
+    });
   });
 });
 

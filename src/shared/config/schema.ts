@@ -71,6 +71,8 @@ export const EventConfigSchema = z
     ),
     shiftWriteProfile: gated(z.enum(SHIFT_WRITE_PROFILES)),
     fundingProfile: gated(z.enum(FUNDING_PROFILES)),
+    /** First-time gas the desk sends each new wallet, in wei of tGLM (B1.1-R7). */
+    funding: z.object({ dripWei: z.bigint().positive() }).strict().optional(),
     evidenceSchemaVersion: z.literal(1),
   })
   .strict();
