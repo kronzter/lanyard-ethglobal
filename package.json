@@ -81,7 +81,8 @@
   },
   "pnpm": {
     "overrides": {
-      "@reown/appkit-adapter-wagmi>@wagmi/connectors": "6.2.0"
+      "@reown/appkit-adapter-wagmi>@wagmi/connectors": "6.2.0",
+      "valtio@2.1.7": "2.1.8"
     }
   }
 }
