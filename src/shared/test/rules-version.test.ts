@@ -31,6 +31,13 @@ describe("RULES_VERSION manifest", () => {
     expect(rulesVersionOf(bumped)).not.toBe(v);
   });
 
+  it("accepts one package at two exact versions, sorted by version", () => {
+    const m = manifest();
+    const first = m.dependencies[0]!;
+    m.dependencies.splice(1, 0, { name: first.name, version: "9.9.9" });
+    expect(() => RulesManifestSchema.parse(m)).not.toThrow();
+  });
+
   it("normalizes line endings so a Windows checkout gives the same version", () => {
     expect(sourceFileHash("a\r\nb\r\n")).toBe(sourceFileHash("a\nb\n"));
     expect(sourceFileHash("a\rb")).toBe(sourceFileHash("a\nb"));
@@ -44,6 +51,7 @@ describe("RULES_VERSION manifest", () => {
     ["a duplicate file", (m: RulesManifest) => (m.files[1]!.path = m.files[0]!.path)],
     ["unsorted dependencies", (m: RulesManifest) => m.dependencies.reverse()],
     ["a version range", (m: RulesManifest) => (m.dependencies[0]!.version = "^2.4.0")],
+    ["a duplicate dependency", (m: RulesManifest) => m.dependencies.splice(1, 0, { ...m.dependencies[0]! })],
     ["no files", (m: RulesManifest) => (m.files = [])],
   ])("rejects %s", (_name, mutate) => {
     const m = manifest();

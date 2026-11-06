@@ -58,6 +58,7 @@ export {
   firstDifference,
   outputHashOf,
   parseBundleText,
+  rankingsOf,
   reproduce,
   signBody,
   type BodyInput,

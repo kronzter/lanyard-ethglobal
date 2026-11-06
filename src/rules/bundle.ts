@@ -93,6 +93,12 @@ export async function signBody(
 
 export const outputHashOf = (output: unknown): Hex => canonicalHash(output);
 
+/**
+ * The rankings the compact results summary publishes, derived from the rules output. B2 has no
+ * scoring kinds, so this is empty until B4.3 adds per-track rankings to the output.
+ */
+export const rankingsOf = (_output: RulesOutput): unknown[] => [];
+
 export type Reproduction =
   | { match: true; output: RulesOutput; outputHash: Hex }
   | { match: false; output: RulesOutput; outputHash: Hex; claimedHash: Hex; difference: string };
