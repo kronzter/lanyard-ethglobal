@@ -27,10 +27,22 @@ describe("createProviders", () => {
 
   it("fails loudly for providers that are not wired yet, naming where they land", () => {
     const mock = createProviders({ ens: "mock", router: "stub" });
-    expect(() => mock.ensReader()).toThrow(ProviderNotWiredError);
-    expect(() => mock.ensReader()).toThrow(/P0\.3/);
+    expect(() => mock.router()).toThrow(ProviderNotWiredError);
+    expect(() => mock.router()).toThrow(/P0\.3/);
     const live = createProviders({ ens: "sepolia", router: "grid" });
     expect(() => live.ensReader()).toThrow(/A2\.4, switched on at I2/);
+    expect(() => live.identityDirectory()).toThrow(/A2\.4, switched on at I2/);
     expect(() => live.router()).toThrow(/A3\.2, switched on at I3/);
+  });
+
+  it("serves the fixture ENS reader and directory in mock mode, one instance each", async () => {
+    const p = createProviders({ ens: "mock", router: "stub" });
+    expect(p.ensReader()).toBe(p.ensReader());
+    expect(await p.ensReader().headBlock()).toBeGreaterThan(0n);
+    expect(
+      await p
+        .identityDirectory()
+        .labelsFor("0x000000000000000000000000000000000000dead", { sepoliaBlock: 9_021_610n }),
+    ).toEqual([]);
   });
 });
