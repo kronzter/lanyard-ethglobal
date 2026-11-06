@@ -17,5 +17,9 @@ describe("fake mode", () => {
     expect(output.verdicts.filter((v) => !v.counts)).toEqual([]);
     expect(view.onDuty("dev.volunteers", undefined, "west")).toBe(true);
     expect(view.onDuty("ravi.volunteers")).toBe(false); // scheduled, not clocked in
+    expect(view.ticketsAt().map((t) => [t.zone, t.state.state])).toEqual([
+      ["west", "open"],
+      ["east", "open"],
+    ]);
   });
 });
