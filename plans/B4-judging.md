@@ -75,7 +75,7 @@ The winner-name contract and the resolver lock (A4). Issuing partner judges (A4.
 - **B4.4-R9** Early or out-of-window freeze SHALL refuse before revealing the decryption key or making any publication write. `--resume` may finish a saved in-window job after `freezeDeadline` using its unchanged cutoff; it must not recapture under a new context. Verifiers enforce the saved window independently. Fixtures SHALL cover exact `results`/`freezeDeadline` boundaries and a valid post-event-end cutoff with partner ancestors still live.
 
 **Tasks**
-- [ ] Freeze pipeline with a persisted step log for resume
+- [ ] Freeze pipeline with a persisted step log for resume (Node uses the additive `PreparedResultsPublisher` interface; stage the signed in-window bundle, upload its exact public artifact, then resume after download verification)
 - [ ] E2E: freeze, then verify prints `MATCH` on mocks
 - [ ] Seed 2 partners plus the `main` track, 3 projects (the three demo teams), 6 partner judges and 3 global judges, one revocation, one recusal, and a placeholder `fixtures/prizes.json`
 - [ ] Local capture runner, canonical signed bundle export/download check and scoped reproduction tests on a second machine

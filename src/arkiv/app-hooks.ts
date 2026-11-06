@@ -4,6 +4,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useCallback, useMemo, useState } from "react";
 import { Platform } from "react-native";
 import { providers } from "@/providers";
+import { writerLabel } from "@/shell/roles";
 import { useSession } from "@/shell/session";
 import { useWallet } from "@/shell/wallet/useWallet";
 import type { BlockRef } from "@/shared/types/primitives";
@@ -86,7 +87,7 @@ export function useWriter() {
   const address = session.address;
   // A badge writes under its label; an authority wallet (organizer, desk…) under its authority name.
   const active = session.active;
-  const byLabel = !active ? null : active.kind === "badge" ? active.label : String(active.authority);
+  const byLabel = writerLabel(active);
   const queue = useMemo(
     () =>
       address

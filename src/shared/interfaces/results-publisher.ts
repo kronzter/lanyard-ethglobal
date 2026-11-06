@@ -91,3 +91,16 @@ export class UnknownTransactionError extends PublicationError {
     super("unknown-transaction", `no transaction ${txHash} is known`);
   }
 }
+
+/** Local publication preparation, required by the resumable freeze operator. */
+export type PublicationOperation =
+  | { kind: "setEventResults"; input: PublicationInput }
+  | { kind: "declareWinner"; input: WinnerInput }
+  | { kind: "lockResults"; expected: PublicationState };
+export type PreparedPublication = { rawTransaction: Hex; txHash: Hex; nonce: bigint };
+export interface PreparedResultsPublisher extends ResultsPublisher {
+  pendingTransactions(): Promise<Hex[]>;
+  prepare(op: PublicationOperation): Promise<PreparedPublication>;
+  broadcastPrepared(tx: PreparedPublication): Promise<ConfirmedTx>;
+  preparedStatus(txHash: Hex): Promise<"prepared" | "pending" | "reverted" | ConfirmedTx>;
+}

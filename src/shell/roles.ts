@@ -118,3 +118,12 @@ export function screensFor(r: ShellRole): string[] {
       return [];
   }
 }
+
+/** Canonical descriptive provenance for authority writes; authorization still uses the wallet. */
+export function writerLabel(role: ShellRole | null): string | null {
+  if (!role) return null;
+  if (role.kind === "badge") return role.label;
+  if (role.authority === "headJudge") return "head-judge";
+  if (role.authority.startsWith("partner:")) return `${role.authority.slice(8)}.partners`;
+  return role.authority;
+}

@@ -1,12 +1,12 @@
+import { durableWrite } from "./files";
 // The Node composition root (plans/01-evidence-and-interfaces.md §3): the only CLI file allowed
 // to pick concrete implementations across tracks. It selects mocks until I2 (ENS reader) and I4
 // (results publisher). The mock publisher persists to a local file so freeze runs survive a
 // restart. Signing and decryption keys never pass through here.
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
-import path from "node:path";
+import { readFile } from "node:fs/promises";
 import { eventConfig } from "@/shared/event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
-import type { ResultsPublisher } from "@/shared/interfaces/results-publisher";
+import type { PreparedResultsPublisher } from "@/shared/interfaces/results-publisher";
 import { MockResultsPublisher } from "@/shared/mocks/mock-results-publisher";
 import { createSerializedStore, type PublisherStore } from "@/shared/mocks/publisher-store";
 import { createFixtureEnsReader, fixtureTimeline } from "@/shared/mocks/fixtures";
@@ -34,10 +34,7 @@ export function fileStore(file: string): PublisherStore {
       }
     },
     async write(text) {
-      await mkdir(path.dirname(file), { recursive: true });
-      const tmp = `${file}.${process.pid}.tmp`;
-      await writeFile(tmp, text, "utf8");
-      await rename(tmp, file);
+      await durableWrite(file, text);
     },
   });
 }
@@ -59,7 +56,7 @@ export function createCliProviders(
       if (flags.ens === "mock") return mockSepoliaBlocks(fixtureTimeline());
       throw new CliProviderNotWiredError("Sepolia block source", "I2, with the SepoliaEnsReader");
     },
-    resultsPublisher(): ResultsPublisher {
+    resultsPublisher(): PreparedResultsPublisher {
       if (flags.results === "mock") return new MockResultsPublisher({ store: fileStore(publisherFile) });
       throw new CliProviderNotWiredError("SepoliaResultsPublisher", "A4.2, switched on at I4");
     },

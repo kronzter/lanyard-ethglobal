@@ -8,6 +8,9 @@ export default function Screen() {
     <View style={{ flex: 1 }}>
       <Placeholder path="/organizer" />
       <View style={{ padding: 16, alignItems: "center" }}>
+        <Link href={"/organizer/leaderboard" as never} style={styles.link}>
+          Judging progress and published rankings
+        </Link>
         <Link href={"/organizer/judging" as never} style={styles.link}>
           Judging desk: submissions, rubrics and assignments
         </Link>

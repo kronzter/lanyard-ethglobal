@@ -163,3 +163,11 @@ External constraints to recheck against pinned packages in P0:
 - [ENS website URL text record](https://docs.ens.domains/ensip/5/)
 - [Expo web output and hosting](https://docs.expo.dev/guides/publishing-websites/)
 - [Local Android builds and Windows limitations](https://docs.expo.dev/build-reference/local-builds/)
+
+### Local prepared publication extension (B4)
+
+The Node freeze composition root requires `PreparedResultsPublisher`, an additive extension of `ResultsPublisher`: `pendingTransactions()`, `prepare(operation)`, `broadcastPrepared(transaction)` and `preparedStatus(hash)`. `PreparedPublication` retains raw bytes, transaction hash and nonce; `PublicationOperation` is the existing event/winner/lock union. Preparation persists intent without broadcasting. Restart reuses the identical prepared transaction; pending/unknown outcomes never allocate a replacement nonce. The existing app/read interface is unchanged. The mock persists canonical mock transaction envelopes and distinguishes prepared from submitted state; these are explicitly mock bytes, not Ethereum transaction signatures. The I4 Sepolia adapter must implement actual locally signed transaction preparation and pass the additional prepared-publication conformance suite before live freeze is enabled.
+
+A signed in-window bundle may be staged in its saved job before host upload. The operator uploads that exact public artifact to the chosen HTTPS URI and resumes the identical job. Download verification and both local copy checks precede every publication attempt. This staging step never publishes results, changes cutoff/config/prizes, or authorizes a different hosting service.
+
+B4 capture writes an independent key inventory before retained observation bytes. Freeze compares that inventory with retained records before requesting the score key; a missing line cannot be hidden by decrementing a derived count. Bundle diagnostics carry `inputKeys` for the filtered ranking inputs and verification rejects a mismatch. This detects loss of known retained bytes, not unobserved historical deletions. The publication lock also writes edition text `lanyard.locked = "1"` atomically; app readers require this sentinel before rendering committed rankings/prizes, and the CLI checks the full locked event and winner state against the bundle.

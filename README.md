@@ -57,6 +57,30 @@ Android APKs are built on EAS cloud (`pnpm app:dev-apk`, `pnpm app:apk`). A buil
 Linux/macOS/WSL host may add `--local` (`pnpm app:apk:local`). Builds get only public `EXPO_PUBLIC_*`
 values; never store a signing, operator or decryption key as an EAS secret.
 
+## Judging and freeze
+
+Team leads edit `/team`; public `/teams/<team>` pages use validated immutable submissions. The web judging desk at `/organizer/judging` accepts snapshots and assigns judges under each track’s earliest valid rubric. Judges use `/judge`; editable scores recover only on the same installation/browser profile. AsyncStorage/IndexedDB saves are separate from encrypted Arkiv mirror sync. Clearing storage or using another device requires re-entry, and local storage is readable to someone with access to that device’s app data.
+
+Start the local capture runner **before creating rubrics/submissions**, keep it running through preparation, and reconcile watcher failures/restarts before freeze:
+
+```sh
+pnpm lanyard capture --every 15
+pnpm lanyard freeze mumbai2026 --prizes fixtures/prizes.json --bundle-uri https://your-host.example/mumbai2026/bundle.json
+```
+
+The local operator environment supplies `RESULTS_PRIVATE_KEY` (or `LANYARD_KEY_RESULTS`), `SCORE_DECRYPTION_KEY`, and read RPC values. No private material belongs in `EXPO_PUBLIC_*`, EAS or app storage. Both confirmed cutoffs must be in `[results, freezeDeadline)` before the score key can be disclosed. The default CLI publisher is persisted mock state until I4; mock transaction envelopes are not a live Sepolia signing test.
+
+Preparation saves `.lanyard/freeze/mumbai2026/job.json`, the signed bundle beside it, and a second copy under `.lanyard/evidence-backup/mumbai2026/`. The command stops until the operator uploads that exact public bundle to the chosen HTTPS URI. Hosting publication is a separate operator action. Then resume the saved job:
+
+```sh
+pnpm lanyard freeze --resume .lanyard/freeze/mumbai2026/job.json
+pnpm lanyard verify mumbai2026 --bundle .lanyard/freeze/mumbai2026/bundle.json
+```
+
+Resume checks both copies, the downloaded artifact, saved cutoffs, signer/config, historical ENS and exact operation hashes. It reconciles persisted signed bytes/hash/nonce and confirmed state; pending, unknown or conflicting outcomes stop without a replacement nonce. A saved in-window job can finish after the deadline. A stale `operator.lock` requires checking the process and journal before removing that lock; never remove/rebuild an uncertain publication job.
+
+`fixtures/prizes.json` is a disclosed demo placeholder. Prize selection remains manual, separate from track rankings. Rankings use exact rational weighted means and become visible only from checked publication evidence; later badge changes do not rewrite them. Captured readonly records remain usable after deletion/expiry, but `MATCH` does not prove historical capture completeness or rule out unseen earlier deleted candidates. Verification still requires online historical ENS reads; the bundle host is optional when a local bundle is supplied.
+
 ## Known limitations
 
 Recorded here as phases find them (see `plans/00-README.md` › Evidence and product guarantees).
@@ -83,3 +107,5 @@ Recorded here as phases find them (see `plans/00-README.md` › Evidence and pro
 - A1 shipped without the planned independent bug hunt (organizer's decision, 2026-11-07). Its
   coverage is the 129 Foundry tests, fork modes A and B against the live Sepolia edition, and the
   earlier reviewer findings A1-D1–D9.
+- B4’s real Sepolia prepared-publication adapter is an I4 gate and must pass both publisher conformance suites; B4 exercises persisted mocks.
+- Physical Android tests and the remaining phase bug hunt were skipped at the user’s request. Browser flows and a separate Node verifier process were exercised; live host CORS, Sepolia publication and a second physical laptop were not tested in B4.
