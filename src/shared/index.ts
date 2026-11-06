@@ -15,3 +15,4 @@ export * from "./types/venue";
 export * from "./url";
 export * from "./deployments/schema";
 export * from "./deployments/load";
+export * from "./types/team-page";

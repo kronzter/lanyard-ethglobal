@@ -1,0 +1,32 @@
+{
+  "populated": {
+    "status": "published",
+    "team": "zkpay",
+    "track": "arkiv",
+    "content": {
+      "title": "zkPay",
+      "description": "Private split payments for hackathon teams, with receipts stored on Arkiv.",
+      "members": ["Person A", "Person B", "Person C", "Person D"],
+      "links": {
+        "ethglobal": "https://ethglobal.com/showcase/zkpay-x1y2z",
+        "repository": "https://github.com/example/zkpay",
+        "demo": "https://zkpay.example",
+        "video": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      }
+    },
+    "winner": null
+  },
+  "awaitingSubmission": {
+    "status": "awaiting-submission",
+    "team": "chainchat"
+  },
+  "unknownTeam": {
+    "status": "unknown-team",
+    "team": "nosuchteam"
+  },
+  "unavailable": {
+    "status": "unavailable",
+    "team": "seatsense",
+    "reason": "Sepolia archive RPC unreachable"
+  }
+}
