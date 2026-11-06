@@ -38,4 +38,9 @@ export default tseslint.config(
     files: ["scripts/**", "cli/**", "fixtures/**", "e2e/**", "*.config.*", "*.mjs"],
     languageOptions: { globals: { ...globals.node } },
   },
+  {
+    files: ["metro.config.js"],
+    languageOptions: { sourceType: "commonjs" },
+    rules: { "@typescript-eslint/no-require-imports": "off" },
+  },
 );
