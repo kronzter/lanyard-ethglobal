@@ -3,7 +3,12 @@
 import type { Address, Hex } from "viem";
 import type { Connection } from "./connect";
 
-export async function sendTx(ctx: Connection, to: Address, data: Hex, what: string): Promise<bigint> {
+export async function sendTxWithHash(
+  ctx: Connection,
+  to: Address,
+  data: Hex,
+  what: string,
+): Promise<{ block: bigint; hash: Hex }> {
   const { walletClient: wc, publicClient: pc, account } = ctx;
   if (!wc || !account) throw new Error(`a signing key is required to ${what}`);
   await pc.call({ to, data, account });
@@ -11,5 +16,9 @@ export async function sendTx(ctx: Connection, to: Address, data: Hex, what: stri
   const receipt = await pc.waitForTransactionReceipt({ hash });
   if (receipt.status !== "success") throw new Error(`${what} reverted in ${hash}`);
   console.log(`  ${what}: confirmed ${hash} in block ${receipt.blockNumber}`);
-  return receipt.blockNumber;
+  return { block: receipt.blockNumber, hash };
+}
+
+export async function sendTx(ctx: Connection, to: Address, data: Hex, what: string): Promise<bigint> {
+  return (await sendTxWithHash(ctx, to, data, what)).block;
 }
