@@ -46,9 +46,15 @@ contract LanyardRegistrar {
     error ResolverHasNoCode(address resolver);
     error UnexpectedToken();
     error UnexpectedBookRoles(bytes32 book, uint256 roleCount);
+    error UnknownBook(bytes32 book);
+    /// @dev The partners book issues no badges until A2.2 defines its policy.
+    error BookNotOpen(bytes32 book);
+    error InvalidBadgeLabel();
+    error ExpiryAbovePolicy(uint64 requested, uint64 policy);
 
     event EditionBootstrapped(address indexed edition, string label);
     event BookCreated(bytes32 indexed book, string label, address registry);
+    event BadgeIssued(bytes32 indexed book, string label, address indexed owner, uint64 expiry);
     event EditionSealed(address indexed edition);
     event PublicationResolverSet(address indexed resolver);
 
@@ -58,6 +64,7 @@ contract LanyardRegistrar {
 
     /// @dev Same grace as `NAMESPACE_GRACE_SECONDS` in `src/shared/config/validate.ts`.
     uint64 public constant NAMESPACE_GRACE = 30 days;
+    uint64 public constant HACKER_GRACE = 7 days;
     uint64 internal constant FAR_FUTURE = type(uint64).max;
 
     /// @dev Roles this contract holds on the edition registry root while bootstrapping. Everything
@@ -256,6 +263,59 @@ contract LanyardRegistrar {
         );
         bookRegistry[book] = registry;
         emit BookCreated(book, label, address(registry));
+    }
+
+    ////////////////////////////////////////////////////////////////////////
+    // Badges
+    ////////////////////////////////////////////////////////////////////////
+
+    /// @notice Issues a badge: registers `label` in `book` to `owner`. The policy is fixed here: zero
+    ///         roles (no transfer, no resolver, no subregistry, nothing to delegate) and the book's expiry.
+    ///         Callers choose neither roles nor expiry. Organizer only, after sealing.
+    /// @dev Direct issuance through the organizer's own raw role on a book bypasses this policy; that is
+    ///      issuer trust, tested in RegisterBadge.t.sol and disclosed in A2.
+    function registerBadge(bytes32 book, string calldata label, address owner)
+        external
+        onlyOrganizer
+        inPhase(Phase.Sealed)
+        returns (uint256 tokenId)
+    {
+        if (owner == address(0)) revert ZeroAddress(); // owner 0 would reserve the label, not issue it
+        _checkBadgeLabel(label);
+        uint64 expiry = badgeExpiry(book);
+        tokenId = bookRegistry[book].register(label, owner, IRegistry(address(0)), address(0), 0, expiry);
+        emit BadgeIssued(book, label, owner, expiry);
+    }
+
+    /// @notice Extends (or revives) a badge, never beyond the book's policy expiry. Organizer only.
+    function renew(bytes32 book, string calldata label, uint64 newExpiry)
+        external
+        onlyOrganizer
+        inPhase(Phase.Sealed)
+    {
+        uint64 policy = badgeExpiry(book);
+        if (newExpiry > policy) revert ExpiryAbovePolicy(newExpiry, policy);
+        _checkBadgeLabel(label);
+        bookRegistry[book].renew(uint256(keccak256(bytes(label))), newExpiry);
+    }
+
+    /// @notice The frozen expiry of badges in `book`: hackers end 7 days after the event, judges at the
+    ///         freeze deadline, volunteers with the event. Partners reverts until A2.2.
+    function badgeExpiry(bytes32 book) public view returns (uint64) {
+        if (book == HACKERS) return eventEnd + HACKER_GRACE;
+        if (book == JUDGES) return freezeDeadline;
+        if (book == VOLUNTEERS) return eventEnd;
+        if (book == PARTNERS) revert BookNotOpen(book);
+        revert UnknownBook(book);
+    }
+
+    /// @dev A badge label is one non-empty label: no dots, so it cannot smuggle in a deeper name.
+    function _checkBadgeLabel(string calldata label) internal pure {
+        bytes calldata b = bytes(label);
+        if (b.length == 0) revert InvalidBadgeLabel();
+        for (uint256 i; i < b.length; ++i) {
+            if (b[i] == 0x2e) revert InvalidBadgeLabel();
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////

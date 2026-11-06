@@ -155,5 +155,6 @@ describe("namespace expiry shared with Solidity", () => {
     expect(eventConfig.times.eventEnd).toBe(1_796_560_200n);
     expect(eventConfig.times.freezeDeadline).toBe(1_796_567_400n);
     expect(expiry).toBe(1_796_567_400n + 30n * 86_400n);
+    expect(expiry).toBe(1_799_159_400n); // RegisterBadge.t.sol › test_R4_namespaceExpiryEqualsTheTypescriptFormula
   });
 });
