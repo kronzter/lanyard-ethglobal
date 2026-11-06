@@ -1,6 +1,7 @@
 // The demo event for fake mode (development only): what the organizer, leads and hackers would
 // have written by event start + 2 h. Four leads schedule ten volunteers across the two zones of the
-// small venue; some are already clocked in with a lead pass, others are due to self-start.
+// small venue; some are already clocked in with a lead pass, others are due to self-start. Two
+// hackers have open help tickets.
 //
 // Each persona writes as itself through FakeArkiv, so the same rules decide what counts.
 import personasJson from "../../fixtures/personas.json";
@@ -64,5 +65,8 @@ export async function seedFakeEvent(fake: FakeArkiv, config: EventConfig): Promi
       ["duty_pass", { volunteer, shift: shifts[id]!, endsAt: start + offset + length }],
     ]);
   }
+  // Two hackers already waiting for help, one per zone.
+  await write("zkpay-b", [["ticket", { seat: "w3", venue: venue!, category: "wifi" }]]);
+  await write("chainchat-a", [["ticket", { seat: "e2", venue: venue!, category: "power" }]]);
   return { venue: venue!, shifts };
 }

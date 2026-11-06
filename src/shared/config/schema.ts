@@ -60,6 +60,8 @@ export const EventConfigSchema = z
       .strict(),
     chains: z.object({ sepolia: ChainPolicy(SEPOLIA_CHAIN_ID), rabdi: ChainPolicy(RABDI_CHAIN_ID) }).strict(),
     venue: z.object({ cellSizeMm: z.number().int().positive() }).strict(),
+    /** Shown instead of a ticket form for medical or safety issues (B3.2). Public. */
+    help: z.object({ staffPhone: z.string().min(1), deskLocation: z.string().min(1) }).strict(),
     /** Public score-encryption parameters from S11. The private key never appears here. */
     scoreCipher: gated(
       z
