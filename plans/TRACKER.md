@@ -106,6 +106,14 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 | R3 | Linked shift creates need exclusive signer custody that external wallets cannot prove | `shiftWriteProfile = confirmed-sequential` (S12), per the existing fallback; B1/B3 implement the two-step replacement with a visible pending state | revised |
 | R4 | The score cipher had no pinned implementation | Pinned noble X25519 + HKDF-SHA256 + AES-256-GCM, envelope v1 and vectors (S11); B4 uses `src/shared/crypto/score-cipher.ts` | revised |
 
+### Approved plan repair · 2026-11-06 (Mumbai venue size)
+
+Scope approved in conversation: the user shared the ETHGlobal Mumbai floor plan, asked to keep its layout but split the hacking spaces into many more seat slots, estimated the hall at ~80 × 50 m, then chose to scale it to ~96 × 60 m to reach ~800 seats. The event has 6–8 partners, to be named later. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| V1 | A3.1 planned ~60 seats, 3 zones and 2 partner tables | `venue.mumbai.json` traced from the floor plan at ~96 × 60 m with ~800 seats, 5 zones each with a help desk or help point, 8 partner booths (configured partners get `partner-table`s, the rest are placeholders); A3.1 | revised |
+
 ### Specs
 
 | Spec | Owner | Status | Commit | Notes |
@@ -191,8 +199,8 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 | Spec | Status | Commit | Notes |
 | --- | --- | --- | --- |
-| A3.1 Venue editor and export | todo | | |
-| A3.2 GridRouter | todo | | |
+| A3.1 Venue editor and export | doing | 4f5ecbe | **Editor added 2026-11-07:** `src/venue/editor/` (grid model, seat/POI/zone tools, undo, stable seat IDs `s001…`, RLE export) with `validateVenue` for R3/R4/R6/R7 (errors block export, >120 KiB warns); round-trip test (60 seeded cases); `fixtures/venue.mumbai.json` validates clean. Web-only screen `app/venue/editor.tsx` builds in `web:export`; **not yet checked interactively in a browser, and organizer-only gating is a TODO**. **Mumbai venue drafted ahead of A3 (branch `a3/A3.1-mumbai-venue`):** `src/venue/layout.ts` builds a venue from areas (seat · table · seat rows, blocked items, POIs snapped off blocked cells, `scaleLayout`); `src/venue/layouts/mumbai.ts` traces the floor plan; `pnpm venue:mumbai` writes `fixtures/venue.mumbai.json` (96 × 60, 801 seats, 36 POIs, ~48 KB compact); tests check R4/R6/R7, every seat reachable from its zone's help point and the committed file matching the layout. Hall size is an estimate; editor still todo |
+| A3.2 GridRouter | doing | 2af066f | `src/venue/grid-router.ts` (pure TS): 8-direction A* with 1,000/1,414 integer costs, no corner-cutting, (y, x) tie order; one-Dijkstra `distances`; `nextTicket` alpha scoring with future-input rejection; `judgeRoute` nearest-next over `LocatedStop[]`; nearest-walkable snapping. Passes `runRouterConformance` on the small and Mumbai venues (39 tests); unreachable target on Mumbai returns null in 1.4 ms on Node. Phone timing (R7) and I3 wiring pending |
 | A3.3 Real VenueMap | todo | | |
 
 **Bug hunt:** todo · **Merged:** no

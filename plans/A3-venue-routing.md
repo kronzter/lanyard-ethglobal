@@ -35,7 +35,7 @@ Publishing the venue to Arkiv and writing seat assignments (Track B, wired in I3
 - [ ] Grid model and RLE codec with a round-trip property test
 - [ ] Editor canvas: brush, seat tool, POI tool, zone tool, undo
 - [ ] Validation panel (R3, R4, R6, R7)
-- [ ] Draw the real venue: `fixtures/venue.mumbai.json` with ~60 seats, 3 zones (each with a help desk), 2 partner tables
+- [ ] Draw the real venue: `fixtures/venue.mumbai.json`, traced from the ETHGlobal Mumbai floor plan at ~96 × 60 m with ~800 seats (hacking spaces split into seat · table · seat rows), one zone per area (each with a help desk or help point), and 8 partner booths: a `partner-table` for each configured partner, the rest named placeholders until their partners are configured
 
 **Commit:** `feat(venue): A3.1 venue editor and venue.json export`
 
