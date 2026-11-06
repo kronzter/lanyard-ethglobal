@@ -97,7 +97,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 
 | Spec | Owner | Status | Commit | Notes |
 | --- | --- | --- | --- | --- |
-| P0.6 Wallet and chain spike | pair | doing | | **B (Node half):** S9, S10, S12 in progress; S6 and the write halves need a funded Rabdi key. **A (phone half):** S1–S5, S7, S8 not started. See the Spike table |
+| P0.6 Wallet and chain spike | pair | doing | | **A (phone half):** S1, S2, S7 done on Android (2026-11-06); S8 keyless read half measured (no failures or 429s, but ~137 reads/min, below the 200/min target; burst and subscriptions open); S5 (web) open. **B (Node half):** S9, S10, S12 in progress; S6 and the write halves need a funded Rabdi key. **Paired:** S3, S4, S8 subscriptions, S11 wait for B's SDK pin on A's phone. See the Spike table |
 | P0.1 Repo skeleton and CI | B (swapped from A) | done | bd95a4b | PR #1; CI green ([run 42172719701](https://github.com/kronzter/lanyard-ethglobal/actions/runs/42172719701), on `069a510`, the identical tree before the attribution-trailer rewrite). Single Expo app (SDK 58, Node 24, pnpm hoisted), `lanyard/boundaries` lint rule, context-aware secret scan (fake key rejected, hashes and Anvil keys allowed, verified in a fresh clone), one Foundry project with Soldeer forge-std 1.17.0, CODEOWNERS test. ENSv2 pin deferred to A1 |
 | P0.2 Shared types, config, deployments | B | blocked | 9ad0618 | Implemented in `src/shared/` (186 tests): canonical labels (ENSIP-15 + strict policy), RFC 8785 canonical JSON + keccak + strict parser, event config (placeholder Dec 2026 IST times; mock authority wallets from the public test mnemonic), freeze window and `namespaceExpiry`, venue/routing shapes, mock/live deployments schema, team-page content and URL helper. **Blocked only on measured values:** Sepolia confirmations/reset ID (S7), Rabdi confirmations/reset ID (S10), score cipher (S11), `shiftWriteProfile` (S12), funding profile (S6). They are `unmeasured`, so `configHash` and `requireLive` throw `BlockedCapabilityError` |
 | P0.3 Interfaces, mocks, conformance | B (A reviews) | done | 7954c00 | `EnsReader`, `IdentityDirectory`, `EvaluationContext`, `Router` and `ResultsPublisher` interfaces; registration-ID hash and registration-bound `lanyard.perms` envelope; `MockEnsReader`, `MockIdentityDirectory`, `StubRouter` (Manhattan mm, straight paths, walls ignored) and `MockResultsPublisher` (stored mock transactions with success/revert/pending/crash receipts, reconcile, atomic lock); `runEnsReaderConformance` (13 checks), `runRouterConformance` (12) and `runResultsPublisherConformance` (11), each scenario- or harness-driven so the real implementations reuse them, each with a broken-mock self-test that is caught; evidence schemas: `CapturedObservation`, signed `EvidenceBody`/envelope with `verifyEnvelope`, `resultsBody`/`resultsHash`, 128 KiB summary check, `RULES_VERSION` manifest; app providers serve the ENS mocks and stub router, and `cli/providers.ts` serves the fixture reader plus a file-backed mock publisher that survives restarts; 12 canonical vectors match on Node and headless Chromium (CI uses Chrome). **Hermes vectors** run with spike S11 |
@@ -106,7 +106,7 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 
 **Bug hunt:** deferred: it runs once over all of P0 after the P0.5 shell and the P0.6 spike are complete · **Merged:** no (`phase/P0-foundation` merges into `main` after the bug hunt)
 
-**Status · 2026-11-06:** everything in P0 that needs no key, phone or account is built (P0.1–P0.4 done, the P0.5 web slice done). Remaining: the P0.5 app-shell wallet/Android work, the whole P0.6 spike, then the bug hunt and the merge to `main`.
+**Status · 2026-11-06 (evening):** P0.1, P0.3, P0.4 done. P0.5 merged into `phase/P0-foundation` (#8, #9, #10, #12, #13; #15 open) and checked on Android; only a `preview` APK on both phones is left. P0.2 is blocked only on the five `unmeasured` values from B's spike. P0.6: A's phone half mostly done (S1, S2, S7; S8 partly); open are B's S6, S9, S10, S12, the paired S3, S4, S8 subscriptions and S11, and A's S5. Then the bug hunt (swap specs), delete `spike/`, and merge into `main`. Drafts waiting for P0: #11 (A3.1 Mumbai venue), #14 (A1.1 + A1.2). Biggest risk: S3 (Arkiv SDK on Hermes with the AppKit signer); per the fallback table, stop and decide jointly if it fails.
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -119,15 +119,16 @@ Scope approved in conversation: Person A (`@kronzter`) unavailable at P0 start; 
 2. When the tGLM-funded `RABDI_SPIKE_PRIVATE_KEY` exists: the Node half of the spike (S6 contract on Rabdi, S10 writes and confirmation depth, S12 on-chain key prediction), filling the `unmeasured` config values, then the spike PR. The local branch `p0/P0.6a-arkiv-spike` already pins the Arkiv SDK.
 3. With Person A: S3/S4 on a phone and the Hermes run of the canonical vectors and cipher (S11).
 4. Once the shell and the spike are complete: the P0 bug hunt (fresh agent session, prompt in `00-README.md`), fixes, delete `spike/`, merge `phase/P0-foundation` into `main`.
-5. Then B1 from `main`.
+5. B1 can start now as a draft stacked on `phase/P0-foundation` (everything it reads from P0 is merged; Node tests use a local key); only the funding path waits on S6. Retarget to `phase/B1-…` after P0 merges into `main`.
 
 **Person A · `@kronzter`**
 
 1. ~~Review the merged P0 work (PRs #1, #5, #6, #7)~~ done 2026-11-06: layout, CODEOWNERS, shared types, mocks, conformance suites and `roleOfLabel` agree with the plans; only these tracker lines were stale.
 2. ~~Set up an Expo account and eas-cli, get a Reown project ID and an archive Sepolia RPC key~~ done 2026-11-06.
-3. Phone half of the spike: S1–S5, S7, S8 (S3/S4 paired with B).
-4. Rest of the app shell: `eas.json` and the local APK scripts (R2), AppKit `useWallet()` on Android and web (R3), stub `<VenueMap>` (R5), `IdentityDirectory` role selector (R6), and the "Open on web" check on a real Android build.
-5. Then A1: add ENSv2 as a Soldeer git dependency (candidate `ensdomains/contracts-v2` tag `sepolia-deployment-2026-09-15` = `f2f0a05`) and verify ABI and on-chain implementation compatibility.
+3. Phone half of the spike: ~~S1, S2, S7~~ done 2026-11-06; S8 read half measured. Open: S8 burst and a true 200/min run, S5 on web (Chrome + MetaMask at `/spike`), and with B: S3, S4, S8 subscriptions, S11 on Hermes (S3 first).
+4. ~~Rest of the app shell (R2, R3, R5, R6, R7 on Android)~~ merged 2026-11-06. Open: merge #15, a `preview` APK (`pnpm app:apk`) on both phones.
+5. A1.1 + A1.2 drafted (#14; fork mode A passes; `lanyard.eth` registered on Sepolia). A1.3 on hold until P0 is stable; live deploy after P0 merges into `main`.
+6. With B: the P0 bug hunt, fixes, delete `spike/` (A's spike screen is local-only), merge `phase/P0-foundation` into `main`.
 
 ---
 
