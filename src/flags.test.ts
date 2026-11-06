@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { FlagError, parseFlags } from "./flags";
+import { fixtureVenue } from "@/shared/mocks/fixtures";
 import { ProviderNotWiredError, createProviders } from "./providers";
 
 describe("parseFlags", () => {
@@ -26,19 +27,19 @@ describe("createProviders", () => {
   });
 
   it("fails loudly for providers that are not wired yet, naming where they land", () => {
-    const mock = createProviders({ ens: "mock", router: "stub" });
-    expect(() => mock.router()).toThrow(ProviderNotWiredError);
-    expect(() => mock.router()).toThrow(/P0\.3/);
     const live = createProviders({ ens: "sepolia", router: "grid" });
     expect(() => live.ensReader()).toThrow(/A2\.4, switched on at I2/);
     expect(() => live.identityDirectory()).toThrow(/A2\.4, switched on at I2/);
+    expect(() => live.router()).toThrow(ProviderNotWiredError);
     expect(() => live.router()).toThrow(/A3\.2, switched on at I3/);
   });
 
-  it("serves the fixture ENS reader and directory in mock mode, one instance each", async () => {
+  it("serves the fixture ENS reader, directory and stub router in mock mode, one instance each", async () => {
     const p = createProviders({ ens: "mock", router: "stub" });
     expect(p.ensReader()).toBe(p.ensReader());
     expect(await p.ensReader().headBlock()).toBeGreaterThan(0n);
+    expect(p.router()).toBe(p.router());
+    expect(p.router().path(fixtureVenue(), { x: 0, y: 0 }, { x: 1, y: 1 })).toHaveLength(2);
     expect(
       await p
         .identityDirectory()

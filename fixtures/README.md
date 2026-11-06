@@ -62,6 +62,28 @@ registry holding its children (`@base` holds the edition itself).
 | `results` + 1 h                               | `gita.judges` is unregistered                                                                                                                                  | Revocation after a freeze cutoff at `results`                                              |
 | Block 9,471,000 (`namespaceExpiry` + 30 days) | The edition lapses while team names are still unexpired                                                                                                        | Ancestor expiry: children stop resolving                                                   |
 
-## Deferred
+## `venue.small.json`
 
-`venue.small.json` lands before B3 and the evidence edge-case scenarios before B4 (`plans/P0-foundation.md` › Track B slice).
+A hand-made 20×12 hall with 1 m cells, used until A3.1 exports the real Mumbai venue.
+
+- Zones `west` (columns 0–9) and `east` (10–19), split by a wall in column 10 that is open from
+  row 8 down.
+- A row of tables walls off row 6 between columns 3 and 8.
+- Twelve seats: `w1`–`w6` in the west, `e1`–`e5` plus `e6-walled` in the east.
+- Points of interest: a `help-desk` in each zone (helpers start there when they clock in) and the
+  main `stage`.
+- `e6-walled` at (16, 9) is surrounded on all eight sides by walls. Grid routing must report it
+  unreachable; the stub router, which ignores walls, still gives it a distance.
+
+## `evidence-scenarios.json`
+
+Edge cases for capture, rules and the freeze pipeline, on a mock Rabdi chain (2 s blocks). The
+observations use the `CapturedObservation` format from `src/shared/evidence/observation.ts`.
+
+| Scenario                    | What it proves                                                                                                                                                      |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `deletedCapturedFinal`      | Ana's final score was captured and later deleted by its owner. The retained readonly bytes remain usable evidence                                                   |
+| `deletedUncapturedFinal`    | Chen's final score key entered the inventory but vanished before its bytes were retained: a capture gap that stops automatic freeze, never a silently missing score |
+| `expiredLeaseRetainedClaim` | Ravi's claim on Person B's ticket was made 20 minutes before evaluation; its physical expiry was extended, but the logical 15-minute lease has lapsed               |
+| `publicationRestart`        | The freeze CLI broadcast the event results and crashed before journaling the receipt; a restarted CLI reconciles and adopts it without resending                    |
+| `cutoffs`                   | Cutoffs at `results − 1` and `freezeDeadline` are rejected; `results` and `freezeDeadline − 1` are accepted                                                         |

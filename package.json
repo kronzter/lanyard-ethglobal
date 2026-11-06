@@ -23,8 +23,9 @@
     "forge:test": "forge test --root contracts",
     "lanyard": "tsx cli/index.ts",
     "web:export": "expo export --platform web --output-dir dist",
-    "ci:local": "pnpm secret-scan:all && pnpm lint && pnpm typecheck && pnpm test && pnpm forge:install && pnpm forge:fmt && pnpm forge:test && pnpm web:export && pnpm smoke:web",
-    "smoke:web": "node scripts/smoke-web-deeplink.mjs"
+    "ci:local": "pnpm secret-scan:all && pnpm lint && pnpm typecheck && pnpm test && pnpm vectors:browser && pnpm forge:install && pnpm forge:fmt && pnpm forge:test && pnpm web:export && pnpm smoke:web",
+    "smoke:web": "node scripts/smoke-web-deeplink.mjs",
+    "vectors:browser": "node scripts/vectors-browser.mjs"
   },
   "dependencies": {
     "@adraffy/ens-normalize": "1.11.1",
@@ -49,6 +50,7 @@
     "@scure/bip39": "2.4.0",
     "@types/node": "24.19.2",
     "@types/react": "19.3.0",
+    "esbuild": "0.28.2",
     "eslint": "10.14.0",
     "globals": "17.14.0",
     "husky": "9.1.7",

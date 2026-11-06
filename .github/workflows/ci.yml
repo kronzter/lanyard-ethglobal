@@ -30,6 +30,10 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
+      - name: canonical vectors in headless Chrome
+        run: pnpm vectors:browser
+        env:
+          BROWSER: google-chrome
       - run: pnpm web:export
       - run: pnpm smoke:web
 

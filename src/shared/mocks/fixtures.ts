@@ -2,13 +2,16 @@
 // their integration checkpoint switches them to the real implementations.
 import historyJson from "../../../fixtures/ens-history.json";
 import timelineJson from "../../../fixtures/timeline.json";
+import venueJson from "../../../fixtures/venue.small.json";
 import { parseEnsHistory } from "../fixtures/ens-history";
 import { parseTimeline } from "../fixtures/timeline";
+import { parseVenue } from "../types/venue";
 import { MockEnsReader, type MockEnsReaderOptions } from "./mock-ens-reader";
 import { MockIdentityDirectory } from "./mock-identity-directory";
 
 export const fixtureEnsHistory = () => parseEnsHistory(historyJson);
 export const fixtureTimeline = () => parseTimeline(timelineJson);
+export const fixtureVenue = () => parseVenue(venueJson);
 
 export const createFixtureEnsReader = (opts: Pick<MockEnsReaderOptions, "fail"> = {}): MockEnsReader =>
   new MockEnsReader({ history: fixtureEnsHistory(), timeline: fixtureTimeline(), ...opts });
