@@ -32,7 +32,7 @@ export const samplePublication: PublicationInput = {
   bundleHash: h("3"),
   bundleUri: "https://evidence.example/mumbai2026/bundle.json",
 };
-const winner = (team: string, prizes = ["Arkiv track, 1st"]): WinnerInput => ({
+const winner = (team: string, prizes = ["winner"]): WinnerInput => ({
   ...samplePublication,
   team,
   prizes,
@@ -117,7 +117,7 @@ export const resultsPublisherChecks: Check<PublisherHarness>[] = [
       await p.setEventResults(samplePublication);
       await p.declareWinner(winner("zkpay"));
       await expectRejects(
-        () => h.restart().declareWinner(winner("zkpay", ["ENS track, 2nd"])),
+        () => h.restart().declareWinner(winner("zkpay", ["runner-up"])),
         "second declaration for zkpay",
       );
     },
