@@ -16,3 +16,4 @@ export * from "./url";
 export * from "./deployments/schema";
 export * from "./deployments/load";
 export * from "./types/team-page";
+export * from "./fixtures/personas";
