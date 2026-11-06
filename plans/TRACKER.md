@@ -291,7 +291,17 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 ### I2 · Real ENS history
 
-**Smoke (`pnpm e2e:i2`, hashes match):** todo · **Merged:** no
+**A2/B2 synchronization:** implemented on `int/I2-real-ens-history` (2026-11-07). **Automated smoke (`pnpm e2e:i2`):** passes on a local fork of the deployed Sepolia contracts, with captured FakeArkiv rows and matching app/CLI canonical bundle bytes and Node/Chromium output hashes. **Full live/device acceptance:** pending. **Bug hunt / cross bug hunt:** skipped by the user's explicit instruction for this integration. **Merged:** no.
+
+Both composition roots select A2's real reader in `sepolia` mode; the app also wires `IdentityDirectory`, and Node reads canonical cutoff block identities from the same RPC. ENS defaults and `.env.example` now select `sepolia`; existing explicit mock overrides remain effective. Live mode uses separately configured deployed organizer/head-judge addresses, verified against the registrar; mock authority wallets and B2 vectors stay reproducible. Results/partner authority placeholders still require their own deployment configuration before live judging/publication.
+
+The smoke covers owner versus forward address, coordinator-scoped permission grant/removal, unregister/reissue intervals and prior-owner history, exact expiry/root revival, role-change/renewal identity stability, stale notes after same-wallet reissue, organizer/forged seat-assignment verdicts, and identical retained inputs through both providers. Artifacts: `.lanyard/i2/{bundle.json,sepolia-history-fork.json,reproduce.html}`. Run instructions and scope are in `e2e/README.md`.
+
+Implementation commits: `174b864` (provider/config wiring), `cf4f55e` (integration scenario and run instructions).
+
+Validation (2026-11-07): `pnpm ci:local` and `pnpm e2e:i2` pass; `pnpm test` reports 951 passed / 15 skipped; typecheck, lint, secret scan, browser canonical/cipher/rules vectors, Foundry formatting, 143 contract tests (1 deployment-specific skip), Sepolia-mode web export and direct-route smoke pass. The I2 development output hash is `0x63fda0ab2879491efbe4ea4ee619632c131b7b2d14a9f54f5c4b1ed6219a9ea5`.
+
+Not claimed as passed: recorded live Sepolia/Rabdi scenario (`fixtures/sepolia-history.json`), cross-laptop reproduction, Android/Hermes, or a published-results `MATCH`. The fork's unsigned development body is outside the event freeze window and contains no event decryption material. Full I2 completion remains open until those acceptance legs are recorded; this user's requested A2/B2 code synchronization is implemented.
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |

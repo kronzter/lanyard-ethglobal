@@ -4,6 +4,8 @@
 
 This doesn't block A3 or B3.
 
+**Run scope · 2026-11-07:** the user requested A2/B2 synchronization and explicitly waived the bug hunt and cross bug hunt for this run. The automated `pnpm e2e:i2` scenario uses a local fork of the deployed Sepolia contracts and captured FakeArkiv records; it compares app/CLI bundle bytes and Node/Chromium hashes. Live transaction history, two physical laptops and Android/Hermes remain separate acceptance legs, tracked in `TRACKER.md`; fork evidence must never be presented as live Sepolia/Rabdi evidence. See `e2e/README.md` for execution and artifacts.
+
 ## Goal
 
 The B2 core and preparation run on real historical ownership, address, expiry and note reads through A2.4 on Node/Android, matching the mock. This checkpoint does not need B3 shift rules or screens. Compare exact retained bundle bytes and context under the shared evidence contract.
