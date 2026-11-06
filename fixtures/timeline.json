@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "chainId": 11155111,
+  "secondsPerBlock": 12,
+  "genesis": {
+    "block": "9000000",
+    "timestamp": "1796099400"
+  },
+  "head": "9579000",
+  "times": {
+    "eventStart": {
+      "timestamp": "1796358600",
+      "block": "9021600"
+    },
+    "submissionDeadline": {
+      "timestamp": "1796527800",
+      "block": "9035700"
+    },
+    "judgingEnd": {
+      "timestamp": "1796542200",
+      "block": "9036900"
+    },
+    "results": {
+      "timestamp": "1796545800",
+      "block": "9037200"
+    },
+    "eventEnd": {
+      "timestamp": "1796560200",
+      "block": "9038400"
+    },
+    "freezeDeadline": {
+      "timestamp": "1796567400",
+      "block": "9039000"
+    }
+  }
+}

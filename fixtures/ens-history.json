@@ -1,0 +1,774 @@
+{
+  "schemaVersion": 1,
+  "chainId": 11155111,
+  "registries": {
+    "@base": "0x55b503d659c84f6f9ea3f98b3db34a333f8ee58d",
+    "": "0x73f2fded6bd9934d48c7a7cbb30bc76459e2624c",
+    "hackers": "0x6205fb221f798b10a261dd3fd25574e35c007d1a",
+    "judges": "0xaba69326ca1dc88a966b0bf04e9857d336b67ad9",
+    "volunteers": "0x1ca936ea8152d69514c63311f6109ca1a74818c0",
+    "partners": "0x38f2b5804ab3077d350732b0e9f7f344ad670640",
+    "arkiv.partners": "0x6cdf944c787da00a68359b805773bedf8f947ef2",
+    "ens.partners": "0x9e17e985cc96407bd87538aa042466cf725ee187",
+    "judges.arkiv.partners": "0x49c1a1c4f33484991972e077be917d206f30f543",
+    "staff.arkiv.partners": "0x5483a4193f85f68d1272bf07f85b528834c1ca4d",
+    "judges.ens.partners": "0x8442eb42980531c1964ed15dd3830aaa6999b8c3",
+    "staff.ens.partners": "0xd15ea0c060812592f6c7dd40b955637d6b02e426",
+    "zkpay": "0x6d8d4c2e0f2c5a213031a0295a9f5cad279f54d9",
+    "chainchat": "0x82826686c4105c4466195a2517c0187e842da184",
+    "seatsense": "0xa164c256b9f1579a020a141568737bdfe1277764"
+  },
+  "events": [
+    {
+      "type": "register",
+      "block": "9000010",
+      "label": "",
+      "owner": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "expiry": "1801751400",
+      "resource": "0x02fd93083640bd258d3d560fb9ae975cf87113150efd8c938aefa5a3be42ae9f",
+      "note": "Edition mumbai2026.lanyard.eth, owned by the organizer; lives 30 days past namespaceExpiry."
+    },
+    {
+      "type": "register",
+      "block": "9000011",
+      "label": "hackers",
+      "owner": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "expiry": "1801751400",
+      "resource": "0xd84fb4d1941cd622b4533e8fb377e08d49530966a0cae5a265b7b46c71f82c3b"
+    },
+    {
+      "type": "register",
+      "block": "9000011",
+      "label": "judges",
+      "owner": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "expiry": "1801751400",
+      "resource": "0xda0c9708d72abc5c2ba4bae43768a2fb38a67d2824854057de42468929ba4d3a"
+    },
+    {
+      "type": "register",
+      "block": "9000011",
+      "label": "volunteers",
+      "owner": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "expiry": "1801751400",
+      "resource": "0x46b019e915046da5003e5ef9c326ed8edd3eae3e8619a9f3402bb4eb8db1696e"
+    },
+    {
+      "type": "register",
+      "block": "9000011",
+      "label": "partners",
+      "owner": "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+      "expiry": "1801751400",
+      "resource": "0xf99f92f494fc68ec1534476455101a8fbd1be4c5ffc61cdae96531f5874a5cc9"
+    },
+    {
+      "type": "register",
+      "block": "9000012",
+      "label": "arkiv.partners",
+      "owner": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "expiry": "1801751400",
+      "resource": "0x7cf3e18a002383b9a7edd795f086c5fd4c5036925a8aa1b66c2843d10ca90ea0",
+      "note": "Partner parent name; outlives eventEnd and freezeDeadline (P0.4-R5)."
+    },
+    {
+      "type": "register",
+      "block": "9000012",
+      "label": "ens.partners",
+      "owner": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "expiry": "1801751400",
+      "resource": "0x1b9c68ecadd688659dd137db165daa5c9ab1af166e25dddf2a22d884f1464030",
+      "note": "Partner parent name; outlives eventEnd and freezeDeadline (P0.4-R5)."
+    },
+    {
+      "type": "register",
+      "block": "9000013",
+      "label": "judges.arkiv.partners",
+      "owner": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "expiry": "1801751400",
+      "resource": "0x4e38456ad76d7b09870679c55d4ad5e03ab2574a1250bba7c87ff9b6a91fd00b"
+    },
+    {
+      "type": "register",
+      "block": "9000013",
+      "label": "staff.arkiv.partners",
+      "owner": "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+      "expiry": "1801751400",
+      "resource": "0xf755e6b1f7be122620c3f54b7bd3fa826bd5f937c2b0c3e4f8d1ee2904cf2018"
+    },
+    {
+      "type": "register",
+      "block": "9000013",
+      "label": "judges.ens.partners",
+      "owner": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "expiry": "1801751400",
+      "resource": "0xbb70bd6d38927a0c993f9f00617766cda4709e7d203766e3aabdeba587515878"
+    },
+    {
+      "type": "register",
+      "block": "9000013",
+      "label": "staff.ens.partners",
+      "owner": "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+      "expiry": "1801751400",
+      "resource": "0xb42a4cd122f35fe451fe4b8a619b4dbb1878557057941e61eac1d16193cb69ce"
+    },
+    {
+      "type": "register",
+      "block": "9021600",
+      "label": "zkpay",
+      "owner": "0x1aac82773cb722166d7da0d5b0fa35b0307dd99d",
+      "expiry": "1806935400",
+      "resource": "0x554771004197dc4d18cbc92b8fb98b83e7a6c0060a5c5b78247962f453fb9b14",
+      "note": "Team names expire after the edition: once the edition lapses they stop resolving (ancestor expiry)."
+    },
+    {
+      "type": "register",
+      "block": "9021600",
+      "label": "chainchat",
+      "owner": "0x11e8f3ea3c6fcf12ecff2722d75cefc539c51a1c",
+      "expiry": "1806935400",
+      "resource": "0x623f9fe45546a155d3a979abc40327d58be9d8572116c0ce78b23a57afb81890"
+    },
+    {
+      "type": "register",
+      "block": "9021600",
+      "label": "seatsense",
+      "owner": "0xe141c82d99d85098e03e1a1cc1cde676556fdde0",
+      "expiry": "1806935400",
+      "resource": "0x069ae47979c94cd4950f38ff386f4908737fca40092331d975d2b6892e71d425"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "sam.staff.arkiv.partners",
+      "owner": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+      "expiry": "1796560200",
+      "resource": "0x01e39e744c95aa47c7f50d4a78edb35a6d157c2112cf577b0a6bce89bb98d9a0"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "tara.staff.arkiv.partners",
+      "owner": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+      "expiry": "1796560200",
+      "resource": "0xb3ddc54861e4c800ab9f328a3db5472bae98387984b67b1e9096510585179377"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "uma.staff.ens.partners",
+      "owner": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+      "expiry": "1796560200",
+      "resource": "0x1676379b1e2cbee756381075cb8022c2cc1fd3b92590146b50a93552ce991206"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "yash.staff.ens.partners",
+      "owner": "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+      "expiry": "1796560200",
+      "resource": "0x22adc82682ea6b29b3388864645a918152c54be593e1ebe9efe5fd2f2e3cefd7"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "priya.volunteers",
+      "owner": "0x71be63f3384f5fb98995898a86b02fb2426c5788",
+      "expiry": "1796560200",
+      "resource": "0x69c1ec5d25f0f07fef00e4c7896f6172c405b59396bf83679471a83176bc421b"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "rahul.volunteers",
+      "owner": "0xfabb0ac9d68b0b445fb7357272ff202c5651694a",
+      "expiry": "1796560200",
+      "resource": "0xff6c12d0084ec4885cd16f910973202986e6d3ab07536ae2a6e5489a96b9bdc6"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "meera.volunteers",
+      "owner": "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec",
+      "expiry": "1796560200",
+      "resource": "0xff6d99b9dbf5c58f4bcc2234b639e0cebaba8884f4de60bcd96ba8b75f0ff2b5"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "kabir.volunteers",
+      "owner": "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097",
+      "expiry": "1796560200",
+      "resource": "0xbfc6fa39c1e473793d6e906ca7146a7d4bdcdfb347ed4dfa88f81b43a4e63851"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "ravi.volunteers",
+      "owner": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "expiry": "1796560200",
+      "resource": "0xd97c2cacfb0b38d094de51c28fde0c5ceb3246abe6e0b084843e3a301a1e568e"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "anita.volunteers",
+      "owner": "0x2546bcd3c84621e976d8185a91a922ae77ecec30",
+      "expiry": "1796560200",
+      "resource": "0xd031fb43319f73b153d07eadfdf2422506c9ba987cc721a240cf0044b3359c5e"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "dev.volunteers",
+      "owner": "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+      "expiry": "1796560200",
+      "resource": "0xb4389ba94832c95aea95869a17244c41b16f80f7c5dc41123eab5723e37c78db"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "isha.volunteers",
+      "owner": "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+      "expiry": "1796560200",
+      "resource": "0x547f62daf757a67e3b8528bfb97ef243f95c527f9d95944c6c188a545656ad7b"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "arjun.volunteers",
+      "owner": "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199",
+      "expiry": "1796560200",
+      "resource": "0x4dc50bd96811c02334d8fb50b34c1d5d7efbe994899702c43ec8753b4512c557"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "nisha.volunteers",
+      "owner": "0x09db0a93b389bef724429898f539aeb7ac2dd55f",
+      "expiry": "1796560200",
+      "resource": "0x22feb78c70dc870759a55a751f02929e802117ed81ef51f7fef2d2d9cc9715c4"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "vikram.volunteers",
+      "owner": "0x02484cb50aac86eae85610d6f4bf026f30f6627d",
+      "expiry": "1796560200",
+      "resource": "0xed3c42e7bc853060a6d37a15a608c6d096191c87054241137ff4b0b4135cca4d"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "zoya.volunteers",
+      "owner": "0x08135da0a343e492fa2d4282f2ae34c6c5cc1bbe",
+      "expiry": "1796560200",
+      "resource": "0x29581cd8f4714306bc08f5fefe7e498f80402b9b58d0d8e4867f9d5bb5b5833c"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "omar.volunteers",
+      "owner": "0x5e661b79fe2d3f6ce70f5aac07d8cd9abb2743f1",
+      "expiry": "1796380200",
+      "resource": "0x7cc96f4868603fe27b1183acd7355f9b15b196c868aaa81aadc470ac840b6afa",
+      "note": "Expires six hours in, then is revived by renewal (same registration)."
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "leela.volunteers",
+      "owner": "0x61097ba76cd906d2ba4fd106e757f7eb455fc295",
+      "expiry": "1796527800",
+      "resource": "0xdb6017a277d620b328a3651853a8e655b144ca9481187a7e493e26f31794be66",
+      "note": "Issued with a short expiry: invalid from exactly submissionDeadline."
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "ana.judges.arkiv.partners",
+      "owner": "0xdf37f81daad2b0327a0a50003740e1c935c70913",
+      "expiry": "1796567400",
+      "resource": "0x4a2fd52b53745ad5891924df805cc1b1cd1853bff750b4ff7962e7b3c31e71e1"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "ben.judges.arkiv.partners",
+      "owner": "0x553bc17a05702530097c3677091c5bb47a3a7931",
+      "expiry": "1796567400",
+      "resource": "0x6bbeefe67db34dc0a61da5376547007d2fde4fe7ad810d32a5e41417f8aabce0"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "chen.judges.arkiv.partners",
+      "owner": "0x87bdce72c06c21cd96219bd8521bdf1f42c78b5e",
+      "expiry": "1796567400",
+      "resource": "0x4e46fc6aeae46303053b091935d59aafbcb7822f6228a0593e480c4428d4c25a"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "dana.judges.ens.partners",
+      "owner": "0x40fc963a729c542424cd800349a7e4ecc4896624",
+      "expiry": "1796567400",
+      "resource": "0x403165172479c2e7ba166e9d0d0b0f613ebbad021d722f71abacccc80381df9d"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "eli.judges.ens.partners",
+      "owner": "0x9dcce783b6464611f38631e6c851bf441907c710",
+      "expiry": "1796567400",
+      "resource": "0x6dc079ad4de42da11ecb849247b1110bc8713ce4409a6b21218bd936c2a56920"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "fatima.judges.ens.partners",
+      "owner": "0x1bcb8e569eedab4668e55145cfeaf190902d3cf2",
+      "expiry": "1796567400",
+      "resource": "0xc0030ce789f3f8f626f126916688146d5b4828f9fa95e70c1d63a6ab1ee7b483"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "gita.judges",
+      "owner": "0x8263fce86b1b78f95ab4dae11907d8af88f841e7",
+      "expiry": "1796567400",
+      "resource": "0xd361a75a2157b0e52f00a3d8719c41dff133b4a04a534c986d4353b391eed64d"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "hari.judges",
+      "owner": "0xcf2d5b3cbb4d7bf04e3f7bfa8e27081b52191f91",
+      "expiry": "1796567400",
+      "resource": "0x27294308a19881df97c6952f10df09d02d52ed0a88e36a3213f12f497b68c908"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "ines.judges",
+      "owner": "0x86c53eb85d0b7548fea5c4b4f82b4205c8f6ac18",
+      "expiry": "1796567400",
+      "resource": "0xc3af9dcb6f9b43dcdd59284cb922a0315f007fd182e102ca0b9228c1768a4efb"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "zkpay-a.hackers",
+      "owner": "0x1aac82773cb722166d7da0d5b0fa35b0307dd99d",
+      "expiry": "1796560200",
+      "resource": "0x2c04bdf74bccf88a8a44a639be365f2582e3a5f9f654e8bf9eebeaf5739337d4"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "zkpay-b.hackers",
+      "owner": "0x2f4f06d218e426344cfe1a83d53dad806994d325",
+      "expiry": "1796560200",
+      "resource": "0xc8d9beca73c857f58ea20a32996db92cfd1ebb554f360ffe9fc6ecae9e320d51"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "zkpay-c.hackers",
+      "owner": "0x1003ff39d25f2ab16dbcc18ece05a9b6154f65f4",
+      "expiry": "1796560200",
+      "resource": "0xfd352c383df10f24c18dc2d759f5ab61ceffe726e7af23a8e2f62365eeb58c74"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "zkpay-d.hackers",
+      "owner": "0x9eaf5590f2c84912a08de97fa28d0529361deb9e",
+      "expiry": "1796560200",
+      "resource": "0xd2d27fae9afe5e2f054bb54be580decfa2960cf632f2e6cffdd83d5941b92bd6"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "chainchat-a.hackers",
+      "owner": "0x11e8f3ea3c6fcf12ecff2722d75cefc539c51a1c",
+      "expiry": "1796560200",
+      "resource": "0xd6fe0cae429b6a37c423aa30793268c417018efada99765dd8bbd7256a161ed0"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "chainchat-b.hackers",
+      "owner": "0x7d86687f980a56b832e9378952b738b614a99dc6",
+      "expiry": "1796560200",
+      "resource": "0xb6c58f166b720b93b59b76e36f7f087709c00faa7bd14e69932050db81ebbf19"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "chainchat-c.hackers",
+      "owner": "0x9ef6c02fb2ecc446146e05f1ff687a788a8bf76d",
+      "expiry": "1796560200",
+      "resource": "0xa74def1bfaa116bcaf2f141c90562dd46bd3a211db060c67085e0f09be8375d0"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "chainchat-d.hackers",
+      "owner": "0x08a2de6f3528319123b25935c92888b16db8913e",
+      "expiry": "1796560200",
+      "resource": "0x2539ddd8cd1dc5d3b3f718314de2c77acf16f6ef81fea511b86144311dd3d97f"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "seatsense-a.hackers",
+      "owner": "0xe141c82d99d85098e03e1a1cc1cde676556fdde0",
+      "expiry": "1796560200",
+      "resource": "0x88a949ede5c1bbcb0551dda588ee8a7809e85df45c215c6f82bd01a0061d63f8"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "seatsense-b.hackers",
+      "owner": "0x4b23d303d9e3719d6cdf8d172ea030f80509ea15",
+      "expiry": "1796560200",
+      "resource": "0xaaf7054126375b5c5ead799a02f21b25cc32661094da9cfe6023e35d5ac8eb25"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "seatsense-c.hackers",
+      "owner": "0xc004e69c5c04a223463ff32042dd36dabf63a25a",
+      "expiry": "1796560200",
+      "resource": "0x45d60db0ef2f79ae7a0838706c908c5d1fbe566bc303f709a383421632ab30a2"
+    },
+    {
+      "type": "register",
+      "block": "9021601",
+      "label": "seatsense-d.hackers",
+      "owner": "0x5eb15c0992734b5e77c888d713b4fc67b3d679a2",
+      "expiry": "1796560200",
+      "resource": "0xc450bce78d025dd5a0f638a116aa0a574783c47f3005f6c1d6574174b8ff04bf"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "sam.staff.arkiv.partners",
+      "address": "0x14dc79964da2c08b23698b3d3cc7ca32193d9955"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "tara.staff.arkiv.partners",
+      "address": "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "uma.staff.ens.partners",
+      "address": "0xa0ee7a142d267c1f36714e4a8f75612f20a79720"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "yash.staff.ens.partners",
+      "address": "0xbcd4042de499d14e55001ccbb24a551f3b954096"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "priya.volunteers",
+      "address": "0x71be63f3384f5fb98995898a86b02fb2426c5788"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "rahul.volunteers",
+      "address": "0xfabb0ac9d68b0b445fb7357272ff202c5651694a"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "meera.volunteers",
+      "address": "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "kabir.volunteers",
+      "address": "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "ravi.volunteers",
+      "address": "0xcd3b766ccdd6ae721141f452c550ca635964ce71"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "anita.volunteers",
+      "address": "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+      "note": "Owner/address disagreement: Anita owns the badge but its address record points at Ravi."
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "dev.volunteers",
+      "address": "0xbda5747bfd65f08deb54cb465eb87d40e51b197e"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "isha.volunteers",
+      "address": "0xdd2fd4581271e230360230f9337d5c0430bf44c0"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "arjun.volunteers",
+      "address": "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "nisha.volunteers",
+      "address": "0x09db0a93b389bef724429898f539aeb7ac2dd55f"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "vikram.volunteers",
+      "address": "0x02484cb50aac86eae85610d6f4bf026f30f6627d"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "zoya.volunteers",
+      "address": "0x08135da0a343e492fa2d4282f2ae34c6c5cc1bbe"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "omar.volunteers",
+      "address": "0x5e661b79fe2d3f6ce70f5aac07d8cd9abb2743f1"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "leela.volunteers",
+      "address": "0x61097ba76cd906d2ba4fd106e757f7eb455fc295"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "ana.judges.arkiv.partners",
+      "address": "0xdf37f81daad2b0327a0a50003740e1c935c70913"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "ben.judges.arkiv.partners",
+      "address": "0x553bc17a05702530097c3677091c5bb47a3a7931"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "chen.judges.arkiv.partners",
+      "address": "0x87bdce72c06c21cd96219bd8521bdf1f42c78b5e"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "dana.judges.ens.partners",
+      "address": "0x40fc963a729c542424cd800349a7e4ecc4896624"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "eli.judges.ens.partners",
+      "address": "0x9dcce783b6464611f38631e6c851bf441907c710"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "fatima.judges.ens.partners",
+      "address": "0x1bcb8e569eedab4668e55145cfeaf190902d3cf2"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "gita.judges",
+      "address": "0x8263fce86b1b78f95ab4dae11907d8af88f841e7"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "hari.judges",
+      "address": "0xcf2d5b3cbb4d7bf04e3f7bfa8e27081b52191f91"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "ines.judges",
+      "address": "0x86c53eb85d0b7548fea5c4b4f82b4205c8f6ac18"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "zkpay-a.hackers",
+      "address": "0x1aac82773cb722166d7da0d5b0fa35b0307dd99d"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "zkpay-b.hackers",
+      "address": "0x2f4f06d218e426344cfe1a83d53dad806994d325"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "zkpay-c.hackers",
+      "address": "0x1003ff39d25f2ab16dbcc18ece05a9b6154f65f4"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "zkpay-d.hackers",
+      "address": "0x9eaf5590f2c84912a08de97fa28d0529361deb9e"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "chainchat-a.hackers",
+      "address": "0x11e8f3ea3c6fcf12ecff2722d75cefc539c51a1c"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "chainchat-b.hackers",
+      "address": "0x7d86687f980a56b832e9378952b738b614a99dc6"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "chainchat-c.hackers",
+      "address": "0x9ef6c02fb2ecc446146e05f1ff687a788a8bf76d"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "chainchat-d.hackers",
+      "address": "0x08a2de6f3528319123b25935c92888b16db8913e"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "seatsense-a.hackers",
+      "address": "0xe141c82d99d85098e03e1a1cc1cde676556fdde0"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "seatsense-b.hackers",
+      "address": "0x4b23d303d9e3719d6cdf8d172ea030f80509ea15"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "seatsense-c.hackers",
+      "address": "0xc004e69c5c04a223463ff32042dd36dabf63a25a"
+    },
+    {
+      "type": "setAddr",
+      "block": "9021602",
+      "label": "seatsense-d.hackers",
+      "address": "0x5eb15c0992734b5e77c888d713b4fc67b3d679a2"
+    },
+    {
+      "type": "setText",
+      "block": "9021900",
+      "label": "priya.volunteers",
+      "key": "lanyard.perms",
+      "value": "{\"holder\":\"0x71be63f3384f5fb98995898a86b02fb2426c5788\",\"permissions\":[\"shift-manager\"],\"registrationId\":\"0x760a6d57581bffdf2d1bd7a348fd36f6914153b1943af043439328dfa4fa09ce\",\"schemaVersion\":1}",
+      "note": "Priya made lead: shift-manager bound to her registration and address."
+    },
+    {
+      "type": "setText",
+      "block": "9021900",
+      "label": "rahul.volunteers",
+      "key": "lanyard.perms",
+      "value": "{\"holder\":\"0xfabb0ac9d68b0b445fb7357272ff202c5651694a\",\"permissions\":[\"shift-manager\"],\"registrationId\":\"0xb238b3e66a7ed8b190c75ab5b904e03343194b195fdd66712ecd89ef1389305c\",\"schemaVersion\":1}"
+    },
+    {
+      "type": "setText",
+      "block": "9021900",
+      "label": "meera.volunteers",
+      "key": "lanyard.perms",
+      "value": "{\"holder\":\"0x1cbd3b2770909d4e10f157cabc84c7264073c9ec\",\"permissions\":[\"shift-manager\"],\"registrationId\":\"0x23366022a5881ff6b46c04d11a56d8619f09cd8dc49bd2069e9e7189e75b9c5a\",\"schemaVersion\":1}"
+    },
+    {
+      "type": "setText",
+      "block": "9021900",
+      "label": "kabir.volunteers",
+      "key": "lanyard.perms",
+      "value": "{\"holder\":\"0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097\",\"permissions\":[\"shift-manager\"],\"registrationId\":\"0x9041bc7f16ae805a76b34148892fe26802db92fc56e8cd31f162136ad439b478\",\"schemaVersion\":1}"
+    },
+    {
+      "type": "renew",
+      "block": "9022800",
+      "label": "rahul.volunteers",
+      "expiry": "1796646600",
+      "note": "Renewal: same registration ID, so Rahul's lead note stays valid."
+    },
+    {
+      "type": "setRoles",
+      "block": "9023100",
+      "label": "meera.volunteers",
+      "account": "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec",
+      "roles": ["set-resolver"],
+      "note": "Role change: registration ID unchanged."
+    },
+    {
+      "type": "renew",
+      "block": "9024000",
+      "label": "omar.volunteers",
+      "expiry": "1796560200",
+      "note": "Revival: an expired badge renewed; same registration ID."
+    },
+    {
+      "type": "setText",
+      "block": "9027600",
+      "label": "priya.volunteers",
+      "key": "lanyard.perms",
+      "value": null,
+      "note": "Priya's lead note removed at a known block."
+    },
+    {
+      "type": "unregister",
+      "block": "9030600",
+      "label": "kabir.volunteers",
+      "note": "Kabir's badge revoked and reissued; the old lead note is not rewritten."
+    },
+    {
+      "type": "register",
+      "block": "9030601",
+      "label": "kabir.volunteers",
+      "owner": "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097",
+      "expiry": "1796560200",
+      "resource": "0xc91394284a10937e8761a3db8e4d4ff6114ee4f315b6bdd61b77829ae90e708a",
+      "note": "Reissue to the same holder: new registration ID, so the stale note grants nothing."
+    },
+    {
+      "type": "unregister",
+      "block": "9036000",
+      "label": "ben.judges.arkiv.partners",
+      "note": "A judge unregistered mid-judging: that registration's scores are excluded."
+    },
+    {
+      "type": "unregister",
+      "block": "9037500",
+      "label": "gita.judges",
+      "note": "Post-cutoff revocation: after a freeze cutoff at results, so published results keep her scores."
+    }
+  ]
+}

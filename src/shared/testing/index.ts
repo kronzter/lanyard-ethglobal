@@ -1,0 +1,5 @@
+// Test-only exports (vitest). Never imported by the app or the CLI runtime.
+export * from "./conformance";
+export * from "./ens-reader-conformance";
+export * from "./fixture-ens-scenario";
+export * from "./broken-ens-readers";
