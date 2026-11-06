@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  DuplicateDeclarationError,
   LockedError,
   PublicationPendingError,
   StateMismatchError,
@@ -51,6 +52,63 @@ describe("MockResultsPublisher", () => {
     const c = await p.lockResults(await p.state());
     expect([a.blockNumber, b.blockNumber, c.blockNumber]).toEqual([1n, 2n, 3n]);
     expect(await p.state()).toMatchObject({ locked: true, winners: { zkpay: winner("zkpay") } });
+  });
+
+  it("serializes competing mutations across publishers sharing a store", async () => {
+    const { open } = harness();
+    const a = open();
+    const b = open();
+    await a.setEventResults(input);
+    const [first, second] = await Promise.allSettled([
+      a.declareWinner(winner("zkpay")),
+      b.declareWinner(winner("optimism")),
+    ]);
+    expect([first.status, second.status].filter((s) => s === "fulfilled")).toHaveLength(2);
+    const state = await a.state();
+    const [lock, extra] = await Promise.allSettled([a.lockResults(state), b.declareWinner(winner("base"))]);
+    expect([lock.status, extra.status].sort()).toEqual(["fulfilled", "rejected"]);
+    expect((await a.state()).locked).toBe(true);
+  });
+
+  it("serializes pending receipt settlement with submissions", async () => {
+    const { open, queue } = harness();
+    const a = open();
+    const b = open();
+    await a.setEventResults(input);
+    queue.push("pending");
+    const hash = await hashOf(a.declareWinner(winner("zkpay")), PublicationPendingError);
+    await Promise.all([a.settle(hash, "success"), b.declareWinner(winner("optimism"))]);
+    expect(Object.keys((await a.state()).winners).sort()).toEqual(["optimism", "zkpay"]);
+    expect(await a.reconcile(hash)).toMatchObject({ txHash: hash });
+  });
+
+  it("rejects concurrent duplicates and keeps the confirmed receipt", async () => {
+    const { open } = harness();
+    const a = open();
+    const b = open();
+    await a.setEventResults(input);
+    const [first, duplicate] = await Promise.allSettled([
+      a.declareWinner(winner("zkpay")),
+      b.declareWinner(winner("zkpay")),
+    ]);
+    expect(first.status).toBe("fulfilled");
+    expect(duplicate.status).toBe("rejected");
+    if (duplicate.status === "rejected") expect(duplicate.reason).toBeInstanceOf(DuplicateDeclarationError);
+    if (first.status === "fulfilled") expect(await b.reconcile(first.value.txHash)).toEqual(first.value);
+    expect(Object.keys((await a.state()).winners)).toEqual(["zkpay"]);
+  });
+
+  it("a rejected operation releases the queue for the next valid write", async () => {
+    const { open } = harness();
+    const p = open();
+    await p.setEventResults(input);
+    const [invalid, valid] = await Promise.allSettled([
+      p.declareWinner(winner("judges")),
+      p.declareWinner(winner("zkpay")),
+    ]);
+    expect(invalid.status).toBe("rejected");
+    expect(valid.status).toBe("fulfilled");
+    expect((await p.state()).winners.zkpay).toEqual(winner("zkpay"));
   });
 
   it("re-validates a pending transaction when it settles, so it can still revert", async () => {
