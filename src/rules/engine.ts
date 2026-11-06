@@ -9,6 +9,7 @@ import { dedupeObservations, type CapturedObservation } from "@/shared/evidence/
 import type { PreparedEnsEntry } from "@/shared/evidence/bundle";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
 import type { Hex } from "@/shared/types/primitives";
+import { processScores, type DecryptionMaterial } from "./scores";
 import { resolveWriter, screen } from "./base";
 import { rulesConfigOf, type RulesConfig } from "./config";
 import type { DecodedRecord } from "./decode";
@@ -58,6 +59,7 @@ export function evaluateWith(
   context: EvaluationContext,
   frozenConfig: unknown,
   ruleVersion: Hex,
+  decryption?: DecryptionMaterial,
 ): RulesOutput {
   if (ruleVersion.toLowerCase() !== engine.version) throw new RulesVersionError(ruleVersion, engine.version);
   const config = rulesConfigOf(frozenConfig, context.configHash);
@@ -82,13 +84,20 @@ export function evaluateWith(
     verdicts.set(obs.key, verdict);
     out.push(verdict);
   }
-  return {
-    schemaVersion: 1,
-    event: context.event,
-    ruleVersion: engine.version,
-    configHash: context.configHash,
-    verdicts: out,
-  };
+  return processScores(
+    decoded,
+    {
+      schemaVersion: 1,
+      event: context.event,
+      ruleVersion: engine.version,
+      configHash: context.configHash,
+      verdicts: out,
+    },
+    config,
+    frozenConfig,
+    context,
+    decryption,
+  );
 }
 
 function judge(

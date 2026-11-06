@@ -124,7 +124,15 @@ export function firstDifference(claimed: unknown, actual: RulesOutput): string |
 
 /** Re-run the rules on a body's retained inputs and compare canonical output bytes. Pure. */
 export function reproduce(engine: Engine, body: EvidenceBody): Reproduction {
-  const output = evaluateWith(engine, body.records, body.ens, body.context, body.config, body.ruleVersion);
+  const output = evaluateWith(
+    engine,
+    body.records,
+    body.ens,
+    body.context,
+    body.config,
+    body.ruleVersion,
+    body.decryption,
+  );
   const outputHash = outputHashOf(output);
   const difference = firstDifference(body.output, output);
   return difference === undefined
