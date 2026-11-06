@@ -288,7 +288,11 @@ Phase reviews found the findings below. A1-D1–D3 are fixed on the branch; A1-D
 
 ### I1 · Names meet records
 
-**Smoke (`pnpm e2e:i1`):** todo · **Merged:** no
+**Smoke (`pnpm e2e:i1`):** passes live on Sepolia + Rabdi (2026-11-07) · **Android step 5, cross bug hunt:** skipped by the user's explicit instruction · **Merged:** no
+
+Live cast from `pnpm e2e:i1:seed` (`fixtures/sepolia-personas.json`): `zkpay` registered to `zkpay-a` `0xac74…5178` (Sepolia block 12079156), `zkpay-a…d.hackers`, `priya.volunteers` and `ravi.volunteers` issued by the deployed organizer through A1's own operator scripts (blocks 12079154–12079166). The four hackers, two volunteers and the organizer each got 0.5 tGLM through B1's desk drip, with `drip` records. Global judges are not seeded because issuing one needs the head judge's wallet (`0x141c…6D6d`), which this machine doesn't hold. Step 3 holds at issuance and at head, fails one block earlier, and A2's reader agrees. Step 4: venue (organizer authority), shift, clock-in, ticket and project draft all count at their creation-timestamp Sepolia block. A forged `priya.volunteers` duty pass in Ravi's batch is flagged. Five readonly observations are retained under `.lanyard/i1/`. No submission is written, so the live `zkpay` earliest submission stays free for the demo.
+
+A1/B1 sync: A1's operator scripts check a live organizer key against `sepoliaEventConfig` (I2's deployed authorities), so `LANYARD_LIVE_ORGANIZER` is no longer needed. They take the registrar from `deployments/sepolia.json` when this machine has no `.lanyard/edition-sepolia.json`, and they accept keys with or without `0x`, as B1's drip does. `cli/providers.ts` unused imports from the I2 merge were removed so lint passes again. Gates: secret scan, lint, typecheck, `pnpm test` 1003 passed / 17 skipped.
 
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
