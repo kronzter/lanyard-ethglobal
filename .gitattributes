@@ -1,0 +1,3 @@
+# Keep LF in the repo and on every checkout, so Prettier and the secret scan
+# see the same bytes on Windows as in CI.
+* text=auto eol=lf
