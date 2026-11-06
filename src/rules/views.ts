@@ -8,7 +8,8 @@
 import type { PreparedEnsEntry } from "@/shared/evidence/bundle";
 import { dedupeObservations, type CapturedObservation } from "@/shared/evidence/observation";
 import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
-import type { Hex } from "@/shared/types/primitives";
+import type { Address, Hex } from "@/shared/types/primitives";
+import type { Poi } from "@/shared/types/venue";
 import { decodeRecord, str, type DecodedRecord } from "./decode";
 import { holderOf } from "./kinds/duty";
 import { EnsSnapshot } from "./snapshot";
@@ -16,12 +17,17 @@ import {
   activeSessions,
   effectiveEnd,
   indexOf,
+  seatAssignmentAt,
   sessionsOfShift,
   shiftsOf,
+  ticketInfo,
+  ticketState,
   venueAt,
   type Facts,
   type Session,
   type ShiftInfo,
+  type TicketInfo,
+  type TicketState,
   type VenueAt,
 } from "./state";
 import { TimeMap } from "./time";
@@ -35,6 +41,8 @@ export type ShiftView = ShiftInfo & {
   pass?: DecodedRecord;
 };
 
+export type TicketView = TicketInfo & { state: TicketState };
+
 export type EvaluationView = {
   /** The evaluation moment: the Arkiv cutoff timestamp. */
   readonly now: bigint;
@@ -47,6 +55,12 @@ export type EvaluationView = {
   /** Every counted shift of a volunteer, earliest first. */
   shiftsOf(volunteer: string): ShiftView[];
   venueAt(at?: bigint): VenueAt | undefined;
+  /** Every counted ticket with its state at `at`, in evidence order. */
+  ticketsAt(at?: bigint): TicketView[];
+  /** The latest valid seat assignment for a hacker address at `at` (its `seat`, `venue`). */
+  seatOf(hacker: Address, at?: bigint): DecodedRecord | undefined;
+  /** Where a helper starts after clocking in: their session zone's help desk (B3.2-R7). */
+  helperStart(volunteer: string, at?: bigint): Poi | undefined;
   facts: Facts;
 };
 
@@ -95,6 +109,21 @@ export function evaluationView(
         };
       }),
     venueAt: (at = now) => venueAt(facts, at),
+    ticketsAt: (at = now) =>
+      facts.idx.byKind("ticket").flatMap((r) => {
+        if (!facts.counted(r.key) || r.obs.createdAtTimestamp > at) return [];
+        const info = ticketInfo(facts, r);
+        return typeof info === "string" ? [] : [{ ...info, state: ticketState(facts, r, at) }];
+      }),
+    seatOf: (hacker, at = now) => seatAssignmentAt(facts, hacker, at),
+    helperStart: (volunteer, at = now) => {
+      const session = sessionsOf(volunteer, at)[0];
+      const venue = venueAt(facts, at)?.venue;
+      if (!session || !venue) return undefined;
+      return venue.pois
+        .filter((p) => p.kind === "help-desk" && p.zone === session.shift.zone)
+        .sort((a, b) => (a.id < b.id ? -1 : 1))[0];
+    },
     facts,
   };
 }

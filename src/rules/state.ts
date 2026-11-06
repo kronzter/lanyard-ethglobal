@@ -227,3 +227,100 @@ export function activeSessions(f: Facts, volunteer: string, t: bigint, zone?: st
     .flatMap((s) => sessionsOfShift(f, s, t))
     .filter((x) => x.start <= t && t < x.end);
 }
+
+// ── Tickets ──────────────────────────────────────────────────────────────────────────────────
+
+export type TicketInfo = {
+  record: DecodedRecord;
+  seat: string;
+  category: string;
+  /** The venue record the ticket bound at creation, and the seat's zone in it. */
+  venue: VenueAt;
+  zone: string;
+};
+
+/** A ticket's bound venue and zone, or why it has none. Later venues never move it (B3.3-R6). */
+export function ticketInfo(f: Facts, r: DecodedRecord): TicketInfo | string {
+  const seat = str(r, "seat");
+  const category = str(r, "category");
+  const venueKey = ref(r, "venue");
+  if (seat === undefined || category === undefined || venueKey === undefined)
+    return "ticket needs seat, venue and category";
+  const v = f.idx.byKey.get(venueKey);
+  if (!v || v.kind !== "venue" || !f.counted(v.key))
+    return `ticket names venue ${venueKey}, which is not a counted venue`;
+  const venue = venuePayload(v);
+  if (typeof venue === "string") return venue;
+  const s = venue.seats.find((x) => x.id === seat);
+  if (!s) return `seat ${JSON.stringify(seat)} is not in the ticket's venue`;
+  return { record: r, seat, category, venue: { record: v, venue }, zone: s.zone };
+}
+
+export type TicketState =
+  | { state: "open" }
+  | { state: "claimed"; claim: DecodedRecord; leaseEnd: bigint }
+  | { state: "resolved"; resolution: DecodedRecord }
+  | { state: "confirmed"; resolution: DecodedRecord; confirmation: DecodedRecord }
+  | { state: "closed" }
+  | { state: "over-capacity" }
+  | { state: "unverifiable"; reason: string };
+
+const firstCounted = (f: Facts, rs: readonly DecodedRecord[], t: bigint) =>
+  rs.find((r) => createdAt(r) <= t && f.counted(r.key));
+
+/** Known later evidence that points at something missing from the capture (B3.2 › Reopen). */
+function missingEvidence(f: Facts, ticket: Hex, t: bigint): string | undefined {
+  for (const r of f.idx.referencing("ticket_resolution", "ticket", ticket)) {
+    const claim = ref(r, "claim");
+    if (createdAt(r) <= t && claim && !f.idx.byKey.has(claim))
+      return `resolution ${r.key} references claim ${claim}, which is not in the captured evidence`;
+  }
+  for (const r of f.idx.referencing("ticket_confirmation", "ticket", ticket)) {
+    const res = ref(r, "resolution");
+    if (createdAt(r) <= t && res && !f.idx.byKey.has(res))
+      return `confirmation ${r.key} references resolution ${res}, which is not in the captured evidence`;
+  }
+  return undefined;
+}
+
+/** Resolved, unverifiable or past its 4 h life at `t`; capacity and claims aside. */
+function settled(f: Facts, ticket: DecodedRecord, t: bigint): TicketState | undefined {
+  const resolution = firstCounted(f, f.idx.referencing("ticket_resolution", "ticket", ticket.key), t);
+  if (resolution) {
+    const confirmation = firstCounted(f, f.idx.referencing("ticket_confirmation", "ticket", ticket.key), t);
+    return confirmation
+      ? { state: "confirmed", resolution, confirmation }
+      : { state: "resolved", resolution };
+  }
+  const missing = missingEvidence(f, ticket.key, t);
+  if (missing) return { state: "unverifiable", reason: missing };
+  if (t >= createdAt(ticket) + TICKET_LIFE_SECONDS) return { state: "closed" };
+  return undefined;
+}
+
+/**
+ * A counted ticket's state at `t` (B3.2-R1, R3): resolutions close it for good, even after their
+ * claim's lease; only the hacker's earliest three otherwise-open tickets are live; a claim holds
+ * it for [claim, claim+900).
+ */
+export function ticketState(f: Facts, ticket: DecodedRecord, t: bigint): TicketState {
+  const done = settled(f, ticket, t);
+  if (done) return done;
+  const creator = ticket.creator.toLowerCase();
+  const live = f.idx
+    .byKind("ticket")
+    .filter(
+      (x) =>
+        x.creator.toLowerCase() === creator &&
+        createdAt(x) <= t &&
+        f.counted(x.key) &&
+        settled(f, x, t) === undefined,
+    );
+  if (!live.slice(0, MAX_OPEN_TICKETS).some((x) => x.key === ticket.key)) return { state: "over-capacity" };
+  for (const c of f.idx.referencing("ticket_claim", "ticket", ticket.key)) {
+    if (!f.counted(c.key) || createdAt(c) > t) continue;
+    const leaseEnd = createdAt(c) + LEASE_SECONDS;
+    if (t < leaseEnd) return { state: "claimed", claim: c, leaseEnd };
+  }
+  return { state: "open" };
+}

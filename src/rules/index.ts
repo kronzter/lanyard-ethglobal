@@ -12,6 +12,7 @@ import type { Hex } from "@/shared/types/primitives";
 import { evaluateWith, type Engine } from "./engine";
 import * as authority from "./kinds/authority";
 import * as duty from "./kinds/duty";
+import * as tickets from "./kinds/tickets";
 import { prepareWith, type Prepared } from "./prepare";
 import type { RuleSet, RulesOutput } from "./types";
 import { RULES_VERSION } from "./version.generated";
@@ -29,6 +30,10 @@ export const RULES: RuleSet = Object.freeze({
   shift: duty.shift,
   clock: duty.clock,
   duty_pass: duty.duty_pass,
+  ticket: tickets.ticket,
+  ticket_claim: tickets.ticket_claim,
+  ticket_resolution: tickets.ticket_resolution,
+  ticket_confirmation: tickets.ticket_confirmation,
 });
 
 export const ENGINE: Engine = Object.freeze({ rules: RULES, version: RULES_VERSION });
@@ -58,7 +63,7 @@ export { EnsSnapshot, UnpreparedRead, MalformedSnapshot, type EnsRead } from "./
 export { mapTimes, TimeMap, TimeMappingError, timeEntry } from "./time";
 export * from "./types";
 export * from "./state";
-export { evaluationView, type EvaluationView, type ShiftView } from "./views";
+export { evaluationView, type EvaluationView, type ShiftView, type TicketView } from "./views";
 export {
   assembleBody,
   firstDifference,
