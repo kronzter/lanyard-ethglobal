@@ -760,6 +760,18 @@
     },
     {
       "type": "unregister",
+      "block": "9033000",
+      "label": "vikram.volunteers",
+      "note": "A volunteer's badge revoked while on duty: later claims are rejected."
+    },
+    {
+      "type": "unregister",
+      "block": "9033000",
+      "label": "tara.staff.arkiv.partners",
+      "note": "Partner staff revoked mid-event: later partner claims and resolutions are rejected."
+    },
+    {
+      "type": "unregister",
       "block": "9036000",
       "label": "ben.judges.arkiv.partners",
       "note": "A judge unregistered mid-judging: that registration's scores are excluded."

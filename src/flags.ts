@@ -4,9 +4,12 @@
 
 export const ENS_MODES = ["mock", "sepolia"] as const;
 export const ROUTER_MODES = ["stub", "grid"] as const;
+/** `fake` is a development-only in-app Arkiv on the fixture timeline; `rabdi` is the testnet. */
+export const ARKIV_MODES = ["rabdi", "fake"] as const;
 export type EnsMode = (typeof ENS_MODES)[number];
 export type RouterMode = (typeof ROUTER_MODES)[number];
-export type Flags = { ens: EnsMode; router: RouterMode };
+export type ArkivMode = (typeof ARKIV_MODES)[number];
+export type Flags = { ens: EnsMode; router: RouterMode; arkiv: ArkivMode };
 
 export class FlagError extends Error {
   constructor(message: string) {
@@ -27,14 +30,16 @@ function pick<T extends string>(
 }
 
 /** Parse flag values; unknown values fail loudly instead of silently picking a mode. */
-export function parseFlags(env: { ens?: string; router?: string }): Flags {
+export function parseFlags(env: { ens?: string; router?: string; arkiv?: string }): Flags {
   return {
     ens: pick("EXPO_PUBLIC_LANYARD_ENS", env.ens, ENS_MODES, "mock"),
     router: pick("EXPO_PUBLIC_LANYARD_ROUTER", env.router, ROUTER_MODES, "stub"),
+    arkiv: pick("EXPO_PUBLIC_LANYARD_ARKIV", env.arkiv, ARKIV_MODES, "rabdi"),
   };
 }
 
 export const flags: Flags = parseFlags({
   ens: process.env.EXPO_PUBLIC_LANYARD_ENS,
   router: process.env.EXPO_PUBLIC_LANYARD_ROUTER,
+  arkiv: process.env.EXPO_PUBLIC_LANYARD_ARKIV,
 });

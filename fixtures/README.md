@@ -62,6 +62,7 @@ registry holding its children (`@base` holds the edition itself).
 | +6 h → +8 h                                   | Omar's badge expires, then is renewed                                                                                                                          | An expired badge revived (same registration)                                               |
 | +20 h                                         | Priya's note is removed                                                                                                                                        | Lead note removed at a known block                                                         |
 | +30 h                                         | Kabir's badge is unregistered and reissued to him; the note is not rewritten                                                                                   | A stale registration-bound note grants nothing                                             |
+| +38 h                                         | `vikram.volunteers` and `tara.staff.arkiv.partners` are unregistered                                                                                           | A volunteer and a partner staff member revoked mid-event                                   |
 | `submissionDeadline` + 1 h                    | `ben.judges.arkiv.partners` is unregistered                                                                                                                    | A judge unregistered mid-judging                                                           |
 | `results` + 1 h                               | `gita.judges` is unregistered                                                                                                                                  | Revocation after a freeze cutoff at `results`                                              |
 | Block 9,471,000 (`namespaceExpiry` + 30 days) | The edition lapses while team names are still unexpired                                                                                                        | Ancestor expiry: children stop resolving                                                   |
@@ -74,8 +75,9 @@ A hand-made 20×12 hall with 1 m cells, used until A3.1 exports the real Mumbai 
   row 8 down.
 - A row of tables walls off row 6 between columns 3 and 8.
 - Twelve seats: `w1`–`w6` in the west, `e1`–`e5` plus `e6-walled` in the east.
-- Points of interest: a `help-desk` in each zone (helpers start there when they clock in) and the
-  main `stage`.
+- Points of interest: a `help-desk` in each zone (helpers start there when they clock in), the
+  main `stage`, and a `partner-table` for each partner in the east hall (`table-arkiv` at (13, 7),
+  `table-ens` at (17, 6)), where partner staff start.
 - `e6-walled` at (16, 9) is surrounded on all eight sides by walls. Grid routing must report it
   unreachable; the stub router, which ignores walls, still gives it a distance.
 

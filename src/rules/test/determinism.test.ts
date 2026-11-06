@@ -4,7 +4,7 @@ import { canonicalHash } from "@/shared/canonical";
 import type { CapturedObservation } from "@/shared/evidence/observation";
 import { createFixtureEnsReader } from "@/shared/mocks/fixtures";
 import { evaluate, prepare, RULES_VERSION } from "@/rules";
-import { context, frozen, key, obs, persona } from "./harness";
+import { context, frozen, key, obs, persona, tsOf, venueObs } from "./harness";
 
 /** Seeded PRNG for the test only (the rules never see randomness). */
 function mulberry32(seed: number) {
@@ -108,18 +108,74 @@ function population(n: number): CapturedObservation[] {
   return out;
 }
 
+/** A venue, a clocked-in volunteer and a contested ticket, so the B3 cross-record rules are shuffled too. */
+function dutyAndTickets(): CapturedObservation[] {
+  const priya = persona("priya");
+  const ravi = persona("ravi");
+  const meera = persona("meera");
+  const hacker = persona("zkpay-a");
+  const venue = venueObs(9_021_650n);
+  const shiftFor = (v: string) =>
+    obs({
+      kind: "shift",
+      creator: priya.address,
+      byLabel: priya.by,
+      at: 9_022_000n,
+      attrs: {
+        volunteer: ["str", v],
+        zone: ["str", "west"],
+        starts_at: ["u64", tsOf(9_022_500n).toString()],
+        ends_at: ["u64", tsOf(9_023_500n).toString()],
+      },
+    });
+  const shifts = [shiftFor(ravi.by), shiftFor(meera.by)];
+  const clocks = shifts.map((s, i) =>
+    obs({
+      kind: "clock",
+      creator: priya.address,
+      byLabel: priya.by,
+      at: 9_022_510n,
+      attrs: { volunteer: ["str", [ravi, meera][i]!.by], shift: ["key", s.key], action: ["str", "in"] },
+    }),
+  );
+  const ticket = obs({
+    kind: "ticket",
+    creator: hacker.address,
+    byLabel: hacker.by,
+    at: 9_022_600n,
+    attrs: { seat: ["str", "w1"], venue: ["key", venue.key], category: ["str", "power"] },
+  });
+  const claims = [ravi, meera].map((h) =>
+    obs({
+      kind: "ticket_claim",
+      creator: h.address,
+      byLabel: h.by,
+      at: 9_022_610n,
+      attrs: { ticket: ["key", ticket.key] },
+    }),
+  );
+  return [venue, ...shifts, ...clocks, ticket, ...claims];
+}
+
 describe("determinism", () => {
   it("gives a byte-identical output for 1,000 shuffles of the input", async () => {
-    const records = population(120);
+    const records = [...dutyAndTickets(), ...population(120)];
     const ctx = context();
     const { ens } = await prepare(records, createFixtureEnsReader(), ctx, frozen);
-    const expected = canonicalHash(evaluate(records, ens, ctx, frozen, RULES_VERSION));
+    const first = evaluate(records, ens, ctx, frozen, RULES_VERSION);
+    expect(
+      first.verdicts
+        .filter((v) => v.kind === "ticket_claim")
+        .map((v) => v.counts)
+        .sort(),
+    ).toEqual([false, true]);
+    const expected = canonicalHash(first);
     const rand = mulberry32(2026);
     for (let i = 0; i < 1000; i++) {
       const out = evaluate(shuffle(records, rand), shuffle(ens, rand), ctx, frozen, RULES_VERSION);
       if (canonicalHash(out) !== expected) throw new Error(`shuffle ${i} changed the output`);
     }
-  });
+  }, 30_000);
 
   it("deduplicates repeated identical observations", async () => {
     const records = population(30);

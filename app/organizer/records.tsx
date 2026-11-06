@@ -3,34 +3,17 @@
 //
 //   Bundle  import a bundle file (or paste its JSON) and re-run the rules on its own retained
 //           inputs, showing the recomputed output hash (B2.3-R7: the same hash as `lanyard hash`).
-//   Live    capture the current readonly records into memory, prepare historical ENS through the
-//           app's EnsReader (the fixture mock until I2) and evaluate against an explicit
-//           development context. Current observations, not a frozen evaluation.
+//   Live    capture the current readonly records (Rabdi, or the development fake) into memory,
+//           prepare historical ENS through the app's EnsReader (the fixture mock until I2) and
+//           evaluate against an explicit development context. Current observations, not a frozen
+//           evaluation.
 import { useState } from "react";
 import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { captureForEvent, memoryObservationStore } from "@/arkiv/capture";
-import { createArkivReader } from "@/arkiv/client";
-import { configHash, freezeConfig } from "@/shared/config/hash";
-import { requireMeasured } from "@/shared/config/unmeasured";
-import { RABDI_CHAIN_ID } from "@/shared/config/schema";
-import type { EvaluationContext } from "@/shared/interfaces/evaluation-context";
+import { evaluateCurrent } from "@/arkiv/evaluate-current";
 import type { Hex } from "@/shared/types/primitives";
-import {
-  ENGINE,
-  evaluate,
-  outputHashOf,
-  parseBundleText,
-  prepare,
-  reproduce,
-  type RulesOutput,
-} from "@/rules";
+import { ENGINE, outputHashOf, parseBundleText, reproduce, type RulesOutput } from "@/rules";
 import { providers } from "@/providers";
 import { styles } from "@/shell/styles";
-
-const access = {
-  rpcUrl: process.env.EXPO_PUBLIC_RABDI_RPC_URL,
-  accessKey: process.env.EXPO_PUBLIC_RABDI_ACCESS_KEY,
-};
 
 type Result = {
   source: string;
@@ -39,8 +22,6 @@ type Result = {
   note?: string;
   claimedMismatch?: string;
 };
-
-const ZERO_HASH = `0x${"00".repeat(32)}` as Hex;
 
 function fromBundle(text: string): Result {
   const { body, bundleHash } = parseBundleText(text, { allowOutOfWindow: true });
@@ -54,37 +35,13 @@ function fromBundle(text: string): Result {
 }
 
 async function fromLive(): Promise<Result> {
-  const config = providers.config;
-  const frozen = freezeConfig(config);
-  const reader = createArkivReader(access);
-  const store = memoryObservationStore();
-  const report = await captureForEvent({
-    reader,
-    edition: config.edition,
-    network: {
-      chainId: RABDI_CHAIN_ID,
-      resetId: requireMeasured(config.chains.rabdi.resetId, "rabdi reset"),
-    },
-    store,
+  const { head, observations, report, output } = await evaluateCurrent({
+    reader: providers.arkiv().reader,
+    ens: providers.ensReader(),
+    config: providers.config,
   });
-  const { observations } = await store.load();
-  const head = await reader.block(report.pages[0]!.blockNumber);
-  const ens = providers.ensReader();
-  const sepoliaBlock = await ens.sepoliaBlockAt(head.timestamp);
-  const context: EvaluationContext = {
-    event: config.edition,
-    arkivChainId: RABDI_CHAIN_ID,
-    arkivResetId: frozen.chains.rabdi.resetId,
-    sepoliaChainId: frozen.chains.sepolia.chainId,
-    arkivCutoff: head,
-    // A development context: the Sepolia block hash is not checked here, and nothing is frozen.
-    sepoliaCutoff: { number: sepoliaBlock, hash: ZERO_HASH, timestamp: head.timestamp },
-    configHash: configHash(config),
-  };
-  const prepared = await prepare(observations, ens, context, frozen);
-  const output = evaluate(observations, prepared.ens, context, frozen, ENGINE.version);
   return {
-    source: `live Rabdi at block ${head.number}`,
+    source: `live ${providers.arkiv().mode === "fake" ? "fake Arkiv (development)" : "Rabdi"} at block ${head.number}`,
     output,
     outputHash: outputHashOf(output),
     note:

@@ -12,7 +12,7 @@ import {
   RulesVersionError,
   UnpreparedRead,
 } from "@/rules";
-import { CONFIG_HASH, context, frozen, key, obs, persona, run, RULES_VERSION } from "./harness";
+import { CONFIG_HASH, context, frozen, key, obs, persona, run, RULES_VERSION, venueObs } from "./harness";
 
 const organizer = persona("organizer");
 const AT = 9_022_000n;
@@ -32,15 +32,12 @@ const seat = (creator: string, byLabel: string, hackerLabel: string, hackerAddre
 
 describe("organizer-only kinds", () => {
   it("counts a venue from the organizer and rejects one from anyone else", async () => {
-    const good = obs({ kind: "venue", creator: organizer.address, byLabel: "organizer", at: AT });
-    const bad = obs({
-      kind: "venue",
-      creator: persona("priya").address,
-      byLabel: "priya.volunteers",
-      at: AT,
-    });
-    const { verdict } = await run([good, bad]);
+    const good = venueObs(AT);
+    const bad = venueObs(AT, undefined, { creator: persona("priya").address, byLabel: "priya.volunteers" });
+    const junk = obs({ kind: "venue", creator: organizer.address, byLabel: "organizer", at: AT });
+    const { verdict } = await run([good, bad, junk]);
     expect(verdict(good).counts).toBe(true);
+    expect(verdict(junk)).toMatchObject({ counts: false, reason: "venue record carries no payload" });
     expect(verdict(bad)).toMatchObject({
       counts: false,
       reason: expect.stringMatching(/not the organizer wallet/),
@@ -202,13 +199,13 @@ describe("screening", () => {
 
   it("keeps kinds without a rule visible and never counted", async () => {
     const shift = obs({
-      kind: "shift",
+      kind: "recusal",
       creator: persona("priya").address,
       byLabel: "priya.volunteers",
       at: AT,
     });
     const { verdict } = await run([shift]);
-    expect(verdict(shift)).toMatchObject({ counts: false, reason: "no rule registered for kind 'shift'" });
+    expect(verdict(shift)).toMatchObject({ counts: false, reason: "no rule registered for kind 'recusal'" });
   });
 
   it("excludes records observed after the Arkiv cutoff or captured on another network", async () => {

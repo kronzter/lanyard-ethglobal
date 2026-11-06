@@ -14,6 +14,9 @@ export default function Screen() {
         <Link href={"/organizer/records" as never} style={styles.link}>
           Records and verdicts: what counts and why (B2.2)
         </Link>
+        <Link href={"/organizer/seats" as never} style={styles.link}>
+          Venue and seats: publish venue.json, import seat assignments (B3.3)
+        </Link>
       </View>
     </View>
   );
