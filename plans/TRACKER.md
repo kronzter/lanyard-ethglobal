@@ -106,6 +106,14 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 | R3 | Linked shift creates need exclusive signer custody that external wallets cannot prove | `shiftWriteProfile = confirmed-sequential` (S12), per the existing fallback; B1/B3 implement the two-step replacement with a visible pending state | revised |
 | R4 | The score cipher had no pinned implementation | Pinned noble X25519 + HKDF-SHA256 + AES-256-GCM, envelope v1 and vectors (S11); B4 uses `src/shared/crypto/score-cipher.ts` | revised |
 
+### Approved plan repair · 2026-11-06 (Mumbai venue size)
+
+Scope approved in conversation: the user shared the ETHGlobal Mumbai floor plan, asked to keep its layout but split the hacking spaces into many more seat slots, estimated the hall at ~80 × 50 m, then chose to scale it to ~96 × 60 m to reach ~800 seats. The event has 6–8 partners, to be named later. No implementation milestone is marked done by this repair.
+
+| # | Concern | Revised contract / owning phase | Plan status |
+| --- | --- | --- | --- |
+| V1 | A3.1 planned ~60 seats, 3 zones and 2 partner tables | `venue.mumbai.json` traced from the floor plan at ~96 × 60 m with ~800 seats, 5 zones each with a help desk or help point, 8 partner booths (configured partners get `partner-table`s, the rest are placeholders); A3.1 | revised |
+
 ### Specs
 
 | Spec | Owner | Status | Commit | Notes |
