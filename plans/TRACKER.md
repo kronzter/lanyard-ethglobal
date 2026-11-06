@@ -249,7 +249,7 @@ Scope approved in conversation by Person B (`@arnavmahajan630`). No implementati
 | --- | --- | --- | --- |
 | B4.1 Projects, submission, acceptance | done | b7c501b, 61d772f | Immutable content/lead/hash validation, earliest captured submission/rubric, acceptance and track-scoped assignments; configured head-judge authority. Team draft editor, web judging desk, validated public team pages and checked bundle retrieval. `pnpm ci:local` passes (670 tests, browser vectors, contracts, web export/deeplink smoke). Interactive Android/web-wallet checks remain for phase bug hunt. |
 | B4.2 Judge flow | done | cbfcb8b, 6dba235 | Device-local AsyncStorage/IndexedDB drafts, wallet/context isolation, separate encrypted Arkiv mirror, reconciled final sealing and recusal UI; submitted-lead seat routing. Metadata/registration/recusal eligibility precedes authenticated decryption, pinned cipher self-test, per-row rejection and earliest valid final selection; reproduction reopens ciphertext. `pnpm ci:local` passes (683 tests). Physical Android recovery remains for phase bug hunt. |
-| B4.3 Aggregation and leaderboard | todo | | |
+| B4.3 Aggregation and leaderboard | done | see branch commits | Exact bigint rational raw weighted means, stable ties, unranked zero-judge projects and strict spread flags. Organizer progress has no numeric preview; published rankings require checked signed evidence. `pnpm ci:local` passes (689 tests). |
 | B4.4 Freeze pipeline | todo | | |
 
 **Bug hunt:** todo · **Merged:** no
