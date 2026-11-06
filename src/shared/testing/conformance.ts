@@ -17,12 +17,15 @@ export function expectThat(ok: boolean, message: string): void {
   if (!ok) throw new ConformanceAssertionError(message);
 }
 
-export const same = (a: unknown, b: unknown): boolean =>
-  typeof a === "bigint" || typeof b === "bigint" ? a === b : JSON.stringify(a) === JSON.stringify(b);
+/** JSON with bigints written as `123n`, so nested values compare and print deterministically. */
+export const show = (v: unknown): string =>
+  JSON.stringify(v, (_k, x: unknown) => (typeof x === "bigint" ? `${x}n` : x)) ?? String(v);
+
+export const same = (a: unknown, b: unknown): boolean => show(a) === show(b);
 
 export function expectEqual(actual: unknown, expected: unknown, what: string): void {
   if (!same(actual, expected))
-    throw new ConformanceAssertionError(`${what}: expected ${String(expected)}, got ${String(actual)}`);
+    throw new ConformanceAssertionError(`${what}: expected ${show(expected)}, got ${show(actual)}`);
 }
 
 export async function expectRejects(fn: () => Promise<unknown>, what: string): Promise<void> {
