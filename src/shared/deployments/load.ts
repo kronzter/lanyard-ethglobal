@@ -65,6 +65,14 @@ export function requireLive<D extends Deployment>(deployment: D, config: EventCo
         `rabdi funding profile ${deployment.funding.profile} does not match the config (${profile})`,
       );
     }
+    if (
+      deployment.funding.profile === "desk-wallet" &&
+      deployment.funding.deskWallet !== config.authorities.desk
+    ) {
+      throw new DeploymentError(
+        `rabdi desk wallet ${deployment.funding.deskWallet} does not match config authorities.desk (${config.authorities.desk ?? "unset"})`,
+      );
+    }
   }
   return deployment as LiveDeployment<D>;
 }
