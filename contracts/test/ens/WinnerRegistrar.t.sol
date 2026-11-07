@@ -554,6 +554,59 @@ contract WinnerRegistrarTest is PublicationFixture {
         assertFalse(wr.grantInventorySealed());
     }
 
+    function test_lockWritesTheLockedSentinelOnTheEdition() public {
+        bytes32 expected = _publishDeclareBoth();
+        assertEq(_text("", "lanyard.locked"), "", "unset before the lock");
+        _lock(expected);
+        assertEq(_text("", "lanyard.locked"), "1");
+        assertEq(_text("winner.zkpay", "lanyard.locked"), "", "only on the edition name");
+    }
+
+    function test_eventCommitmentAloneDoesNotSetTheSentinel() public {
+        _publishDeclareBoth();
+        assertEq(_text("", "lanyard.locked"), "");
+        assertFalse(wr.locked());
+    }
+
+    function test_failedLockLeavesTheSentinelUnset() public {
+        _publish();
+        bytes32 expected = wr.stateHash();
+        // The final revoke fails (no upgrade admin left), so the sentinel write reverts with it.
+        vm.prank(address(wr));
+        pub.revokeRootRoles(P.ROLE_UPGRADE_ADMIN, address(wr));
+        vm.prank(results);
+        vm.expectRevert();
+        wr.lockResults(expected);
+        assertEq(_text("", "lanyard.locked"), "");
+        // A stale expected state also reverts before writing it.
+        vm.prank(results);
+        vm.expectRevert();
+        wr.lockResults(bytes32(uint256(1)));
+        assertEq(_text("", "lanyard.locked"), "");
+    }
+
+    function test_sentinelCannotBeChangedOrClearedAfterLock() public {
+        bytes32 expected = _publishDeclareBoth();
+        _lock(expected);
+        address[5] memory actors = [organizer, results, address(wr), address(registrar), lead];
+        for (uint256 i; i < actors.length; ++i) {
+            vm.startPrank(actors[i]);
+            vm.expectRevert();
+            pub.setText(_name(""), "lanyard.locked", "");
+            vm.expectRevert();
+            pub.setText(_name(""), "lanyard.locked", "0");
+            vm.expectRevert();
+            pub.grantSetterRoles(
+                abi.encodeCall(ITextSetter.setText, (bytes(""), "lanyard.locked", "")), actors[i]
+            );
+            vm.stopPrank();
+        }
+        vm.prank(results);
+        vm.expectRevert(WinnerRegistrar.ResultsLocked.selector);
+        wr.lockResults(expected);
+        assertEq(_text("", "lanyard.locked"), "1");
+    }
+
     function test_stateHashIsIndependentOfDeclarationOrder() public {
         _publish();
         _declare(_win("rollup", _one("runner-up")));
@@ -644,13 +697,14 @@ contract WinnerRegistrarTest is PublicationFixture {
 
     function test_lockRefusesAKeyScopedHolderOfAPublishedKey() public {
         _publish();
-        string[6] memory keys = [
+        string[7] memory keys = [
             "lanyard.results",
             "lanyard.results-hash",
             "lanyard.bundle-hash",
             "lanyard.bundle-uri",
             "lanyard.edition",
-            "lanyard.prizes"
+            "lanyard.prizes",
+            "lanyard.locked"
         ];
         bytes32 expected = wr.stateHash();
         for (uint256 i; i < keys.length; ++i) {

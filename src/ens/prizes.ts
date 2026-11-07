@@ -1,6 +1,9 @@
 // The `lanyard.prizes` text record on `winner.<team>.<edition>.<base>` is a canonical JSON string
 // array (plans/A4-winners-consoles.md A4.1-R1). The badge cares about two prize strings only:
-// `winner` and `runner-up`; any other prize string is opaque and ignored. Pure, no I/O.
+// `winner` and `runner-up`; any other prize string is opaque and ignored. Parsing is pure; only
+// lockedWinnerPlace reads, through an injected EnsReader.
+import type { EnsReader } from "../shared/interfaces/ens-reader";
+
 export type WinnerPlace = "winner" | "runner-up";
 
 export class PrizesParseError extends Error {
@@ -35,3 +38,18 @@ export const PLACE_TEXT: Readonly<Record<WinnerPlace, string>> = {
   winner: "Winner",
   "runner-up": "Runner-up",
 };
+
+/**
+ * The place to show for `label`'s winner name at `sepoliaBlock`, but only once the publication is
+ * locked: the edition's `lanyard.locked` text must be "1" at that same block (A4 app lock sentinel).
+ * A declared but unlocked winner yields null, and its prizes record is not even read.
+ */
+export async function lockedWinnerPlace(
+  reader: Pick<EnsReader, "text">,
+  label: string,
+  sepoliaBlock: bigint,
+): Promise<WinnerPlace | null> {
+  const at = { sepoliaBlock };
+  if ((await reader.text("", "lanyard.locked", at)) !== "1") return null;
+  return parsePlace(await reader.text(`winner.${label}`, "lanyard.prizes", at));
+}
