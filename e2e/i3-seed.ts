@@ -187,9 +187,14 @@ async function main(): Promise<void> {
     kind: "rubric" | "project" | "submission" | "acceptance" | "judge_assignment",
     creator: string,
   ) => (await scanKind(arkiv, config.edition, kind, {}, { creator: creator as Address })).records;
+  // Team records are written as the team label (the lead holds it), never the lead's hackers badge.
   const rubric = (await mine("rubric", organizer)).find((r) => r.values.track === JUDGE.track);
-  const project = (await mine("project", lead.address)).find((r) => r.values.team === JUDGE.team);
-  const submission = (await mine("submission", lead.address)).find((r) => r.values.team === JUDGE.team);
+  const project = (await mine("project", lead.address)).find(
+    (r) => r.values.team === JUDGE.team && r.byLabel === JUDGE.team,
+  );
+  const submission = (await mine("submission", lead.address)).find(
+    (r) => r.values.team === JUDGE.team && r.byLabel === JUDGE.team,
+  );
   const accepted =
     !!submission &&
     (await mine("acceptance", organizer)).some(
@@ -305,12 +310,14 @@ async function main(): Promise<void> {
       project?.key ??
       (
         await teamW.write({
-          creates: [buildCreate("project", ctx(lead.by), { team: JUDGE.team, track: JUDGE.track, content })],
+          creates: [
+            buildCreate("project", ctx(JUDGE.team), { team: JUDGE.team, track: JUDGE.track, content }),
+          ],
         })
       ).created[0]!;
     const res = await teamW.write({
       creates: [
-        buildCreate("submission", ctx(lead.by), {
+        buildCreate("submission", ctx(JUDGE.team), {
           project: projectKey,
           team: JUDGE.team,
           track: JUDGE.track,

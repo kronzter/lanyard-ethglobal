@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "network": {
+    "chainId": 7794095,
+    "resetId": {
+      "status": "measured",
+      "value": "0xa65a2b9e25129f0e8ccdf494dfd66ec744bdf400c806b832b1da86b0b939cbce",
+      "evidence": "P0.6-S10 2026-11-06: Rabdi genesis block hash, re-read and unchanged"
+    }
+  },
+  "edition": "mumbai2026",
+  "version": "mumbai-i3",
+  "key": "0xc7ae962f3fe6b938c146320201098434688840542001ad5946a06d528b0b3c7b",
+  "createdAtBlock": "315739",
+  "canonicalHash": "0x81fa7f8ed80dc6dbcc2a81c878556ad0dec68647645fe59f0e5f9a593b586d4b",
+  "bytes": 48350
+}
