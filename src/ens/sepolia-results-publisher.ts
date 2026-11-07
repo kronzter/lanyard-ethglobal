@@ -12,6 +12,10 @@
 // - Prizes: the input must already be canonical (non-empty, sorted, duplicate-free subset of
 //   `runner-up`, `winner`). Unsorted input is rejected rather than reordered, so the declared payload
 //   hash, the frozen bundle's prize input and state() all hold the exact bytes the caller passed.
+// - Prepared publication (PreparedResultsPublisher, for the resumable freeze job): prepare() runs the
+//   same validation, then signs and journals without broadcasting; asking again for an identical
+//   unresolved operation returns the saved bytes/hash/nonce. broadcastPrepared() sends only those
+//   journalled bytes, adopts a confirmed receipt and refuses pending, tampered or unknown ones.
 // - lockResults(expected) compares `expected` with the on-chain state, then passes the contract the
 //   state hash computed locally from `expected`; the contract refuses if its own state differs.
 import {
@@ -21,6 +25,7 @@ import {
   encodeFunctionData,
   getAddress,
   keccak256,
+  parseTransaction,
   type Address,
   type Hex,
   type LocalAccount,
@@ -39,9 +44,11 @@ import {
   UnknownTransactionError,
   samePublicationState,
   type ConfirmedTx,
+  type PreparedPublication,
+  type PreparedResultsPublisher,
   type PublicationInput,
+  type PublicationOperation,
   type PublicationState,
-  type ResultsPublisher,
   type WinnerInput,
 } from "../shared/interfaces/results-publisher";
 import { isTeamLabel } from "../shared/labels";
@@ -130,7 +137,29 @@ export function prizeProblem(prizes: readonly string[]): string | null {
 const PUBLICATION_FIELDS = ["event", "resultsKey", "resultsHash", "bundleHash", "bundleUri"] as const;
 const lower = (a: string) => a.toLowerCase() as Hex;
 
-export class SepoliaResultsPublisher implements ResultsPublisher {
+type Current = { state: PublicationState; open: Entry[] };
+/** A validated operation: what the journal records about it, plus its calldata. */
+type Planned = { op: Op; team: string | null; payloadHash: Hex; data: Hex };
+
+/** The journal identity of an operation: its kind, team and complete payload commitment. */
+function identify(op: PublicationOperation): Omit<Planned, "data"> {
+  switch (op.kind) {
+    case "setEventResults":
+      return { op: op.kind, team: null, payloadHash: eventHashOf(op.input) };
+    case "declareWinner":
+      return { op: op.kind, team: op.input.team, payloadHash: declarationHashOf(op.input) };
+    case "lockResults":
+      return { op: op.kind, team: null, payloadHash: stateHashOf(op.expected) };
+  }
+}
+
+const preparedOf = (e: Entry): PreparedPublication => ({
+  rawTransaction: e.raw as Hex,
+  txHash: e.hash as Hex,
+  nonce: BigInt(e.nonce),
+});
+
+export class SepoliaResultsPublisher implements PreparedResultsPublisher {
   private readonly contract: Address;
   private readonly chainId: number;
 
@@ -226,68 +255,101 @@ export class SepoliaResultsPublisher implements ResultsPublisher {
   // ── Writes ─────────────────────────────────────────────────────────────────
 
   async setEventResults(input: PublicationInput): Promise<ConfirmedTx> {
-    const { state, open } = await this.prepare();
-    if (state.eventResults) throw new AlreadyPublishedError("an event pointer is already set");
-    if (open.some((e) => e.op === "setEventResults"))
-      throw new AlreadyPublishedError("a publication is pending; reconcile it");
-    if (input.event.length === 0) throw new StateMismatchError("the publication names no event");
-    const data = encodeFunctionData({
-      abi: winnerRegistrarAbi,
-      functionName: "setEventResults",
-      args: [toChainPublication(input)],
-    });
-    return this.submit("setEventResults", null, eventHashOf(input), data);
+    return this.write({ kind: "setEventResults", input });
   }
 
   async declareWinner(input: WinnerInput): Promise<ConfirmedTx> {
-    const { state, open } = await this.prepare();
-    if (!state.eventResults)
-      throw new StateMismatchError("declare winners only after the event results are published");
-    for (const f of PUBLICATION_FIELDS)
-      if (input[f] !== state.eventResults[f])
-        throw new StateMismatchError(`winner ${input.team} has a different ${f}`);
-    if (!isTeamLabel(input.team))
-      throw new StateMismatchError(`${JSON.stringify(input.team)} is not a team label`);
-    const problem = prizeProblem(input.prizes);
-    if (problem) throw new PublicationError("invalid-prizes", `winner ${input.team} ${problem}`);
-    if (state.winners[input.team] || open.some((e) => e.op === "declareWinner" && e.team === input.team))
-      throw new DuplicateDeclarationError(input.team);
-    for (const prize of input.prizes) {
-      const holder = Object.values(state.winners).find((w) => w.prizes.includes(prize));
-      if (holder) throw new StateMismatchError(`prize ${prize} is already awarded to ${holder.team}`);
-    }
-    const data = encodeFunctionData({
-      abi: winnerRegistrarAbi,
-      functionName: "declare",
-      args: [toChainWinner(input)],
-    });
-    return this.submit("declareWinner", input.team, declarationHashOf(input), data);
+    return this.write({ kind: "declareWinner", input });
   }
 
   async lockResults(expected: PublicationState): Promise<ConfirmedTx> {
-    const { state, open } = await this.prepare();
-    if (!state.eventResults)
-      throw new StateMismatchError("nothing to lock: the event results are not published");
-    if (open.length > 0) throw new StateMismatchError("reconcile pending transactions before locking");
-    for (const [team, w] of Object.entries(expected.winners))
-      if (w.team !== team)
-        throw new StateMismatchError(`expected winner record ${team} names team ${w.team}`);
-    if (expected.locked || !samePublicationState({ ...expected, locked: false }, state))
-      throw new StateMismatchError("the on-chain state differs from the expected state");
-    const expectedHash = stateHashOf(expected);
-    const data = encodeFunctionData({
-      abi: winnerRegistrarAbi,
-      functionName: "lockResults",
-      args: [expectedHash],
-    });
-    return this.submit("lockResults", null, expectedHash, data);
+    return this.write({ kind: "lockResults", expected });
+  }
+
+  /** Validate, sign and journal, then broadcast and wait: the one-call path. */
+  private async write(op: PublicationOperation): Promise<ConfirmedTx> {
+    const planned = this.validate(op, await this.current());
+    const { journal, entry } = await this.sign(planned);
+    return this.send(journal, entry);
+  }
+
+  /** Refuses `op` unless it may apply to the current state with nothing conflicting pending. */
+  private validate(op: PublicationOperation, { state, open }: Current): Planned {
+    switch (op.kind) {
+      case "setEventResults": {
+        const { input } = op;
+        if (state.eventResults) throw new AlreadyPublishedError("an event pointer is already set");
+        if (open.some((e) => e.op === "setEventResults"))
+          throw new AlreadyPublishedError("a publication is pending; reconcile it");
+        if (input.event.length === 0) throw new StateMismatchError("the publication names no event");
+        const data = encodeFunctionData({
+          abi: winnerRegistrarAbi,
+          functionName: "setEventResults",
+          args: [toChainPublication(input)],
+        });
+        return { ...identify(op), data };
+      }
+      case "declareWinner": {
+        const { input } = op;
+        if (!state.eventResults)
+          throw new StateMismatchError("declare winners only after the event results are published");
+        for (const f of PUBLICATION_FIELDS)
+          if (input[f] !== state.eventResults[f])
+            throw new StateMismatchError(`winner ${input.team} has a different ${f}`);
+        if (!isTeamLabel(input.team))
+          throw new StateMismatchError(`${JSON.stringify(input.team)} is not a team label`);
+        const problem = prizeProblem(input.prizes);
+        if (problem) throw new PublicationError("invalid-prizes", `winner ${input.team} ${problem}`);
+        if (state.winners[input.team] || open.some((e) => e.op === "declareWinner" && e.team === input.team))
+          throw new DuplicateDeclarationError(input.team);
+        for (const prize of input.prizes) {
+          const holder = Object.values(state.winners).find((w) => w.prizes.includes(prize));
+          if (holder) throw new StateMismatchError(`prize ${prize} is already awarded to ${holder.team}`);
+        }
+        const data = encodeFunctionData({
+          abi: winnerRegistrarAbi,
+          functionName: "declare",
+          args: [toChainWinner(input)],
+        });
+        return { ...identify(op), data };
+      }
+      case "lockResults": {
+        const { expected } = op;
+        if (!state.eventResults)
+          throw new StateMismatchError("nothing to lock: the event results are not published");
+        if (open.length > 0) throw new StateMismatchError("reconcile pending transactions before locking");
+        for (const [team, w] of Object.entries(expected.winners))
+          if (w.team !== team)
+            throw new StateMismatchError(`expected winner record ${team} names team ${w.team}`);
+        if (expected.locked || !samePublicationState({ ...expected, locked: false }, state))
+          throw new StateMismatchError("the on-chain state differs from the expected state");
+        const planned = identify(op);
+        const data = encodeFunctionData({
+          abi: winnerRegistrarAbi,
+          functionName: "lockResults",
+          args: [planned.payloadHash],
+        });
+        return { ...planned, data };
+      }
+    }
   }
 
   /** Current state plus the journal entries without a final outcome, after refreshing them from chain. */
-  private async prepare(): Promise<{ state: PublicationState; open: Entry[] }> {
+  private async current(): Promise<Current> {
+    await this.checkChain();
+    const journal = await this.loadJournal();
+    await this.refreshOpen(journal);
+    const state = await this.state();
+    if (state.locked) throw new LockedError();
+    return { state, open: journal.entries.filter((e) => OPEN.includes(e.status)) };
+  }
+
+  private async checkChain(): Promise<void> {
     const chainId = await this.opts.client.getChainId();
     if (chainId !== this.chainId) throw new PublicationError("wrong-chain", `RPC reports chain ${chainId}`);
-    const journal = await this.loadJournal();
+  }
+
+  private async refreshOpen(journal: Journal): Promise<void> {
     let changed = false;
     for (const e of journal.entries) {
       if (!OPEN.includes(e.status)) continue;
@@ -296,19 +358,12 @@ export class SepoliaResultsPublisher implements ResultsPublisher {
       changed ||= e.status !== before;
     }
     if (changed) await this.saveJournal(journal);
-    const state = await this.state();
-    if (state.locked) throw new LockedError();
-    return { state, open: journal.entries.filter((e) => OPEN.includes(e.status)) };
   }
 
-  private async submit(op: Op, team: string | null, payloadHash: Hex, data: Hex): Promise<ConfirmedTx> {
+  /** Simulate, sign locally and journal the exact bytes. Nothing leaves this machine. */
+  private async sign({ op, team, payloadHash, data }: Planned): Promise<{ journal: Journal; entry: Entry }> {
     const { client, account } = this.opts;
-    // Simulate first: a revert here sends nothing.
-    try {
-      await client.call({ account: account.address, to: this.contract, data });
-    } catch (err) {
-      throw mapRevert(err, team);
-    }
+    await this.simulate(data, team); // a revert here signs nothing
     const journal = await this.loadJournal();
     const [gas, fees, chainNonce] = await Promise.all([
       client.estimateGas({ account: account.address, to: this.contract, data }),
@@ -329,9 +384,8 @@ export class SepoliaResultsPublisher implements ResultsPublisher {
       maxFeePerGas: fees.maxFeePerGas,
       maxPriorityFeePerGas: fees.maxPriorityFeePerGas,
     });
-    const hash = keccak256(raw);
     const entry: Entry = {
-      hash,
+      hash: keccak256(raw),
       nonce,
       raw: lower(raw),
       op,
@@ -342,10 +396,24 @@ export class SepoliaResultsPublisher implements ResultsPublisher {
       blockHash: null,
     };
     journal.entries.push(entry);
-    await this.saveJournal(journal); // durable before the bytes leave this machine
+    await this.saveJournal(journal); // durable before the bytes can leave this machine
+    return { journal, entry };
+  }
 
+  private async simulate(data: Hex, team: string | null): Promise<void> {
     try {
-      const accepted = await client.request({ method: "eth_sendRawTransaction", params: [raw] });
+      await this.opts.client.call({ account: this.opts.account.address, to: this.contract, data });
+    } catch (err) {
+      throw mapRevert(err, team);
+    }
+  }
+
+  /** Broadcast a journalled `signed` entry's saved bytes and wait for its confirmed receipt. */
+  private async send(journal: Journal, entry: Entry): Promise<ConfirmedTx> {
+    const { client } = this.opts;
+    const hash = entry.hash as Hex;
+    try {
+      const accepted = await client.request({ method: "eth_sendRawTransaction", params: [entry.raw as Hex] });
       if (lower(accepted) !== hash) throw new Error(`node returned hash ${accepted}, expected ${hash}`);
     } catch {
       // The node may or may not have the transaction: never resend, reconcile it.
@@ -365,6 +433,87 @@ export class SepoliaResultsPublisher implements ResultsPublisher {
     if (outcome === "pending") throw new PublicationPendingError(hash);
     if (outcome === "reverted") throw new PublicationRevertedError(hash);
     return outcome;
+  }
+
+  // ── Prepared publication (the resumable freeze job) ────────────────────────
+
+  /** Journalled transactions without a final outcome: signed-but-unsent, or broadcast-but-unconfirmed. */
+  async pendingTransactions(): Promise<Hex[]> {
+    await this.checkChain();
+    const journal = await this.loadJournal();
+    await this.refreshOpen(journal);
+    return journal.entries.filter((e) => OPEN.includes(e.status)).map((e) => e.hash as Hex);
+  }
+
+  /**
+   * Sign and journal `op` without broadcasting. If an identical operation is already journalled and
+   * unresolved, return its saved bytes, hash and nonce instead: a restart never allocates a new nonce.
+   */
+  async prepare(op: PublicationOperation): Promise<PreparedPublication> {
+    const ctx = await this.current();
+    const { op: kind, team, payloadHash } = identify(op);
+    const same = ctx.open.find((e) => e.op === kind && e.team === team && e.payloadHash === payloadHash);
+    if (same) return preparedOf(same);
+    const { entry } = await this.sign(this.validate(op, ctx));
+    return preparedOf(entry);
+  }
+
+  /**
+   * Broadcast exactly the journalled bytes of `tx`. A confirmed entry is adopted without sending; a
+   * broadcast-but-unconfirmed one throws PublicationPendingError (reconcile it, never resend); bytes,
+   * hash or nonce that differ from the journal are refused before anything is sent.
+   */
+  async broadcastPrepared(tx: PreparedPublication): Promise<ConfirmedTx> {
+    const hash = lower(tx.txHash);
+    if (!/^0x([0-9a-fA-F]{2})+$/.test(tx.rawTransaction) || keccak256(tx.rawTransaction) !== hash)
+      throw new StateMismatchError("prepared publication bytes do not hash to its transaction hash");
+    await this.checkChain();
+    const journal = await this.loadJournal();
+    const entry = journal.entries.find((e) => e.hash === hash);
+    if (!entry || entry.raw !== lower(tx.rawTransaction) || BigInt(entry.nonce) !== tx.nonce)
+      throw new StateMismatchError("prepared publication bytes/hash/nonce differ from the journal");
+    const before = entry.status;
+    await this.refresh(entry);
+    if (entry.status !== before) await this.saveJournal(journal);
+    switch (entry.status) {
+      case "confirmed": {
+        const r = await this.receiptOutcome(hash);
+        if (typeof r === "object") return r;
+        throw new PublicationPendingError(hash);
+      }
+      case "reverted":
+      case "dropped":
+        throw new PublicationRevertedError(hash);
+      case "broadcast":
+        throw new PublicationPendingError(hash);
+      case "signed":
+        await this.simulate(parseTransaction(entry.raw as Hex).data ?? "0x", entry.team);
+        return this.send(journal, entry);
+    }
+  }
+
+  async preparedStatus(txHash: Hex): Promise<"prepared" | "pending" | "reverted" | ConfirmedTx> {
+    const hash = lower(txHash);
+    await this.checkChain();
+    const journal = await this.loadJournal();
+    const entry = journal.entries.find((e) => e.hash === hash);
+    if (!entry) throw new UnknownTransactionError(txHash);
+    const before = entry.status;
+    await this.refresh(entry);
+    if (entry.status !== before) await this.saveJournal(journal);
+    switch (entry.status) {
+      case "signed":
+        return "prepared";
+      case "broadcast":
+        return "pending";
+      case "reverted":
+      case "dropped":
+        return "reverted";
+      case "confirmed": {
+        const r = await this.receiptOutcome(hash);
+        return typeof r === "object" ? r : "pending";
+      }
+    }
   }
 
   // ── Reconciliation ─────────────────────────────────────────────────────────

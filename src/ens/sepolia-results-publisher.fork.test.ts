@@ -1,5 +1,5 @@
-// A4.2-R3: SepoliaResultsPublisher passes runResultsPublisherConformance on a local anvil fork of live
-// Sepolia, after the real deploy/handoff script (scripts/ens/deploy-winner-registrar.ts) has run there
+// A4.2-R3 / I4 prepared-publication gate: SepoliaResultsPublisher passes runResultsPublisherConformance
+// and runPreparedPublisherConformance on a local anvil fork of live Sepolia, after the real deploy/handoff script (scripts/ens/deploy-winner-registrar.ts) has run there
 // with the organizer impersonated. Nothing is sent to Sepolia. Skipped unless SEPOLIA_RPC_URL is set;
 // the URL is never printed.
 //   SEPOLIA_RPC_URL=https://ethereum-sepolia-rpc.publicnode.com pnpm exec vitest run src/ens/sepolia-results-publisher.fork.test.ts
@@ -11,8 +11,8 @@
 // transaction waits in the pool until settle() mines it; "crash-after-broadcast" forwards the bytes and
 // then fails the call, as if the process died before seeing the node's answer.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
-import { openSync, readFileSync } from "node:fs";
-import { homedir } from "node:os";
+import { mkdtempSync, openSync, readFileSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import {
   createPublicClient,
@@ -43,9 +43,14 @@ import {
   type HarnessOutcome,
   type PublisherHarness,
 } from "../shared/testing/results-publisher-conformance";
+import {
+  runPreparedPublisherConformance,
+  type PreparedPublisherHarness,
+} from "../shared/testing/prepared-publisher-conformance";
 import { dnsEncodeName } from "./dns-name";
 import { lanyardRegistrarAbi } from "./ensv2-abi";
-import { SepoliaResultsPublisher } from "./sepolia-results-publisher";
+import { SepoliaResultsPublisher, type PublisherJournalIO } from "./sepolia-results-publisher";
+import { fileJournal } from "./sepolia-results-publisher.journal";
 import { publicationResolverAbi, stateHashOf, winnerRegistrarAbi } from "./winner-registrar-abi";
 
 const UPSTREAM = process.env.SEPOLIA_RPC_URL;
@@ -233,6 +238,11 @@ async function setup(): Promise<Setup> {
 }
 
 const built = UPSTREAM ? setup() : null;
+let setupDone: Setup | undefined;
+void built?.then(
+  (s) => void (setupDone = s),
+  () => undefined, // surfaced by the tests that await `built`
+);
 let snapshot: Hex | null = null;
 
 /** Back to the post-handoff state (anvil consumes a snapshot on revert, so take a new one). */
@@ -254,16 +264,25 @@ async function withLockedBit<T>(contract: Address, run: () => Promise<T>): Promi
   }
 }
 
-function forkHarness(contract: Address): PublisherHarness {
+function memoryJournal(): PublisherJournalIO {
   let journal: string | null = null;
+  return { read: async () => journal, write: async (t: string) => void (journal = t) };
+}
+
+/** `ready` gates every RPC (and settle), so a synchronous harness factory can still reset the fork first. */
+function forkHarness(
+  contract: Address,
+  io: PublisherJournalIO = memoryJournal(),
+  ready: Promise<unknown> = Promise.resolve(),
+): PreparedPublisherHarness & PublisherHarness {
   const queue: HarnessOutcome[] = [];
-  const io = { read: async () => journal, write: async (t: string) => void (journal = t) };
   const client = createPublicClient({
     chain: sepolia,
     cacheTime: 0,
     pollingInterval: 100,
     transport: custom({
       async request({ method, params }: { method: string; params?: unknown }) {
+        await ready;
         if (method !== "eth_sendRawTransaction") return rpc(method, (params as unknown[]) ?? []);
         const outcome = queue.shift() ?? "success";
         const forward = () => rpc(method, params as unknown[]) as Promise<Hex>;
@@ -301,6 +320,7 @@ function forkHarness(contract: Address): PublisherHarness {
     restart: open,
     next: (o) => void queue.push(o),
     settle: async (_hash, outcome) => {
+      await ready;
       const mine = () => rpc("evm_mine");
       if (outcome === "success") await mine();
       else await withLockedBit(contract, mine);
@@ -333,6 +353,14 @@ describe.skipIf(!UPSTREAM)(
     runResultsPublisherConformance("SepoliaResultsPublisher (Sepolia fork)", async () =>
       forkHarness(await reset()),
     );
+
+    // The prepared-publication gate, over the durable file journal the freeze CLI uses: each check
+    // gets a reset fork and a fresh journal file, and every restart reopens that file.
+    runPreparedPublisherConformance("SepoliaResultsPublisher (Sepolia fork, file journal)", () => {
+      if (!setupDone) throw new Error("the fork deploy/handoff has not finished");
+      const dir = mkdtempSync(join(tmpdir(), "lanyard-publisher-journal-"));
+      return forkHarness(setupDone.winner, fileJournal(join(dir, "journal.json")), reset());
+    });
 
     it("matches the contract's state hash, then locks the publication resolver for everyone", async () => {
       const contract = await reset();
