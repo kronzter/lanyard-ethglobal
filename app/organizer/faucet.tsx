@@ -3,7 +3,7 @@
 // QR scanning arrives with the shared onboarding-desk scanner (A4.3); this screen takes a pasted
 // address.
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Linking, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Linking } from "react-native";
 import { formatEther } from "viem";
 import { createArkivReader, createWalletWriter } from "@/arkiv/client";
 import { txUrl } from "@/arkiv/chain";
@@ -12,7 +12,18 @@ import { localStorageStore } from "@/arkiv/store";
 import { RABDI_CHAIN_ID } from "@/shared/config/schema";
 import type { Address } from "@/shared/types/primitives";
 import { providers } from "@/providers";
-import { styles } from "@/shell/styles";
+import {
+  Address as AddressText,
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Field,
+  Row,
+  Screen,
+  Stat,
+  Txt,
+} from "@/ui";
 import { useWallet } from "@/shell/wallet/useWallet";
 
 const access = {
@@ -57,12 +68,15 @@ export default function Faucet() {
 
   if (!deskWallet || !dripWei)
     return (
-      <View style={{ padding: 16 }}>
-        <Text style={styles.h2}>Desk faucet</Text>
-        <Text style={styles.muted}>
-          Desk funding is not configured in deployments/rabdi.json or the event config.
-        </Text>
-      </View>
+      <Screen title="Desk faucet">
+        <Card>
+          <EmptyState
+            icon="drop"
+            title="Desk funding not configured"
+            body="Desk funding is not configured in deployments/rabdi.json or the event config."
+          />
+        </Card>
+      </Screen>
     );
 
   const isDesk = wallet.address?.toLowerCase() === deskWallet;
@@ -97,70 +111,93 @@ export default function Faucet() {
   };
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Text style={styles.h2}>Desk faucet</Text>
-      <Text style={styles.muted}>
-        Sends {formatEther(dripWei)} tGLM once per wallet from the desk wallet {deskWallet}, then records it
-        on Arkiv. Desk balance: {deskBalance === null ? "…" : `${formatEther(deskBalance)} tGLM`}
-      </Text>
+    <Screen
+      title="Desk faucet"
+      subtitle={`Sends ${formatEther(dripWei)} tGLM once per wallet from the desk wallet, then records it on Arkiv.`}
+    >
+      <Row gap={12} align="stretch">
+        <Stat label="tGLM per wallet" value={formatEther(dripWei)} tone="accent" />
+        <Stat label="desk balance (tGLM)" value={deskBalance === null ? "…" : formatEther(deskBalance)} />
+      </Row>
+      <Card tone="muted">
+        <Txt variant="label" tone="muted">
+          Desk wallet
+        </Txt>
+        <AddressText value={deskWallet} full tone="text" />
+      </Card>
 
       {wallet.status !== "connected" ? (
-        <Pressable accessibilityRole="button" onPress={wallet.connect} style={styles.chip}>
-          <Text>{wallet.status === "unavailable" ? wallet.reason : "Connect the desk wallet"}</Text>
-        </Pressable>
+        <Button
+          accessibilityRole="button"
+          onPress={wallet.connect}
+          variant="primary"
+          size="lg"
+          full
+          icon="wallet"
+          label={
+            wallet.status === "unavailable"
+              ? (wallet.reason ?? "Wallet unavailable")
+              : "Connect the desk wallet"
+          }
+        />
       ) : !isDesk ? (
-        <Text testID="faucet-not-desk">
-          Connected {wallet.address}. Connect the desk wallet {deskWallet} to send tGLM.
-        </Text>
+        <Banner testID="faucet-not-desk" tone="warning" title="Wrong wallet">
+          {`Connected ${wallet.address}. Connect the desk wallet ${deskWallet} to send tGLM.`}
+        </Banner>
       ) : !onRabdi ? (
-        <Pressable
+        <Button
           accessibilityRole="button"
           onPress={() => wallet.switchChain(RABDI_CHAIN_ID)}
-          style={styles.chip}
-        >
-          <Text>Switch the desk wallet to Arkiv Rabdi</Text>
-        </Pressable>
+          variant="warning"
+          full
+          label="Switch the desk wallet to Arkiv Rabdi"
+        />
       ) : (
-        <View style={styles.card}>
-          <Text style={styles.h3}>Recipient address</Text>
-          <TextInput
+        <Card>
+          <Field
+            label="Recipient address"
             testID="faucet-recipient"
             value={recipient}
             onChangeText={setRecipient}
             placeholder="0x… (paste the wallet address shown on their phone)"
             autoCapitalize="none"
-            style={styles.input}
+            mono
           />
-          <Pressable
+          <Button
             testID="faucet-send"
             accessibilityRole="button"
             disabled={busy || recipient.trim() === ""}
             onPress={send}
-            style={[styles.chip, busy ? undefined : styles.chipOn]}
-          >
-            <Text>{busy ? "Waiting for the desk wallet…" : `Send ${formatEther(dripWei)} tGLM`}</Text>
-          </Pressable>
-        </View>
+            variant="primary"
+            size="lg"
+            full
+            icon="drop"
+            label={busy ? "Waiting for the desk wallet…" : `Send ${formatEther(dripWei)} tGLM`}
+          />
+        </Card>
       )}
 
       {outcome && (
-        <View style={styles.card} testID="faucet-outcome">
-          <Text>{describe(outcome)}</Text>
+        <Card
+          testID="faucet-outcome"
+          tone={outcome.status === "sent" ? "success" : outcome.status === "failed" ? "danger" : "warning"}
+        >
+          <Txt variant="h3">{describe(outcome)}</Txt>
           {"txHash" in outcome && outcome.txHash && outcome.txHash !== "0x" && (
-            <Text style={styles.link} onPress={() => Linking.openURL(txUrl(outcome.txHash!))}>
+            <Txt tone="accent" mono onPress={() => Linking.openURL(txUrl(outcome.txHash!))}>
               Transaction {outcome.txHash}
-            </Text>
+            </Txt>
           )}
           {outcome.status === "sent" && (
-            <Text style={styles.mono}>
+            <Txt mono variant="caption">
               Drip record {outcome.recordKey}
               {recipientBalance !== null
                 ? ` · recipient now holds ${formatEther(recipientBalance)} tGLM`
                 : ""}
-            </Text>
+            </Txt>
           )}
-        </View>
+        </Card>
       )}
-    </ScrollView>
+    </Screen>
   );
 }

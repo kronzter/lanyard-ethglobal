@@ -8,12 +8,26 @@
 //           evaluate against an explicit development context. Current observations, not a frozen
 //           evaluation.
 import { useState } from "react";
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Platform } from "react-native";
 import { evaluateCurrent } from "@/arkiv/evaluate-current";
 import type { Hex } from "@/shared/types/primitives";
 import { ENGINE, outputHashOf, parseBundleText, reproduce, type RulesOutput } from "@/rules";
 import { providers } from "@/providers";
-import { styles } from "@/shell/styles";
+import {
+  Banner,
+  Button,
+  Card,
+  Field,
+  IconBubble,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Stat,
+  Txt,
+} from "@/ui";
 
 type Result = {
   source: string;
@@ -85,97 +99,146 @@ export default function Records() {
   const verdicts = result?.output.verdicts ?? [];
   const counted = verdicts.filter((v) => v.counts).length;
 
-  return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Text style={styles.h2}>Records and verdicts</Text>
-      <Text style={styles.muted}>
-        Anyone can write to Arkiv; the rules decide what counts. Rules version {ENGINE.version}
-      </Text>
+  const kinds = [...new Set(verdicts.map((v) => v.kind))];
 
-      <View style={styles.card}>
-        <Text style={styles.h3}>Evidence bundle</Text>
-        <View style={styles.wrap}>
-          <Pressable
+  return (
+    <Screen
+      title="Records & verdicts"
+      subtitle={`Anyone can write to Arkiv; the rules decide what counts. Rules version ${ENGINE.version}`}
+      maxWidth={900}
+    >
+      <Row gap={12} align="stretch">
+        <Card style={{ flex: 1, minWidth: 280 }}>
+          <Row gap={10} wrap={false}>
+            <IconBubble name="shield" size={36} />
+            <Txt variant="h2">Evidence bundle</Txt>
+          </Row>
+          <Button
             testID="records-pick"
             accessibilityRole="button"
             disabled={busy}
-            style={styles.chip}
+            icon="plus"
+            label="Choose a bundle file…"
             onPress={() => pickFile((text) => void run(() => fromBundle(text)), setError)}
-          >
-            <Text>Choose a bundle file…</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          testID="records-paste"
-          value={pasted}
-          onChangeText={setPasted}
-          placeholder="…or paste bundle JSON"
-          multiline
-          numberOfLines={4}
-          autoCapitalize="none"
-          style={[styles.input, styles.mono]}
-        />
-        <Pressable
-          testID="records-evaluate-paste"
-          accessibilityRole="button"
-          disabled={busy || pasted.trim() === ""}
-          style={styles.chip}
-          onPress={() => void run(() => fromBundle(pasted))}
-        >
-          <Text>Evaluate pasted bundle</Text>
-        </Pressable>
-      </View>
+          />
+          <Field
+            testID="records-paste"
+            value={pasted}
+            onChangeText={setPasted}
+            placeholder="…or paste bundle JSON"
+            multiline
+            mono
+            autoCapitalize="none"
+          />
+          <Button
+            testID="records-evaluate-paste"
+            accessibilityRole="button"
+            disabled={busy || pasted.trim() === ""}
+            variant="primary"
+            label="Evaluate pasted bundle"
+            onPress={() => void run(() => fromBundle(pasted))}
+          />
+        </Card>
 
-      <View style={styles.card}>
-        <Text style={styles.h3}>Live records</Text>
-        <Text style={styles.muted}>
-          Captures the edition&apos;s current readonly records and checks them against historical ENS (
-          {providers.flags.ens} reader).
-        </Text>
-        <Pressable
-          testID="records-live"
-          accessibilityRole="button"
-          disabled={busy}
-          style={styles.chip}
-          onPress={() => void run(fromLive)}
-        >
-          <Text>{busy ? "Working…" : "Evaluate live records"}</Text>
-        </Pressable>
-      </View>
+        <Card style={{ flex: 1, minWidth: 280 }}>
+          <Row gap={10} wrap={false}>
+            <IconBubble name="refresh" tone="success" size={36} />
+            <Txt variant="h2">Live records</Txt>
+          </Row>
+          <Txt variant="caption" tone="muted">
+            Captures the edition&apos;s current readonly records and checks them against historical ENS (
+            {providers.flags.ens} reader).
+          </Txt>
+          <Button
+            testID="records-live"
+            accessibilityRole="button"
+            disabled={busy}
+            variant="primary"
+            label={busy ? "Working…" : "Evaluate live records"}
+            onPress={() => void run(fromLive)}
+          />
+        </Card>
+      </Row>
 
       {error && (
-        <View style={styles.card} testID="records-error">
-          <Text>Could not evaluate: {error}</Text>
-        </View>
+        <Banner testID="records-error" tone="danger" title="Could not evaluate">
+          {`Could not evaluate: ${error}`}
+        </Banner>
       )}
 
       {result && (
-        <View style={{ gap: 8 }} testID="records-result">
-          <Text style={styles.mono}>Output hash {result.outputHash}</Text>
-          <Text style={styles.muted}>
-            {result.source} · {counted} of {verdicts.length} records count
-          </Text>
-          {result.note && <Text style={styles.muted}>{result.note}</Text>}
+        <Stackv gap={12} testID="records-result">
+          <Row gap={12} align="stretch">
+            <Stat label="records count" value={counted} tone="success" />
+            <Stat label="greyed out, with a reason" value={verdicts.length - counted} tone="muted" />
+          </Row>
+          <Card tone="muted">
+            <Txt variant="label" tone="muted">
+              Output hash
+            </Txt>
+            <Txt mono selectable>
+              Output hash {result.outputHash}
+            </Txt>
+            <Txt variant="caption" tone="muted">
+              {result.source} · {counted} of {verdicts.length} records count
+            </Txt>
+            {result.note && (
+              <Txt variant="caption" tone="muted">
+                {result.note}
+              </Txt>
+            )}
+          </Card>
           {result.claimedMismatch && (
-            <Text>
-              The bundle&apos;s claimed output differs from the recomputation: {result.claimedMismatch}
-            </Text>
+            <Banner tone="danger">
+              {`The bundle's claimed output differs from the recomputation: ${result.claimedMismatch}`}
+            </Banner>
           )}
-          {verdicts.map((v) => (
-            <View
-              key={v.key}
-              style={[styles.row, v.counts ? undefined : { opacity: 0.5 }]}
-              testID="records-verdict"
-            >
-              <Text>
-                {v.counts ? "✓" : "✗"} {v.kind}
-              </Text>
-              <Text style={[styles.mono, styles.muted]}>{v.key}</Text>
-              {!v.counts && <Text>{v.reason}</Text>}
-            </View>
-          ))}
-        </View>
+          {kinds.map((kind) => {
+            const rows = verdicts.filter((v) => v.kind === kind);
+            const ok = rows.filter((v) => v.counts).length;
+            return (
+              <Stackv key={kind} gap={8}>
+                <SectionHeader
+                  title={kind}
+                  right={
+                    <Pill
+                      label={`${ok}/${rows.length} count`}
+                      tone={ok === rows.length ? "success" : "warning"}
+                    />
+                  }
+                />
+                {rows.map((v) => (
+                  <ListRow
+                    key={v.key}
+                    testID="records-verdict"
+                    dim={!v.counts}
+                    left={
+                      <IconBubble
+                        name={v.counts ? "check" : "x"}
+                        tone={v.counts ? "success" : "muted"}
+                        size={30}
+                      />
+                    }
+                    title={
+                      <Txt variant="h3">
+                        {v.counts ? "✓" : "✗"} {v.kind}
+                      </Txt>
+                    }
+                    subtitle={
+                      <Stackv gap={2}>
+                        <Txt variant="caption" mono tone="faint" selectable>
+                          {v.key}
+                        </Txt>
+                        {!v.counts && <Txt variant="caption">{v.reason}</Txt>}
+                      </Stackv>
+                    }
+                  />
+                ))}
+              </Stackv>
+            );
+          })}
+        </Stackv>
       )}
-    </ScrollView>
+    </Screen>
   );
 }

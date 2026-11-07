@@ -1,10 +1,13 @@
-import { Slot } from "expo-router";
+import { Slot, Stack } from "expo-router";
 import { WebOnly } from "@/shell/WebOnly";
 
 export default function Layout() {
   return (
-    <WebOnly title="Organizer">
-      <Slot />
-    </WebOnly>
+    <>
+      <Stack.Screen options={{ title: "Organizer" }} />
+      <WebOnly title="Organizer">
+        <Slot />
+      </WebOnly>
+    </>
   );
 }

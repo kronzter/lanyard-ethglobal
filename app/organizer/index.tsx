@@ -1,29 +1,30 @@
-import { Link } from "expo-router";
-import { View } from "react-native";
-import { Placeholder } from "@/shell/Placeholder";
-import { styles } from "@/shell/styles";
+import { Row, Screen, Tile, routeCopy } from "@/ui";
 
-export default function Screen() {
+const DESK = [
+  "/admin/ens/desk",
+  "/organizer/faucet",
+  "/organizer/seats",
+  "/organizer/judging",
+  "/organizer/leaderboard",
+  "/organizer/records",
+] as const;
+
+const EXTRA: Record<string, { icon: "badge"; title: string; body: string }> = {
+  "/admin/ens/desk": { icon: "badge", title: "Onboarding desk", body: "Issue badges and register teams" },
+};
+
+export default function OrganizerHome() {
   return (
-    <View style={{ flex: 1 }}>
-      <Placeholder path="/organizer" />
-      <View style={{ padding: 16, alignItems: "center" }}>
-        <Link href={"/organizer/leaderboard" as never} style={styles.link}>
-          Judging progress and published rankings
-        </Link>
-        <Link href={"/organizer/judging" as never} style={styles.link}>
-          Judging desk: submissions, rubrics and assignments
-        </Link>
-        <Link href={"/organizer/faucet" as never} style={styles.link}>
-          Desk faucet: first-time tGLM (B1.1)
-        </Link>
-        <Link href={"/organizer/records" as never} style={styles.link}>
-          Records and verdicts: what counts and why (B2.2)
-        </Link>
-        <Link href={"/organizer/seats" as never} style={styles.link}>
-          Venue and seats: publish venue.json, import seat assignments (B3.3)
-        </Link>
-      </View>
-    </View>
+    <Screen
+      title="Organizer desk"
+      subtitle="Everything the event runs on, from the onboarding desk to published results."
+    >
+      <Row gap={12} align="stretch">
+        {DESK.map((href) => {
+          const copy = EXTRA[href] ?? routeCopy(href);
+          return <Tile key={href} href={href} icon={copy.icon} title={copy.title} body={copy.body} />;
+        })}
+      </Row>
+    </Screen>
   );
 }
