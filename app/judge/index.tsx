@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { View } from "react-native";
 import { str as arkivString, key as arkivKey } from "@arkiv-network/sdk";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import { evaluateCurrent } from "@/arkiv/evaluate-current";
@@ -19,7 +19,24 @@ import type { Hex } from "@/shared/types/primitives";
 import { payload, RubricSchema } from "@/rules/kinds/judging";
 import { scoreValues } from "@/rules/scores";
 import { ref, str } from "@/rules/decode";
-import { styles } from "@/shell/styles";
+import {
+  Banner,
+  Button,
+  Card,
+  Divider,
+  EmptyState,
+  Field,
+  IconBubble,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Txt,
+  messageTone,
+  shortKey,
+  useTheme,
+} from "@/ui";
 
 function ScoreEditor({
   context,
@@ -180,45 +197,76 @@ function ScoreEditor({
       setBusy(false);
     }
   }
+  const savedLocally = local === "Saved on this device" || local === "Restored from this device";
   return (
-    <View style={styles.card}>
-      <Text style={styles.h3}>Score · 0–{rubric.scale}, up to two decimal places</Text>
+    <Card>
+      <Row justify="space-between">
+        <Txt variant="h2">Score</Txt>
+        <Pill label={`0–${rubric.scale} · up to 2 decimals`} tone="neutral" />
+      </Row>
       {loaded &&
         rubric.criteria.map((c) => (
-          <View key={c.id}>
-            <Text>
-              {c.name} · weight {c.weight}
-            </Text>
-            <TextInput
+          <Row key={c.id} wrap={false} gap={12}>
+            <View style={{ flex: 1, gap: 4 }}>
+              <Txt variant="h3">{c.name}</Txt>
+              <Pill label={`weight ${c.weight}`} tone="muted" />
+            </View>
+            <Field
               key={`${draftKey(scope)}:${c.id}`}
               accessibilityLabel={c.name}
               editable={loaded && !busy}
-              style={styles.input}
+              style={{ width: 130 }}
+              inputStyle={{ textAlign: "right", fontSize: 18, fontWeight: "600" }}
               keyboardType="decimal-pad"
+              placeholder="–"
+              suffix={`/ ${rubric.scale}`}
               value={inputs[c.id] ?? ""}
               onChangeText={(v) => edit(c.id, v)}
             />
-          </View>
+          </Row>
         ))}
-      <Text>{local}</Text>
-      <Text style={styles.muted}>{remote}</Text>
-      <Text style={styles.muted}>
+      <Divider />
+      <Row gap={8}>
+        {local.length <= 32 ? (
+          <Pill
+            label={local}
+            tone={savedLocally ? "success" : "muted"}
+            icon={savedLocally ? "check" : "clock"}
+          />
+        ) : null}
+        {remote.length <= 32 ? <Pill label={remote} tone="neutral" icon="lock" /> : null}
+      </Row>
+      {local.length > 32 ? <Txt variant="caption">{local}</Txt> : null}
+      {remote.length > 32 ? (
+        <Txt variant="caption" tone="muted">
+          {remote}
+        </Txt>
+      ) : null}
+      <Txt variant="caption" tone="muted">
         Editable scores are stored on this device/profile. Anyone with access to its app storage can read
         them. Storage clearing or another device requires re-entry.
-      </Text>
-      <View style={styles.wrap}>
-        <Pressable style={styles.chip} disabled={busy || !saved} onPress={() => void send(false)}>
-          <Text>Sync encrypted mirror</Text>
-        </Pressable>
-        <Pressable style={styles.chip} disabled={busy || !saved} onPress={() => void send(true)}>
-          <Text>Seal final score</Text>
-        </Pressable>
-      </View>
-    </View>
+      </Txt>
+      <Row gap={8}>
+        <Button
+          disabled={busy || !saved}
+          onPress={() => void send(false)}
+          icon="refresh"
+          label="Sync encrypted mirror"
+        />
+        <Button
+          variant="primary"
+          disabled={busy || !saved}
+          onPress={() => void send(true)}
+          icon="lock"
+          label="Seal final score"
+        />
+      </Row>
+    </Card>
   );
 }
 export default function Judge() {
   const { evaluation, error, refresh } = useEvaluation();
+  const { c } = useTheme();
   const writer = useWriter();
   const [selected, setSelected] = useState<Hex | null>(null);
   const [message, setMessage] = useState("");
@@ -243,32 +291,76 @@ export default function Judge() {
           keyId: cipher.keyId,
         }
       : null;
+  // Display only: the team behind a submission key, from records already on screen.
+  const teamFor = (submission: string | undefined) => {
+    const r = submission
+      ? evaluation?.view.records("submission").find((x) => x.key === submission)
+      : undefined;
+    return r ? str(r, "team") : undefined;
+  };
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }}
-    >
-      <Text style={styles.h2}>Judge route</Text>
-      <Text style={styles.muted}>
+    <Screen title="Your judging route" subtitle={writer.byLabel ?? undefined}>
+      <Banner icon="lock" tone="accent" title="Scores stay sealed">
         Scores remain sealed until freeze. Choose an assignment to enter scores on this device.
-      </Text>
-      {route?.order.map((s, i) => (
-        <Text key={s}>
-          {i + 1}. Submission {s}
-        </Text>
-      ))}
+      </Banner>
+      {route && route.order.length > 0 && (
+        <Card>
+          <SectionHeader title="Walking order" icon="map" />
+          {route.order.map((s, i) => (
+            <Row key={s} wrap={false} gap={12}>
+              <View
+                style={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: 14,
+                  backgroundColor: c.accentSoft,
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Txt variant="caption" tone="accent" style={{ fontWeight: "700" }}>
+                  {i + 1}
+                </Txt>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">{teamFor(s) ?? "Submission"}</Txt>
+                <Txt variant="caption" tone="faint" mono>
+                  Submission {shortKey(s)}
+                </Txt>
+              </View>
+            </Row>
+          ))}
+        </Card>
+      )}
       {route?.unlocated.map((s) => (
-        <Text key={s}>Location unavailable: {s}</Text>
+        <Banner key={s} tone="warning" icon="pin">
+          {`Location unavailable: ${teamFor(s) ?? shortKey(s)}`}
+        </Banner>
       ))}
-      {route?.assignments.map((a) => (
-        <Pressable
-          key={a.key}
-          style={[styles.row, selected === a.key && styles.rowOn]}
-          onPress={() => setSelected(a.key)}
-        >
-          <Text>Submission {ref(a, "submission")}</Text>
-          <Text style={styles.muted}>Assignment {a.key}</Text>
-        </Pressable>
-      ))}
+      {route && route.assignments.length > 0 && <SectionHeader title="Assignments" icon="gavel" />}
+      {route?.assignments.map((a) => {
+        const submission = ref(a, "submission");
+        return (
+          <ListRow
+            key={a.key}
+            selected={selected === a.key}
+            onPress={() => setSelected(a.key)}
+            left={<IconBubble name="star" tone={selected === a.key ? "accent" : "muted"} size={36} />}
+            title={teamFor(submission) ?? `Submission ${submission}`}
+            subtitle={`Submission ${shortKey(submission ?? "")} · Assignment ${shortKey(a.key)}`}
+            chevron={selected !== a.key}
+          />
+        );
+      })}
+      {route && route.assignments.length === 0 && (
+        <Card>
+          <EmptyState
+            icon="gavel"
+            title="No assignments yet"
+            body="The judging desk will assign submissions to you."
+          />
+        </Card>
+      )}
       {context && parsed?.success && (
         <ScoreEditor
           key={`${writer.byLabel}:${draftKey(context)}`}
@@ -278,8 +370,10 @@ export default function Judge() {
         />
       )}
       {context && (
-        <Pressable
-          style={styles.chip}
+        <Button
+          variant="ghost"
+          icon="x"
+          label="Recuse myself"
           onPress={() => {
             const ctx = writer.context(evaluation?.head);
             if (writer.queue && ctx)
@@ -295,11 +389,15 @@ export default function Judge() {
                 })
                 .catch((e) => setMessage((e as Error).message));
           }}
-        >
-          <Text>Recuse myself</Text>
-        </Pressable>
+        />
       )}
-      <Text accessibilityRole="alert">{message || error}</Text>
-    </ScrollView>
+      {message || error ? (
+        <Banner accessibilityRole="alert" tone={messageTone(message || error || "")}>
+          {message || error}
+        </Banner>
+      ) : (
+        <Txt accessibilityRole="alert" />
+      )}
+    </Screen>
   );
 }

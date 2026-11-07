@@ -2,7 +2,7 @@
 // P0 stub on fixture data; B4 owns the real page, reading the earliest valid captured
 // submission and, after publication, the verified frozen bundle.
 import { useLocalSearchParams } from "expo-router";
-import { ActivityIndicator, Linking, Pressable, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Linking } from "react-native";
 import { useEffect, useState } from "react";
 import { useEvaluation } from "@/arkiv/app-hooks";
 import { publishedBundle } from "@/arkiv/published";
@@ -12,6 +12,21 @@ import { isTeamLabel } from "@/shared/labels";
 import { toFullName } from "@/shared/labels";
 import { teamPageUrl, type TeamPageLinks, type TeamPageState } from "@/shared/types/team-page";
 import { providers } from "@/providers";
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  Icon,
+  type IconName,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Txt,
+  useTheme,
+} from "@/ui";
 
 const LINK_LABELS: [keyof TeamPageLinks, string][] = [
   ["ethglobal", "ETHGlobal"],
@@ -20,52 +35,94 @@ const LINK_LABELS: [keyof TeamPageLinks, string][] = [
   ["video", "Demo video"],
 ];
 
+const LINK_ICONS: Record<keyof TeamPageLinks, IconName> = {
+  ethglobal: "star",
+  repository: "list",
+  demo: "monitor",
+  video: "monitor",
+};
+
 function Body({ state }: { state: TeamPageState }) {
   const names = { edition: providers.config.edition, baseName: providers.config.baseName };
   switch (state.status) {
     case "loading":
-      return <ActivityIndicator accessibilityLabel="Loading team" />;
+      return (
+        <Card>
+          <ActivityIndicator accessibilityLabel="Loading team" />
+        </Card>
+      );
     case "unknown-team":
       return (
-        <Text>
-          No team named “{state.team}” is registered for {names.edition}.
-        </Text>
+        <Card>
+          <EmptyState
+            icon="users"
+            title="Team not found"
+            body={`No team named “${state.team}” is registered for ${names.edition}.`}
+          />
+        </Card>
       );
     case "unavailable":
-      return <Text accessibilityRole="alert">Team details are unavailable right now: {state.reason}.</Text>;
+      return (
+        <Banner tone="danger" accessibilityRole="alert" title="Unavailable">
+          {`Team details are unavailable right now: ${state.reason}.`}
+        </Banner>
+      );
     case "awaiting-submission":
       return (
-        <View style={{ gap: 6 }}>
-          <Text style={{ fontSize: 24, fontWeight: "600" }}>{state.team}</Text>
-          <Text>{toFullName(state.team, names)}</Text>
-          <Text>Project details coming soon.</Text>
-        </View>
+        <Card>
+          <Stackv gap={4}>
+            <Txt variant="display">{state.team}</Txt>
+            <Txt tone="muted" mono>
+              {toFullName(state.team, names)}
+            </Txt>
+          </Stackv>
+          <Banner icon="clock">Project details coming soon.</Banner>
+        </Card>
       );
     case "published": {
       const { content } = state;
       const track = providers.config.tracks.find((t) => t.id === state.track)?.name ?? state.track;
       return (
-        <View style={{ gap: 10 }}>
-          <Text style={{ fontSize: 24, fontWeight: "600" }}>{content.title}</Text>
-          <Text>
-            {toFullName(state.team, names)} · {track} track
-          </Text>
-          {state.winner ? <Text>Winner: {state.winner.prizes.join(", ")}</Text> : null}
-          <Text>{content.description}</Text>
-          {content.members.length > 0 ? <Text>Team: {content.members.join(", ")}</Text> : null}
-          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8 }}>
+        <Stackv gap={16}>
+          <Card>
+            <Row gap={8}>
+              <Pill label={`${track} track`} tone="accent" />
+              <Pill label="Submitted" tone="success" icon="check" />
+            </Row>
+            <Txt variant="display">{content.title}</Txt>
+            <Txt tone="muted" mono>
+              {toFullName(state.team, names)} · {track} track
+            </Txt>
+            {state.winner ? (
+              <Banner tone="warning" icon="trophy" title="Winner">
+                {state.winner.prizes.join(", ")}
+              </Banner>
+            ) : null}
+            <Txt style={{ lineHeight: 22 }}>{content.description}</Txt>
+          </Card>
+          {content.members.length > 0 ? (
+            <Card>
+              <SectionHeader title="Team" icon="users" />
+              <Row gap={8}>
+                {content.members.map((m) => (
+                  <Pill key={m} label={m} tone="neutral" icon="user" />
+                ))}
+              </Row>
+            </Card>
+          ) : null}
+          <Row gap={8}>
             {LINK_LABELS.filter(([key]) => content.links[key] !== undefined).map(([key, label]) => (
-              <Pressable
+              <Button
                 key={key}
                 accessibilityRole="link"
+                icon={LINK_ICONS[key]}
+                variant={key === "ethglobal" ? "primary" : "secondary"}
+                label={label}
                 onPress={() => Linking.openURL(content.links[key]!)}
-                style={{ borderWidth: 1, borderRadius: 6, paddingHorizontal: 12, paddingVertical: 8 }}
-              >
-                <Text>{label}</Text>
-              </Pressable>
+              />
             ))}
-          </View>
-        </View>
+          </Row>
+        </Stackv>
       );
     }
   }
@@ -136,14 +193,18 @@ export default function TeamPage() {
   }, [team, evaluation, error]);
   const state: TeamPageState = resolved.team === team ? resolved : { status: "loading", team };
   const origin = providers.deployments.sepolia.publicAppOrigin;
+  const { c } = useTheme();
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
+    <Screen navTitle={team || "Team"}>
       <Body state={state} />
       {state.status !== "unknown-team" ? (
-        <Text selectable style={{ opacity: 0.7 }}>
-          {teamPageUrl(state.team, origin)}
-        </Text>
+        <Row gap={6} wrap={false}>
+          <Icon name="link" size={14} color={c.faint} />
+          <Txt variant="caption" tone="faint" selectable style={{ flex: 1 }}>
+            {teamPageUrl(state.team, origin)}
+          </Txt>
+        </Row>
       ) : null}
-    </ScrollView>
+    </Screen>
   );
 }
