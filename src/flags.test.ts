@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { FlagError, parseFlags } from "./flags";
 import { fixtureVenue } from "@/shared/mocks/fixtures";
-import { ProviderNotWiredError, createProviders } from "./providers";
+import { createProviders } from "./providers";
+import { GridRouter } from "@/venue/grid-router";
 
 describe("parseFlags", () => {
   it("defaults to Sepolia ENS and the stub router", () => {
@@ -33,11 +34,14 @@ describe("createProviders", () => {
     expect(p.deployments.sepolia.mode).toBe("live");
   });
 
-  it("fails loudly for providers that are not wired yet, naming where they land", () => {
+  it("serves A3's GridRouter and real venue map in grid mode, without loading native modules", () => {
     const live = createProviders({ ens: "sepolia", router: "grid", arkiv: "rabdi" });
-    expect(() => live.router()).toThrow(ProviderNotWiredError);
-    expect(() => live.router()).toThrow(/A3\.2, switched on at I3/);
-    expect(() => live.venueMap()).toThrow(/A3\.3, switched on at I3/);
+    expect(live.router()).toBeInstanceOf(GridRouter);
+    expect(live.router()).toBe(live.router());
+    expect(live.venueMap()).toBe(live.venueMap());
+    expect(live.venueMap()).not.toBe(
+      createProviders({ ens: "mock", router: "stub", arkiv: "rabdi" }).venueMap(),
+    );
   });
 
   it("wires one live reader and directory using the configured RPC", () => {

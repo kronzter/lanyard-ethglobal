@@ -15,6 +15,7 @@ import type { IdentityDirectory } from "@/shared/interfaces/identity-directory";
 import type { Router } from "@/shared/interfaces/router";
 import type { VenueMapProps } from "@/shared/interfaces/venue-map";
 import { StubRouter } from "@/shared/mocks/stub-router";
+import { GridRouter } from "@/venue/grid-router";
 import {
   createFixtureEnsReader,
   createFixtureIdentityDirectory,
@@ -34,10 +35,14 @@ export class ProviderNotWiredError extends Error {
 }
 
 // Loaded on first render, so Node code that imports this file (tests, tooling) never pulls in
-// react-native-svg.
+// react-native-svg, gesture-handler or reanimated.
 const LazyStubVenueMap = lazy(() => import("./components/venue/StubVenueMap"));
 function StubVenueMap(props: VenueMapProps) {
   return createElement(Suspense, { fallback: null }, createElement(LazyStubVenueMap, props));
+}
+const LazyVenueMap = lazy(() => import("./components/venue/VenueMap"));
+function VenueMap(props: VenueMapProps) {
+  return createElement(Suspense, { fallback: null }, createElement(LazyVenueMap, props));
 }
 
 export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcUrl?: string } = {}) {
@@ -88,15 +93,13 @@ export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcU
             }));
     },
     router(): Router {
-      if (flags.router === "stub") return (router ??= new StubRouter());
-      throw new ProviderNotWiredError("GridRouter", "A3.2, switched on at I3");
+      return (router ??= flags.router === "stub" ? new StubRouter() : new GridRouter());
     },
     winnerBadge(): ComponentType<{ team: string }> {
       return () => null;
     },
     venueMap(): ComponentType<VenueMapProps> {
-      if (flags.router === "stub") return StubVenueMap;
-      throw new ProviderNotWiredError("VenueMap", "A3.3, switched on at I3");
+      return flags.router === "stub" ? StubVenueMap : VenueMap;
     },
   };
 }
