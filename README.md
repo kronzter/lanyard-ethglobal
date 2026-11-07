@@ -81,6 +81,107 @@ Resume checks both copies, the downloaded artifact, saved cutoffs, signer/config
 
 `fixtures/prizes.json` is a disclosed demo placeholder. Prize selection remains manual, separate from track rankings. Rankings use exact rational weighted means and become visible only from checked publication evidence; later badge changes do not rewrite them. Captured readonly records remain usable after deletion/expiry, but `MATCH` does not prove historical capture completeness or rule out unseen earlier deleted candidates. Verification still requires online historical ENS reads; the bundle host is optional when a local bundle is supplied.
 
+## Evidence scope: what `MATCH` proves
+
+Rabdi exposes current state, not historical snapshots, and readonly Arkiv entities can still be
+deleted, transferred or expire. Lanyard therefore uses **operator-attested capture**: the local
+capture runner retains each readonly record it observes (raw values, creator, owner, flags,
+creation/expiry blocks, observation block) and the results operator signs the bundle built from
+those observations.
+
+`pnpm lanyard verify mumbai2026 --bundle <path>` prints
+`MATCH — operator-attested captured inputs; completeness not proven` when the bundle is intact, is
+signed by the configured results wallet, and its captured inputs reproduce the published
+computation using independently checked historical Sepolia ENS reads. It does **not** prove:
+
+- that the operator captured every Rabdi record, or that no earlier candidate was deleted before
+  it was captured (a captured record that is later deleted stays in the bundle; one deleted before
+  capture cannot be detected and is never advertised as impossible);
+- that publisher-attested Arkiv metadata is an independent inclusion proof;
+- anything about records first observed after the pinned cutoff, or mutable drafts (both excluded).
+
+"Earliest" submission/score means earliest valid candidate **in the captured set**. Verification
+works offline from a local bundle except for historical ENS reads, which need an archive RPC; the
+`bundleUri` host is a retrieval hint, never a trust root. A local-only reproduction without the
+online ENS check is labelled separately and is not a `MATCH`.
+
+## Issuer and ancestor-name trust
+
+Badge and team actions count only when historical ENS registry ownership (not resolved addresses)
+matched the record creator, with valid ancestor expiry, at creation. That authority is only as
+trustworthy as the names above it:
+
+- **Ancestors.** `eth` (ENS's own owner) and `lanyard.eth` (the organizer) can still redirect their
+  subtrees and must be renewed; sealed edition/team permissions and the winner lock do not remove
+  those controls. Details and addresses are under Known limitations.
+- **Issuers.** App-issued badges omit transfer-admin, but the organizer keeps raw
+  register/unregister/renew/resolver roles on managed books and can bypass the app's badge policy,
+  including by issuing transferable tokens. Nontransferability against an issuer is not guaranteed.
+  Head-judge and partner delegates issue only through policy-enforcing registrar entrypoints.
+- **Lifetimes.** Judge badges expire at `freezeDeadline`; structural names and their ancestors must
+  cover `namespaceExpiry = max(eventEnd, freezeDeadline) + 30 days`; staff badges end with the
+  event. A child name stops resolving if its parent expires, so a winner name depends on its team
+  name, the edition and `lanyard.eth` staying renewed.
+- **Authority wallets** (organizer, results, head judge, partners, desk) come from frozen config,
+  committed by `configHash`; bundles never supply their own trusted signer.
+
+## Service and host profile
+
+There is **no server signer**. Every actor write is signed by that actor's wallet (Reown AppKit);
+deploy, seed, capture and freeze run as local CLIs on the operator's machine.
+
+| Service                    | Used for                                 | Credential shipped in the app                                                            |
+| -------------------------- | ---------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Sepolia RPC                | ENS reads (archive), wallet chain config | `EXPO_PUBLIC_SEPOLIA_RPC_URL` (public, read-only, app-restricted key if any)             |
+| Rabdi RPC                  | Arkiv reads; wallet chain config         | `EXPO_PUBLIC_RABDI_RPC_URL`, optional `EXPO_PUBLIC_RABDI_ACCESS_KEY` (public, read-only) |
+| Reown relay                | Wallet connection/login                  | `EXPO_PUBLIC_REOWN_PROJECT_ID` (public project ID)                                       |
+| Static host (Vercel)       | Web consoles and public team pages       | none (`https://lanyard-eth.vercel.app`, from `deployments/sepolia.json`)                 |
+| Evidence bundle HTTPS host | Downloadable signed bundle (`bundleUri`) | none; operator uploads the exact bundle. TODO: name the host used for the live freeze    |
+
+- P0.6-S8 measured keyless Rabdi reads with no throttling at demo rates, so **no read-only proxy**
+  is deployed. If one is ever added it holds no signing or decryption key.
+- Every `EXPO_PUBLIC_*` value is treated as public and rotated if abused. No organizer, results,
+  desk or score-decryption key ever appears in an app bundle, an EAS secret, app storage or a
+  wallet chain URL; those live only in the operator's local `.env`.
+- The `SepoliaResultsPublisher` and its file journal are Node-only and imported by no `app/` or
+  `src/` module (`src/ens/sepolia-results-publisher.boundary.test.ts`).
+- TODO (I4 bug hunt): scan the built APK and `dist/` web export for organizer, results and
+  decryption keys and record the result here.
+
+## Demo script
+
+Preconditions (I4): app ENS = `sepolia`, router = `grid`, CLI ENS and results = `sepolia`, live
+deployment validation passes, and ancestor/judge-badge expiries cover the freeze window. I4 cannot
+sign off with any mock or stub provider.
+
+> TODO before the live run: deploy the live `WinnerRegistrar` (not deployed yet; no address in
+> `deployments/sepolia.json`), replace the placeholder authority wallets in
+> `src/shared/event.config.ts` (`authorities.results` is still a public test-mnemonic address), and
+> switch the CLI default to `LANYARD_RESULTS=sepolia` (I4 step 3). Record addresses and results here.
+
+1. Start the local capture runner (`pnpm lanyard capture --every 15`). At the desk, issue badges and
+   fund wallets with the desk-wallet profile. Team `zkpay` is registered to its lead and
+   `winner.zkpay…` is reserved. Field wallets discover and select their own roles.
+2. The coordinator makes Priya a lead. Priya clocks Ravi in from her phone (one approval); his
+   duty-pass countdown shows.
+3. Person B raises a ticket from their seat; Ravi claims it, walks the path, resolves it and gets
+   the next ticket.
+4. The coordinator removes Priya's lead note; her next clock-in shows greyed out, with a reason.
+5. The lead submits immutable content before the deadline; a late submission is excluded. Editing
+   the draft afterwards cannot change the submitted contents or track.
+6. An assigned partner judge walks located stops, scores and seals. One judge is revoked before
+   cutoff: completion/eligibility updates without exposing scores or rankings.
+7. After an allowed confirmed cutoff in `[results, freezeDeadline)` on both chains, run
+   `pnpm lanyard freeze`: reconcile capture, freeze config/prizes, reject ineligible scores before
+   decrypting, retain/sign/download-check the bundle, then publish compact results → event
+   commitment → winners → atomic lock. The leaderboard excludes the revoked registration's scores.
+8. `winner.zkpay.mumbai2026.lanyard.eth` resolves with its prizes and the team screen shows the
+   winner badge; `setText` on it reverts for everyone.
+9. On a second laptop, `pnpm lanyard verify mumbai2026 --bundle <path>` prints
+   `MATCH — operator-attested captured inputs; completeness not proven`.
+
+TODO: record the live run (edition, block numbers, transaction hashes, bundle hash) once it passes.
+
 ## Known limitations
 
 Recorded here as phases find them (see `plans/00-README.md` › Evidence and product guarantees).
@@ -107,5 +208,15 @@ Recorded here as phases find them (see `plans/00-README.md` › Evidence and pro
 - A1 shipped without the planned independent bug hunt (organizer's decision, 2026-11-07). Its
   coverage is the 129 Foundry tests, fork modes A and B against the live Sepolia edition, and the
   earlier reviewer findings A1-D1–D9.
-- B4’s real Sepolia prepared-publication adapter is an I4 gate and must pass both publisher conformance suites; B4 exercises persisted mocks.
+- `SepoliaResultsPublisher` passes both publisher conformance suites (ordinary and prepared, the
+  latter over the durable file journal) on an anvil Sepolia fork only. It is not yet wired into
+  `cli/providers.ts`, and no live Sepolia publication has run.
+- **Open (I4):** the plan's completed-freeze UI gate expects the atomic lock to write edition text
+  `lanyard.locked = "1"`, and `src/arkiv/published.ts` requires it before showing rankings, but
+  `WinnerRegistrar.lockResults` only sets its own `locked` flag and revokes resolver roles; it
+  writes no such text. Until that is reconciled, committed rankings stay hidden after a real lock.
+- **Open (I4):** `WinnerBadge` reads `lanyard.prizes` on `winner.<team>` at the head block without
+  checking the lock, so a declared but not yet locked winner already shows its badge.
+- The publisher's file journal cannot fsync its directory on Windows (Node returns EPERM); there
+  the atomic rename relies on NTFS metadata journaling. Run live freezes on Linux/macOS/WSL.
 - Physical Android tests and the remaining phase bug hunt were skipped at the user’s request. Browser flows and a separate Node verifier process were exercised; live host CORS, Sepolia publication and a second physical laptop were not tested in B4.
