@@ -23,14 +23,14 @@ import { cellCenterPx, mapMarkers, pathPoints, walkableRects } from "@/venue/map
 import { MIN_SCALE, type Size, clampPan, screenToImage, seatAt, zoomAbout } from "@/venue/map-view";
 
 const COLORS = {
-  wall: "#3f3f46",
-  floor: "#f4f4f5",
-  seat: "#2563eb",
-  poi: "#16a34a",
-  highlight: "#f59e0b",
-  path: "#dc2626",
-  helper: "#7c3aed",
-  label: "#18181b",
+  wall: "#DCDCE4",
+  floor: "#FFFFFF",
+  seat: "#A5A8B8",
+  poi: "#10B981",
+  highlight: "#F59E0B",
+  path: "#4F46E5",
+  helper: "#0EA5E9",
+  label: "#111114",
   halo: "#ffffff",
 };
 
@@ -179,7 +179,7 @@ export function VenueMap({ venue, highlight, path, onSeatTap }: VenueMapProps) {
                   width={widthPx}
                   height={heightPx}
                   preserveAspectRatio="none"
-                  opacity={0.6}
+                  opacity={0.45}
                 />
               )}
               {markers.map((m) => {
@@ -194,6 +194,7 @@ export function VenueMap({ venue, highlight, path, onSeatTap }: VenueMapProps) {
                     y={m.at.y - size}
                     width={size * 2}
                     height={size * 2}
+                    rx={size * 0.4}
                     fill={COLORS.poi}
                   />
                 );
@@ -223,7 +224,14 @@ export function VenueMap({ venue, highlight, path, onSeatTap }: VenueMapProps) {
                   return (
                     <G key={`hl:${m.kind}:${m.id}`}>
                       {m.kind === "seat" ? (
-                        <Circle cx={m.at.x} cy={m.at.y} r={size} fill={COLORS.highlight} />
+                        <Circle
+                          cx={m.at.x}
+                          cy={m.at.y}
+                          r={size}
+                          fill={COLORS.highlight}
+                          stroke="#FFFFFF"
+                          strokeWidth={cell * 0.08}
+                        />
                       ) : (
                         <Rect
                           x={m.at.x - size}

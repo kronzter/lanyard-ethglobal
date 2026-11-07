@@ -7,13 +7,13 @@ import type { VenueMapProps } from "@/shared/interfaces/venue-map";
 import { cellCenterPx, mapMarkers, pathPoints, walkableRects } from "@/venue/map-geometry";
 
 const COLORS = {
-  wall: "#3f3f46",
-  floor: "#f4f4f5",
-  seat: "#2563eb",
-  poi: "#16a34a",
-  highlight: "#f59e0b",
-  path: "#dc2626",
-  label: "#18181b",
+  wall: "#DCDCE4",
+  floor: "#FFFFFF",
+  seat: "#A5A8B8",
+  poi: "#10B981",
+  highlight: "#F59E0B",
+  path: "#4F46E5",
+  label: "#111114",
 };
 
 // The stub only loads absolute image URIs. How a venue's bare file name (as in the fixtures)
@@ -45,7 +45,7 @@ export function StubVenueMap({ venue, highlight, path, onSeatTap }: VenueMapProp
             width={widthPx}
             height={heightPx}
             preserveAspectRatio="none"
-            opacity={0.6}
+            opacity={0.45}
           />
         )}
         {line !== "" && (
@@ -67,7 +67,13 @@ export function StubVenueMap({ venue, highlight, path, onSeatTap }: VenueMapProp
             <G key={`${m.kind}:${m.id}`} onPress={tap}>
               {tap && <Circle cx={m.at.x} cy={m.at.y} r={cell / 2} fill="rgba(0,0,0,0)" />}
               {m.kind === "seat" ? (
-                <Circle cx={m.at.x} cy={m.at.y} r={size} fill={fill} />
+                <Circle
+                  cx={m.at.x}
+                  cy={m.at.y}
+                  r={size}
+                  fill={fill}
+                  {...(m.highlighted ? { stroke: "#FFFFFF", strokeWidth: cell * 0.08 } : {})}
+                />
               ) : (
                 <Rect x={m.at.x - size} y={m.at.y - size} width={size * 2} height={size * 2} fill={fill} />
               )}

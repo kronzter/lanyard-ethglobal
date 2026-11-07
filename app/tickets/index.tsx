@@ -3,8 +3,8 @@
 //
 // Screens use only the Router interface and <VenueMap> props from providers (B3.2-R6). Ticket
 // state comes from the rules at the observed head's block time; the router gets that explicit time.
-import { useEffect, useMemo, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
+import { View } from "react-native";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import type { CurrentEvaluation } from "@/arkiv/evaluate-current";
 import { clockTime, countdown, describeSubmit, DevClock } from "@/arkiv/ui";
@@ -15,7 +15,26 @@ import { ticketCategories, ticketCategory } from "@/shared/config/tickets";
 import { DEFAULT_ALPHA_MM_PER_MINUTE } from "@/shared/interfaces/router";
 import type { Address, Hex } from "@/shared/types/primitives";
 import type { CellRef, Venue } from "@/shared/types/venue";
-import { styles } from "@/shell/styles";
+import {
+  Banner,
+  Button,
+  Card,
+  Chip,
+  EmptyState,
+  Icon,
+  IconBubble,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  type Tone,
+  Txt,
+  messageTone,
+  shortKey,
+  toneColors,
+  useTheme,
+} from "@/ui";
 
 type Writer = ReturnType<typeof useWriter>;
 
@@ -29,33 +48,47 @@ const STATE_TEXT: Record<TicketView["state"]["state"], string> = {
   unverifiable: "Unverifiable (evidence missing)",
 };
 
+const STATE_TONE: Record<TicketView["state"]["state"], Tone> = {
+  open: "warning",
+  claimed: "accent",
+  resolved: "success",
+  confirmed: "success",
+  closed: "muted",
+  "over-capacity": "muted",
+  unverifiable: "muted",
+};
+
 export default function Tickets() {
   const live = useEvaluation();
   const writer = useWriter();
   const { evaluation, error, mode, advance } = live;
-  const header = (
-    <>
-      <Text style={styles.h2}>Help tickets</Text>
-      {mode === "fake" && advance && (
-        <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
-      )}
-    </>
-  );
+  const header =
+    mode === "fake" && advance ? (
+      <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
+    ) : null;
   const label = writer.byLabel;
   const body = !label ? (
-    <Text style={styles.muted}>Connect and choose your hackers or volunteer badge.</Text>
+    <Card>
+      <EmptyState
+        icon="ticket"
+        title="Choose your badge"
+        body="Connect and choose your hackers or volunteer badge."
+      />
+    </Card>
   ) : !evaluation ? (
-    <Text style={styles.muted}>{error ?? "Reading tickets…"}</Text>
+    <Banner tone={error ? "danger" : "neutral"} icon={error ? "alert" : "refresh"}>
+      {error ?? "Reading tickets…"}
+    </Banner>
   ) : label.endsWith(".hackers") ? (
     <Hacker evaluation={evaluation} writer={writer} refresh={live.refresh} />
   ) : (
     <Helper evaluation={evaluation} writer={writer} refresh={live.refresh} />
   );
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+    <Screen title="Help tickets" subtitle={label ?? undefined}>
       {header}
       {body}
-    </ScrollView>
+    </Screen>
   );
 }
 
@@ -106,67 +139,111 @@ function Hacker({ evaluation, writer, refresh }: Props) {
       view.records("ticket").some((r) => r.key === v.key && r.creator.toLowerCase() === address),
   );
   const help = providers.config.help;
+  const { c } = useTheme();
 
-  if (!venue) return <Text style={styles.muted}>The organizer has not published the venue yet.</Text>;
+  if (!venue)
+    return (
+      <Card>
+        <EmptyState
+          icon="map"
+          title="Venue not published yet"
+          body="The organizer has not published the venue yet."
+        />
+      </Card>
+    );
   return (
     <>
-      <Pressable style={[styles.chip, safety ? styles.chipOn : undefined]} onPress={() => setSafety(!safety)}>
-        <Text>Medical or safety issue?</Text>
-      </Pressable>
+      <Button
+        variant={safety ? "danger" : "secondary"}
+        icon="alert"
+        label="Medical or safety issue?"
+        onPress={() => setSafety(!safety)}
+      />
       {safety && (
-        <View style={styles.card} testID="tickets-safety">
-          <Text style={styles.h3}>This is not a ticket. Get help now:</Text>
-          <Text style={{ fontSize: 20 }}>{help.staffPhone}</Text>
-          <Text>{help.deskLocation}</Text>
-        </View>
+        <Card tone="danger" testID="tickets-safety">
+          <Txt variant="h3" tone="danger">
+            This is not a ticket. Get help now:
+          </Txt>
+          <Row gap={10}>
+            <Icon name="phone" size={24} color={toneColors(c, "danger").fg} />
+            <Txt variant="display" style={{ fontSize: 28 }} selectable>
+              {help.staffPhone}
+            </Txt>
+          </Row>
+          <Txt>{help.deskLocation}</Txt>
+        </Card>
       )}
-      <View style={styles.card}>
-        <Text style={styles.h3}>Raise a ticket</Text>
-        <Text style={styles.muted} testID="tickets-privacy">
-          This form never asks for personal or medical details, and you should not add any.
-        </Text>
-        <View style={styles.wrap}>
-          {ticketCategories(providers.config).map((c) => (
-            <Pressable
-              key={c.id}
-              style={[styles.chip, category === c.id ? styles.chipOn : undefined]}
-              onPress={() => setCategory(c.id)}
-            >
-              <Text>{c.name}</Text>
-            </Pressable>
+      <Card>
+        <Txt variant="h2">Raise a ticket</Txt>
+        <Row gap={6} wrap={false} align="flex-start">
+          <Icon name="lock" size={14} color={c.muted} />
+          <Txt variant="caption" tone="muted" testID="tickets-privacy" style={{ flex: 1 }}>
+            This form never asks for personal or medical details, and you should not add any.
+          </Txt>
+        </Row>
+        <SectionHeader title="What do you need?" />
+        <Row gap={6}>
+          {ticketCategories(providers.config).map((cat) => (
+            <Chip
+              key={cat.id}
+              label={cat.name}
+              selected={category === cat.id}
+              onPress={() => setCategory(cat.id)}
+            />
           ))}
-        </View>
-        <Text>
-          Seat: {chosenSeat ?? "tap your seat on the map"}
-          {assigned && seat === null ? " (your assigned seat)" : ""}
-        </Text>
-        <VenueMap venue={venue.venue} highlight={chosenSeat ? [chosenSeat] : []} onSeatTap={setSeat} />
-        <Pressable
-          style={styles.chip}
+        </Row>
+        <SectionHeader title="Where are you?" />
+        <Row gap={8}>
+          <Pill
+            icon="pin"
+            tone={chosenSeat ? "accent" : "muted"}
+            label={chosenSeat ? `Seat ${chosenSeat}` : "Tap your seat on the map"}
+          />
+          {assigned && seat === null ? (
+            <Txt variant="caption" tone="muted">
+              your assigned seat
+            </Txt>
+          ) : null}
+        </Row>
+        <MapFrame>
+          <VenueMap venue={venue.venue} highlight={chosenSeat ? [chosenSeat] : []} onSeatTap={setSeat} />
+        </MapFrame>
+        <Button
+          variant="primary"
+          size="lg"
+          full
+          icon="ticket"
           disabled={busy || !category || !chosenSeat}
+          label={busy ? "Sending…" : "Raise ticket"}
           onPress={() =>
             void submit("Raise a help ticket", (ctx) =>
               buildCreate("ticket", ctx, { seat: chosenSeat!, venue: venue.record.key, category: category! }),
             )
           }
-        >
-          <Text>{busy ? "Sending…" : "Raise ticket"}</Text>
-        </Pressable>
-        {message && <Text>{message}</Text>}
-      </View>
+        />
+        {message && <Banner tone={messageTone(message)}>{message}</Banner>}
+      </Card>
 
-      <Text style={styles.h3}>My tickets</Text>
-      {mine.length === 0 && rejected.length === 0 && <Text style={styles.muted}>None yet.</Text>}
+      <SectionHeader title="My tickets" icon="ticket" />
+      {mine.length === 0 && rejected.length === 0 && (
+        <Txt variant="caption" tone="muted">
+          None yet.
+        </Txt>
+      )}
       {mine.map((t) => (
-        <View key={t.record.key} style={styles.row} testID="tickets-mine">
-          <Text>
-            {ticketCategory(providers.config, t.category)?.name ?? t.category} · seat {t.seat} ·{" "}
-            {clockTime(t.record.obs.createdAtTimestamp)}
-          </Text>
-          <Text style={styles.muted}>{STATE_TEXT[t.state.state]}</Text>
+        <ListRow
+          key={t.record.key}
+          testID="tickets-mine"
+          left={<IconBubble name="ticket" tone={STATE_TONE[t.state.state]} size={36} />}
+          title={ticketCategory(providers.config, t.category)?.name ?? t.category}
+          subtitle={`Seat ${t.seat} · ${clockTime(t.record.obs.createdAtTimestamp)}`}
+        >
+          <Pill label={STATE_TEXT[t.state.state]} tone={STATE_TONE[t.state.state]} dot />
           {t.state.state === "resolved" && (
-            <Pressable
-              style={styles.chip}
+            <Button
+              variant="success"
+              icon="check"
+              label="Confirm fixed"
               disabled={busy}
               onPress={() =>
                 void submit("Confirm the fix", (ctx) =>
@@ -176,19 +253,31 @@ function Hacker({ evaluation, writer, refresh }: Props) {
                   }),
                 )
               }
-            >
-              <Text>Confirm fixed</Text>
-            </Pressable>
+            />
           )}
-        </View>
+        </ListRow>
       ))}
       {rejected.map((v) => (
-        <View key={v.key} style={[styles.row, { opacity: 0.5 }]}>
-          <Text>✗ ticket {v.key.slice(0, 10)}…</Text>
-          <Text>{v.reason}</Text>
-        </View>
+        <ListRow
+          key={v.key}
+          dim
+          tone="muted"
+          left={<IconBubble name="x" tone="muted" size={36} />}
+          title={`Ticket ${shortKey(v.key)} did not count`}
+          subtitle={v.reason}
+        />
       ))}
     </>
+  );
+}
+
+/** Rounded frame around the venue map. */
+function MapFrame({ children }: { children: ReactNode }) {
+  const { c } = useTheme();
+  return (
+    <View style={{ borderRadius: 16, overflow: "hidden", borderWidth: 1, borderColor: c.border }}>
+      {children}
+    </View>
   );
 }
 
@@ -245,6 +334,7 @@ function Helper({ evaluation, writer, refresh }: Props) {
     startPoi?.cell,
   );
   const { message, busy, submit } = useSubmit(writer, evaluation, refresh);
+  const { c } = useTheme();
   const venue = view.venueAt()?.venue;
   const tickets = view.ticketsAt();
 
@@ -272,8 +362,12 @@ function Helper({ evaluation, writer, refresh }: Props) {
   }, [venue, pos, tickets, zones, router, now, partner]);
 
   if (!partner && sessions.length === 0)
-    return <Text style={styles.muted}>You are off duty. Clock in (or ask a lead) to see tickets.</Text>;
-  if (!venue || !pos) return <Text style={styles.muted}>Finding your position…</Text>;
+    return (
+      <Card>
+        <EmptyState icon="clock" title="You are off duty" body="Clock in (or ask a lead) to see tickets." />
+      </Card>
+    );
+  if (!venue || !pos) return <Banner icon="pin">Finding your position…</Banner>;
 
   const target = mineActive ?? offer;
   const targetCell = target ? seatCell(target.venue.venue, target.seat) : undefined;
@@ -290,54 +384,89 @@ function Helper({ evaluation, writer, refresh }: Props) {
 
   return (
     <>
-      <Text style={styles.muted}>
-        {partner ? `${partner} staff` : `On duty in ${[...zones].join(", ")}`} · you are at ({pos.x}, {pos.y})
-        {startPoi ? `, starting from ${startPoi.name}` : ""}
-      </Text>
-      <VenueMap venue={venue} highlight={target ? [target.seat] : []} path={path} />
+      <Card padded={false}>
+        <View style={{ padding: 16, gap: 6 }}>
+          <Row gap={8}>
+            <Pill
+              label={partner ? `${partner} staff` : `On duty in ${[...zones].join(", ")}`}
+              tone="success"
+              dot
+            />
+            {startPoi ? <Pill label={`From ${startPoi.name}`} tone="neutral" icon="pin" /> : null}
+          </Row>
+          <Txt variant="caption" tone="faint">
+            You are at cell ({pos.x}, {pos.y})
+          </Txt>
+        </View>
+        <VenueMap venue={venue} highlight={target ? [target.seat] : []} path={path} />
+      </Card>
       {mineActive && mineActive.state.state === "claimed" ? (
-        <View style={[styles.card, styles.rowOn]} testID="tickets-claimed">
-          <Text style={styles.h3}>
+        <Card tone="accent" testID="tickets-claimed">
+          <Txt variant="label" tone="accent">
+            Your ticket
+          </Txt>
+          <Txt variant="title">
             Go to seat {mineActive.seat} ·{" "}
             {ticketCategory(providers.config, mineActive.category)?.name ?? mineActive.category}
-          </Text>
-          <Text>Lease ends in {countdown(mineActive.state.leaseEnd - now)}</Text>
-          <Pressable style={styles.chip} disabled={busy} onPress={() => resolve(mineActive)}>
-            <Text>Mark resolved</Text>
-          </Pressable>
-        </View>
+          </Txt>
+          <Row gap={6}>
+            <Icon name="clock" size={16} color={c.accent} />
+            <Txt num>Lease ends in {countdown(mineActive.state.leaseEnd - now)}</Txt>
+          </Row>
+          <Button
+            variant="success"
+            size="lg"
+            full
+            icon="check"
+            label="Mark resolved"
+            disabled={busy}
+            onPress={() => resolve(mineActive)}
+          />
+        </Card>
       ) : offer ? (
-        <View style={styles.card} testID="tickets-offer">
-          <Text style={styles.h3}>
-            Next: seat {offer.seat} ·{" "}
-            {ticketCategory(providers.config, offer.category)?.name ?? offer.category}
-          </Text>
-          <Text style={styles.muted}>
+        <Card testID="tickets-offer">
+          <Txt variant="label" tone="muted">
+            Next best ticket
+          </Txt>
+          <Row gap={8}>
+            <Txt variant="title">
+              Next: seat {offer.seat} ·{" "}
+              {ticketCategory(providers.config, offer.category)?.name ?? offer.category}
+            </Txt>
+          </Row>
+          <Txt tone="muted" num>
             Waiting since {clockTime(offer.record.obs.createdAtTimestamp)} · {path ? path.length - 1 : "?"}{" "}
             cells away
-          </Text>
-          <Pressable
-            style={styles.chip}
+          </Txt>
+          <Button
+            variant="primary"
+            size="lg"
+            full
+            icon="ticket"
+            label="Claim"
             disabled={busy}
             onPress={() =>
               void submit("Claim the ticket", (ctx) =>
                 buildCreate("ticket_claim", ctx, { ticket: offer.record.key }),
               )
             }
-          >
-            <Text>Claim</Text>
-          </Pressable>
-        </View>
+          />
+        </Card>
       ) : (
-        <Text style={styles.muted}>
-          {partner ? `No open ${partner} tickets.` : "No open tickets in your zone."}
-        </Text>
+        <Card>
+          <EmptyState
+            icon="check"
+            tone="success"
+            title="All clear"
+            body={partner ? `No open ${partner} tickets.` : "No open tickets in your zone."}
+          />
+        </Card>
       )}
-      {message && <Text>{message}</Text>}
+      {message && <Banner tone={messageTone(message)}>{message}</Banner>}
       {lost.slice(-1).map((v) => (
-        <Text key={v.key} style={{ opacity: 0.6 }}>
-          Your claim did not count: {v.reason}
-        </Text>
+        <Banner key={v.key} tone="muted" icon="x">
+          {`Your claim did not count: ${v.reason}`}
+        </Banner>
       ))}
     </>
   );

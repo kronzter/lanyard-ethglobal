@@ -1,7 +1,9 @@
 import { useMemo, useRef, useState } from "react";
 import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import Svg, { Circle, Image as SvgImage, Rect } from "react-native-svg";
+import { Stack } from "expo-router";
 import mumbaiJson from "../../fixtures/venue.mumbai.json";
+import { Txt, light, radius } from "@/ui";
 import { eventConfig } from "@/shared/event.config";
 import { POI_KINDS, type CellRef, type PoiKind, parseVenue } from "@/shared/types/venue";
 import {
@@ -32,14 +34,22 @@ const TOOLS: Tool[] = ["walk", "erase", "seat", "poi", "zone", "delete"];
 const MAX_DISPLAY_PX = 1100;
 
 const btn = (on: boolean) => ({
-  paddingVertical: 6,
-  paddingHorizontal: 10,
+  paddingVertical: 8,
+  paddingHorizontal: 14,
   borderWidth: 1,
-  borderRadius: 6,
-  borderColor: on ? "#2563eb" : "#999",
-  backgroundColor: on ? "#dbeafe" : "transparent",
+  borderRadius: radius.pill,
+  borderColor: on ? light.accent : light.border,
+  backgroundColor: on ? light.accentSoft : light.surface,
 });
-const input = { borderWidth: 1, borderColor: "#999", borderRadius: 6, padding: 6, minWidth: 80 } as const;
+const input = {
+  borderWidth: 1,
+  borderColor: light.border,
+  backgroundColor: light.surfaceAlt,
+  color: light.text,
+  borderRadius: radius.sm,
+  padding: 8,
+  minWidth: 80,
+} as const;
 
 function download(filename: string, text: string) {
   const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
@@ -165,8 +175,15 @@ export default function Screen() {
   }, [state]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-      <Text style={{ fontSize: 22, fontWeight: "600" }}>Venue editor</Text>
+    <ScrollView
+      style={{ backgroundColor: light.bg }}
+      contentContainerStyle={{ padding: 16, gap: 12, maxWidth: 1200, width: "100%", alignSelf: "center" }}
+    >
+      <Stack.Screen options={{ title: "Venue editor" }} />
+      <Txt variant="title">Venue editor</Txt>
+      <Txt tone="muted">
+        Paint the walkable floor, place seats, help desks and zones, then export venue.json.
+      </Txt>
 
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" }}>
         <TextInput
@@ -303,17 +320,17 @@ export default function Screen() {
               Validation ({state.seats.length} seats, {state.pois.length} POIs, {report?.bytes} bytes)
             </Text>
             {report?.errors.map((e, i) => (
-              <Text key={`e${i}`} style={{ color: "#b91c1c" }}>
+              <Text key={`e${i}`} style={{ color: light.danger }}>
                 {e.rule}: {e.message}
               </Text>
             ))}
             {report?.warnings.map((w, i) => (
-              <Text key={`w${i}`} style={{ color: "#b45309" }}>
+              <Text key={`w${i}`} style={{ color: light.warning }}>
                 {w.rule}: {w.message}
               </Text>
             ))}
             {report && report.errors.length === 0 && (
-              <Text style={{ color: "#15803d" }}>No blocking errors.</Text>
+              <Text style={{ color: light.success }}>No blocking errors.</Text>
             )}
           </View>
 
