@@ -35,6 +35,7 @@ export const eventConfigInput = {
   authorities: {
     organizer: "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
     results: "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+    headJudge: "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
     partners: {
       arkiv: "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
       ens: "0x976ea74026e726554db657fa54763abd0c3a0aa9",
@@ -66,6 +67,8 @@ export const eventConfigInput = {
     },
   },
   venue: { cellSizeMm: 1000 },
+  // Placeholder contact until the venue confirms the staff line; shown for medical or safety issues.
+  help: { staffPhone: "+91 22 4000 2026", deskLocation: "Help desk at the main entrance" },
   // Event score key from `pnpm lanyard score-keygen`; the secret lives only in the freeze
   // operator's .env (SCORE_DECRYPTION_KEY). Envelope v1 in src/shared/crypto/score-cipher.ts.
   scoreCipher: measured(

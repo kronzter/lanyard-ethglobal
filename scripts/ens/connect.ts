@@ -1,5 +1,6 @@
 // Shared by the ENS operator scripts: RPC, organizer wallet and the local state file, all taken from
 // process.env (these scripts never open a .env file) and never printed.
+import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
@@ -9,15 +10,17 @@ import {
   createWalletClient,
   http,
   type Address,
-  type Hex,
   type PublicClient,
   type WalletClient,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Account } from "viem";
 import { sepolia } from "viem/chains";
+import sepoliaJson from "../../deployments/sepolia.json";
+import { parseSepoliaDeployment } from "../../src/shared/deployments/load";
 import { eventConfig } from "../../src/shared/event.config";
-import { assertLoopbackUrl, chooseOrganizer, redactUrls } from "./safety";
+import { sepoliaEventConfig } from "../../src/shared/live-event.config";
+import { assertLoopbackUrl, chooseOrganizer, privateKeyFromEnv, redactUrls, registrarFrom } from "./safety";
 
 export const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -67,7 +70,7 @@ export async function connect(opts: {
   if (chainId !== sepolia.id)
     throw new Error(`RPC reports chain ${chainId}, expected Sepolia (${sepolia.id})`);
 
-  let account: Account | null = key ? privateKeyToAccount(key as Hex) : null;
+  let account: Account | null = key ? privateKeyToAccount(privateKeyFromEnv(key, keyEnv)) : null;
   if (impersonate) {
     await publicClient.request({
       method: "anvil_impersonateAccount" as never,
@@ -78,7 +81,8 @@ export async function connect(opts: {
   const { organizer, warning } = chooseOrganizer({
     fork: opts.fork,
     key: signer === "organizer" ? (account?.address ?? null) : null,
-    config: eventConfig.authorities.organizer,
+    // Live runs answer to the deployed organizer (I2's live config); forks keep the fixture wallets.
+    config: (opts.fork ? eventConfig : sepoliaEventConfig).authorities.organizer,
     override: process.env.LANYARD_LIVE_ORGANIZER,
   });
   if (warning) console.warn(`warning: ${warning}`);
@@ -90,6 +94,17 @@ export async function connect(opts: {
     account,
     statePath: resolve(ROOT, `.lanyard/edition-${opts.fork ? "fork" : "sepolia"}.json`),
   };
+}
+
+/** The registrar this run acts on: local deploy state, else (live only) deployments/sepolia.json. */
+export function loadRegistrar(ctx: Connection): Address {
+  let stateText: string | null = null;
+  try {
+    stateText = readFileSync(ctx.statePath, "utf8");
+  } catch (e) {
+    if ((e as NodeJS.ErrnoException).code !== "ENOENT") throw e;
+  }
+  return registrarFrom({ stateText, fork: ctx.fork, deployment: parseSepoliaDeployment(sepoliaJson) });
 }
 
 /** Prints an error without ever echoing an RPC URL and sets a non-zero exit code. */

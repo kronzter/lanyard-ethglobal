@@ -24,7 +24,9 @@ describe("mock Sepolia block identity", () => {
   });
 
   it("follows the ENS flag in the CLI composition root", () => {
-    expect(createCliProviders({ env: {} }).sepoliaBlocks()).toBeTruthy();
-    expect(() => createCliProviders({ env: { LANYARD_ENS: "sepolia" } }).sepoliaBlocks()).toThrow(/I2/);
+    expect(createCliProviders({ env: { LANYARD_ENS: "mock" } }).sepoliaBlocks()).toBeTruthy();
+    expect(() => createCliProviders({ env: { LANYARD_ENS: "sepolia" } }).sepoliaBlocks()).toThrow(
+      /SEPOLIA_RPC_URL is required/,
+    );
   });
 });

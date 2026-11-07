@@ -171,7 +171,15 @@ export function resolveWriter(
   let firstFailure: string | undefined;
   for (const w of candidates) {
     const r = checkBadge(record, w, ens, creationBlock, context);
-    if (r.counts) return { ok: true, writer: { via: "badge", label: record.byLabel! } };
+    if (r.counts)
+      return {
+        ok: true,
+        writer: {
+          via: "badge",
+          label: record.byLabel!,
+          ...(w.permission !== undefined ? { permission: w.permission } : {}),
+        },
+      };
     firstFailure ??= r.reason;
   }
   return {

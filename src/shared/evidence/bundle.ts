@@ -62,6 +62,7 @@ export const CaptureDiagnosticsSchema = z
     intervals: z.array(IntervalSchema),
     gaps: z.array(IntervalSchema.extend({ reason: z.string().min(1) }).strict()),
     knownKeys: z.number().int().nonnegative(),
+    inputKeys: z.array(Bytes32Schema).optional(),
   })
   .strict();
 
@@ -87,7 +88,8 @@ export const EvidenceBodySchema = z
     output: z.unknown(),
     bundleUri: z
       .string()
-      .refine((u) => parseWebUrl(u)?.scheme === "https", "bundleUri must be an absolute https URL"),
+      .refine((u) => parseWebUrl(u)?.scheme === "https", "bundleUri must be an absolute https URL")
+      .refine((u) => new TextEncoder().encode(u).length <= 2048, "bundleUri exceeds 2048 bytes"),
   })
   .strict();
 
@@ -128,6 +130,22 @@ export const compareEnsEntries = (a: PreparedEnsEntry, b: PreparedEnsEntry): num
  */
 export function parseEvidenceBody(value: unknown, opts: { allowOutOfWindow?: boolean } = {}): EvidenceBody {
   const body = EvidenceBodySchema.parse(value);
+  if (body.diagnostics.gaps.length)
+    throw new EvidenceError("unresolved capture gaps block published evidence");
+  if (body.diagnostics.knownKeys < body.records.length)
+    throw new EvidenceError("capture inventory is smaller than retained input set");
+  if (body.records.some((r) => !r.flags.readonly || r.kind === "results"))
+    throw new EvidenceError("mutable drafts and results rows are not ranking evidence");
+  if (body.diagnostics.inputKeys) {
+    const keys = [...body.records.map((r) => r.key)].sort();
+    const inventory = [...body.diagnostics.inputKeys].sort();
+    if (
+      new Set(inventory).size !== inventory.length ||
+      keys.length !== inventory.length ||
+      keys.some((k, i) => k !== inventory[i])
+    )
+      throw new EvidenceError("retained input inventory differs from bundle records");
+  }
   const sorted = sortRecords(body.records);
   if (sorted.some((r, i) => r.key !== body.records[i]!.key))
     throw new EvidenceError("records must be sorted by creation block, then key");

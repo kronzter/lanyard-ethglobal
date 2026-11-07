@@ -3,6 +3,7 @@
 // Signing and decryption keys come only from the local .env, never from the app.
 // The app (app/, src/) must never import this folder (enforced by lanyard/boundaries).
 import path from "node:path";
+import { runFreeze } from "./freeze";
 import { runCapture } from "./capture";
 import { runDeskKeygen } from "./desk-keygen";
 import { runDrip } from "./drip";
@@ -26,6 +27,7 @@ const implemented: Record<string, (args: string[]) => number | Promise<number>> 
   "desk-keygen": () => runDeskKeygen(root),
   drip: (args) => runDrip(root, args),
   capture: (args) => runCapture(root, args),
+  freeze: (args) => runFreeze(root, args),
   hash: (args) => runHash(args),
   verify: (args) => {
     const p = createCliProviders({ publisherFile: path.join(root, ".lanyard/mock-publisher.json") });

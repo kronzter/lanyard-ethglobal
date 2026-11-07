@@ -66,6 +66,7 @@ export function validateEventConfig(input: unknown): EventConfig {
   const authority = [
     ["organizer", cfg.authorities.organizer],
     ["results", cfg.authorities.results],
+    ...(cfg.authorities.headJudge ? [["headJudge", cfg.authorities.headJudge] as const] : []),
     ...partnerIds.map((id) => [`partners.${id}`, cfg.authorities.partners[id]] as const),
     ...(cfg.authorities.desk !== undefined ||
     (cfg.fundingProfile.status === "measured" && cfg.fundingProfile.value === "desk-wallet")

@@ -131,7 +131,7 @@ Rules for changing them:
 | `EXPO_PUBLIC_LANYARD_ROUTER` | App | `stub` · `grid` | I3 |
 | `LANYARD_RESULTS` | Freeze CLI | `mock` · `sepolia` | I4 |
 
-Defaults stay `mock`/`stub` on phase branches, so nobody's work depends on the other track being finished.
+ENS defaults to `sepolia` after I2's provider integration; set `mock` explicitly for fixture development. Router and results defaults stay `stub` / `mock` until their integration checkpoints.
 
 Expo inlines every `EXPO_PUBLIC_*` variable into the app bundle, so every value is public. Use them for flags and read-only, app-restricted RPC URLs/keys only (treated as public, rotated if abused), **never** for signing, operator or decryption keys.
 

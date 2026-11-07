@@ -12,6 +12,14 @@ export type RouteInfo = {
 
 export const ROUTES: readonly RouteInfo[] = [
   {
+    path: "/organizer/judging",
+    title: "Judging desk",
+    owner: "B",
+    phase: "B4.1",
+    webOnly: true,
+    audience: "organizer, head judge and partners",
+  },
+  {
     path: "/volunteer",
     title: "Volunteer",
     owner: "B",

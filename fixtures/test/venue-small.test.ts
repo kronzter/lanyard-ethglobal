@@ -3,6 +3,7 @@ import {
   cellIndex,
   cellKey,
   decodeWalkable,
+  isWalkable,
   parseVenue,
   type CellRef,
   type Venue,
@@ -34,11 +35,17 @@ function reachable(v: Venue, start: CellRef): Set<string> {
 }
 
 describe("venue.small.json (P0.4-R2)", () => {
-  it("is a 20x12 grid with 12 seats, 2 zones and 3 points of interest", () => {
+  it("is a 20x12 grid with 12 seats, 2 zones and 5 points of interest", () => {
     expect([venue.grid.cols, venue.grid.rows]).toEqual([20, 12]);
     expect(venue.seats).toHaveLength(12);
     expect(venue.zones.map((z) => z.id)).toEqual(["west", "east"]);
-    expect(venue.pois).toHaveLength(3);
+    expect(venue.pois).toHaveLength(5);
+  });
+
+  it("has a partner table on a walkable cell for each configured partner", () => {
+    const tables = venue.pois.filter((p) => p.kind === "partner-table");
+    expect(tables.map((p) => p.partner).sort()).toEqual(["arkiv", "ens"]);
+    for (const t of tables) expect(isWalkable(venue, t.cell)).toBe(true);
   });
 
   it("has a help desk in each zone plus a stage", () => {

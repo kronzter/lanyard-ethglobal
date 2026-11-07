@@ -171,6 +171,28 @@
         "y": 11
       },
       "zone": "west"
+    },
+    {
+      "id": "table-arkiv",
+      "kind": "partner-table",
+      "name": "Arkiv table",
+      "cell": {
+        "x": 13,
+        "y": 7
+      },
+      "zone": "east",
+      "partner": "arkiv"
+    },
+    {
+      "id": "table-ens",
+      "kind": "partner-table",
+      "name": "ENS table",
+      "cell": {
+        "x": 17,
+        "y": 6
+      },
+      "zone": "east",
+      "partner": "ens"
     }
   ]
 }

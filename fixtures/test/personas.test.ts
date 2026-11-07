@@ -93,6 +93,7 @@ describe("persona keys and addresses", () => {
     expect(eventConfig.authorities).toEqual({
       organizer: addr("organizer"),
       results: addr("results"),
+      headJudge: addr("head-judge"),
       partners: { arkiv: addr("partner-arkiv"), ens: addr("partner-ens") },
       // The desk authority is the live wallet from `pnpm lanyard desk-keygen` (deployments/rabdi.json),
       // not the `desk` persona's mnemonic key: real drip records on Rabdi are written by it.

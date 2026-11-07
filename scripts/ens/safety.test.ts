@@ -1,5 +1,6 @@
+import { getAddress } from "viem";
 import { describe, expect, it } from "vitest";
-import { assertLoopbackUrl, chooseOrganizer, redactUrls } from "./safety";
+import { assertLoopbackUrl, chooseOrganizer, privateKeyFromEnv, redactUrls, registrarFrom } from "./safety";
 
 describe("assertLoopbackUrl", () => {
   it.each([
@@ -87,5 +88,56 @@ describe("chooseOrganizer", () => {
 
   it("an override equal to the config is accepted without a warning", () => {
     expect(chooseOrganizer({ fork: false, key: config, config, override: config }).warning).toBeUndefined();
+  });
+});
+
+describe("registrarFrom", () => {
+  const live = {
+    mode: "live" as const,
+    contracts: { lanyardRegistrar: "0x4b042d6dd5e2646fc7d286169ee7d9a03d85ebb5" },
+  };
+  const state = JSON.stringify({ registrar: "0x00000000000000000000000000000000000000aa" });
+
+  it("prefers the local deploy state", () => {
+    expect(registrarFrom({ stateText: state, fork: false, deployment: live })).toBe(
+      "0x00000000000000000000000000000000000000AA",
+    );
+  });
+
+  it("falls back to the live deployment when this machine never deployed", () => {
+    expect(registrarFrom({ stateText: null, fork: false, deployment: live })).toBe(
+      getAddress(live.contracts.lanyardRegistrar),
+    );
+  });
+
+  it("never falls back on a fork or to a mock deployment", () => {
+    expect(() => registrarFrom({ stateText: null, fork: true, deployment: live })).toThrow(/deploy-edition/);
+    expect(() =>
+      registrarFrom({ stateText: null, fork: false, deployment: { mode: "mock", contracts: {} } }),
+    ).toThrow(/deploy-edition/);
+  });
+
+  it("rejects a malformed or zero registrar", () => {
+    expect(() =>
+      registrarFrom({
+        stateText: JSON.stringify({ registrar: "0x0000000000000000000000000000000000000000" }),
+        fork: false,
+        deployment: live,
+      }),
+    ).toThrow(/invalid registrar/);
+    expect(() => registrarFrom({ stateText: "{}", fork: false, deployment: live })).toThrow(
+      /invalid registrar/,
+    );
+  });
+});
+
+describe("privateKeyFromEnv", () => {
+  const bare = "11".repeat(32);
+  it("accepts a key with or without 0x, as the B1 drip CLI does", () => {
+    expect(privateKeyFromEnv(bare, "K")).toBe(`0x${bare}`);
+    expect(privateKeyFromEnv(`0x${bare}`, "K")).toBe(`0x${bare}`);
+  });
+  it("rejects anything else without echoing it", () => {
+    expect(() => privateKeyFromEnv("0x1234", "K")).toThrow(/^K is not a 32-byte hex private key$/);
   });
 });

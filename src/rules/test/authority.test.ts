@@ -1,5 +1,7 @@
 // The shipped B2 kinds (B2.2-R3) and the engine's screening, context and snapshot guarantees.
 import { describe, expect, it } from "vitest";
+import { canonicalBytes } from "@/shared/canonical";
+import { bytesToHex } from "viem";
 import { KINDS } from "@/arkiv/kinds";
 import { EnsReadError } from "@/shared/interfaces/ens-reader";
 import { createFixtureEnsReader } from "@/shared/mocks/fixtures";
@@ -12,7 +14,7 @@ import {
   RulesVersionError,
   UnpreparedRead,
 } from "@/rules";
-import { CONFIG_HASH, context, frozen, key, obs, persona, run, RULES_VERSION } from "./harness";
+import { CONFIG_HASH, context, frozen, key, obs, persona, run, RULES_VERSION, venueObs } from "./harness";
 
 const organizer = persona("organizer");
 const AT = 9_022_000n;
@@ -32,15 +34,12 @@ const seat = (creator: string, byLabel: string, hackerLabel: string, hackerAddre
 
 describe("organizer-only kinds", () => {
   it("counts a venue from the organizer and rejects one from anyone else", async () => {
-    const good = obs({ kind: "venue", creator: organizer.address, byLabel: "organizer", at: AT });
-    const bad = obs({
-      kind: "venue",
-      creator: persona("priya").address,
-      byLabel: "priya.volunteers",
-      at: AT,
-    });
-    const { verdict } = await run([good, bad]);
+    const good = venueObs(AT);
+    const bad = venueObs(AT, undefined, { creator: persona("priya").address, byLabel: "priya.volunteers" });
+    const junk = obs({ kind: "venue", creator: organizer.address, byLabel: "organizer", at: AT });
+    const { verdict } = await run([good, bad, junk]);
     expect(verdict(good).counts).toBe(true);
+    expect(verdict(junk)).toMatchObject({ counts: false, reason: "venue record carries no payload" });
     expect(verdict(bad)).toMatchObject({
       counts: false,
       reason: expect.stringMatching(/not the organizer wallet/),
@@ -98,7 +97,10 @@ describe("organizer-only kinds", () => {
       attrs: attrs("defi"),
     });
     const { verdict } = await run([good, unknown]);
-    expect(verdict(good).counts).toBe(true);
+    expect(verdict(good)).toMatchObject({
+      counts: false,
+      reason: expect.stringMatching(/counted submission/),
+    });
     expect(verdict(unknown)).toMatchObject({ counts: false, reason: expect.stringMatching(/unknown track/) });
   });
 });
@@ -110,7 +112,13 @@ describe("rubric", () => {
       creator: creator as `0x${string}`,
       byLabel,
       at: AT,
-      attrs: { track: ["str", track], payload: ["bytes", "0x00"] },
+      attrs: {
+        track: ["str", track],
+        payload: [
+          "bytes",
+          bytesToHex(canonicalBytes({ criteria: [{ id: "impact", name: "Impact", weight: 1 }], scale: 10 })),
+        ],
+      },
     });
   const arkiv = persona("partner-arkiv");
 
@@ -202,13 +210,16 @@ describe("screening", () => {
 
   it("keeps kinds without a rule visible and never counted", async () => {
     const shift = obs({
-      kind: "shift",
+      kind: "unimplemented_kind",
       creator: persona("priya").address,
       byLabel: "priya.volunteers",
       at: AT,
     });
     const { verdict } = await run([shift]);
-    expect(verdict(shift)).toMatchObject({ counts: false, reason: "no rule registered for kind 'shift'" });
+    expect(verdict(shift)).toMatchObject({
+      counts: false,
+      reason: "no rule registered for kind 'unimplemented_kind'",
+    });
   });
 
   it("excludes records observed after the Arkiv cutoff or captured on another network", async () => {
