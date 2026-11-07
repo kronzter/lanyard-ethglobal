@@ -365,7 +365,9 @@ describe.skipIf(!UPSTREAM)(
       expect(await resolverText(EDITION_NAME, "lanyard.bundle-uri")).toBe(samplePublication.bundleUri);
       expect(await resolverText(`winner.zkpay.${EDITION_NAME}`, "lanyard.prizes")).toBe('["winner"]');
 
+      expect(await resolverText(EDITION_NAME, "lanyard.locked")).toBe("");
       await p.lockResults(state);
+      expect(await resolverText(EDITION_NAME, "lanyard.locked")).toBe("1");
       expect(
         await base.readContract({
           address: RESOLVER,

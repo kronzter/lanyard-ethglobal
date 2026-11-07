@@ -207,13 +207,16 @@ contract WinnerRegistrar {
     }
 
     /// @notice Freezes the publication: requires the exact expected state and a sealed resolver grant
-    ///         inventory, then revokes every role this contract holds on the resolver.
+    ///         inventory, writes the edition's `lanyard.locked = "1"` sentinel for app readers, then
+    ///         revokes every role this contract holds on the resolver. All in one transaction: any
+    ///         failure reverts the sentinel with the rest. `locked` stays the CLI's own authority.
     function lockResults(bytes32 expectedStateHash) external onlyResultsWallet {
         if (!_eventSet) revert EventResultsNotSet();
         bytes32 actual = stateHash();
         if (actual != expectedStateHash) revert StateMismatch(expectedStateHash, actual);
         _checkSealed();
         locked = true;
+        publicationResolver.setText(NameCoder.encode(editionName), "lanyard.locked", "1");
         publicationResolver.revokeRootRoles(RESOLVER_ROLES, address(this));
         uint256 remaining = publicationResolver.roleCount(0);
         if (remaining != 0) revert GrantInventoryNotSealed(0, remaining);
@@ -295,13 +298,14 @@ contract WinnerRegistrar {
         if (root != RESOLVER_ROLES || resolver.roles(0, address(this)) != RESOLVER_ROLES) {
             revert GrantInventoryNotSealed(0, root);
         }
-        string[6] memory keys = [
+        string[7] memory keys = [
             "lanyard.results",
             "lanyard.results-hash",
             "lanyard.bundle-hash",
             "lanyard.bundle-uri",
             "lanyard.edition",
-            "lanyard.prizes"
+            "lanyard.prizes",
+            "lanyard.locked"
         ];
         for (uint256 i; i < keys.length; ++i) {
             uint256 resource = uint256(keccak256(bytes(keys[i])));
