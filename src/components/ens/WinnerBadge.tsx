@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { providers } from "@/providers";
 import { createSepoliaEnsReader } from "@/ens/sepolia-ens-reader";
-import { PLACE_TEXT, parsePlace, type WinnerPlace } from "@/ens/prizes";
+import { PLACE_TEXT, lockedWinnerPlace, type WinnerPlace } from "@/ens/prizes";
 import { eventConfig } from "@/shared/event.config";
 import type { EnsReader } from "@/shared/interfaces/ens-reader";
 
@@ -26,7 +26,8 @@ type State = { status: "loading" } | { status: "done"; place: WinnerPlace | null
 
 /**
  * "Winner" / "Runner-up" for a team, read from `lanyard.prizes` on `winner.<label>` through the
- * Universal Resolver. Renders nothing while loading or when the team has no such prize, and a quiet
+ * Universal Resolver, once the edition's `lanyard.locked` sentinel is "1" at that same block. Renders
+ * nothing while loading, before the lock or when the team has no such prize, and a quiet
  * "Prize status unavailable" line when the read fails. `reader` is for tests and previews.
  */
 export function WinnerBadge({ label, reader }: { label: string; reader?: EnsReader }) {
@@ -37,8 +38,8 @@ export function WinnerBadge({ label, reader }: { label: string; reader?: EnsRead
     (async () => {
       const r = reader ?? defaultReader();
       if (!r) throw new Error("no Sepolia RPC configured");
-      const sepoliaBlock = await r.headBlock();
-      return parsePlace(await r.text(`winner.${label}`, "lanyard.prizes", { sepoliaBlock }));
+      // The prize shows only once the edition's lanyard.locked is "1" at the same block.
+      return lockedWinnerPlace(r, label, await r.headBlock());
     })().then(
       (place) => live && setState({ status: "done", place }),
       () => live && setState({ status: "error" }),

@@ -83,6 +83,7 @@ export const PUBLICATION_TEXT_KEYS = [
   "lanyard.bundle-uri",
   "lanyard.edition",
   "lanyard.prizes",
+  "lanyard.locked",
 ] as const;
 
 export const STATE_DOMAIN = keccak256(toHex("lanyard.publication-state/1"));
