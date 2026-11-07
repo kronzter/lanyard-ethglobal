@@ -5,7 +5,6 @@
 // first, then clock-in + pass are batched. Between the two the replacement is saved but inactive
 // ("Replacement saved; clock-in pending"), also after a restart; resume runs only the missing step.
 import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import { clockInWithPass, PENDING_CLOCK_IN, replacementState, replaceShift } from "@/arkiv/batches";
 import { clockTime, describeSubmit, DevClock } from "@/arkiv/ui";
@@ -14,7 +13,27 @@ import { providers } from "@/providers";
 import { str, u64, type ShiftView } from "@/rules";
 import { grantsPermission, PERMS_TEXT_KEY, SHIFT_MANAGER } from "@/shared/ens/permission-envelope";
 import type { Hex } from "@/shared/types/primitives";
-import { styles } from "@/shell/styles";
+import {
+  Avatar,
+  Banner,
+  Button,
+  Card,
+  Chip,
+  Disclosure,
+  Divider,
+  EmptyState,
+  Field,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Txt,
+  firstLabel,
+  initial,
+  messageTone,
+} from "@/ui";
 
 const HOUR = 3_600n;
 
@@ -68,27 +87,31 @@ export default function Lead() {
   }, [shiftKeys, store]);
   useEffect(() => void loadPending(), [loadPending]);
 
-  const header = (
-    <>
-      <Text style={styles.h2}>Lead</Text>
-      {mode === "fake" && advance && (
-        <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
-      )}
-    </>
-  );
+  const header =
+    mode === "fake" && advance ? (
+      <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
+    ) : null;
   if (!byLabel?.endsWith(".volunteers"))
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Screen title="Lead console">
         {header}
-        <Text style={styles.muted}>Connect and choose your volunteer badge.</Text>
-      </ScrollView>
+        <Card>
+          <EmptyState
+            icon="badge"
+            title="Choose your volunteer badge"
+            body="Connect and choose your volunteer badge."
+          />
+        </Card>
+      </Screen>
     );
   if (!evaluation)
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Screen title="Lead console">
         {header}
-        <Text style={styles.muted}>{error ?? "Reading shifts…"}</Text>
-      </ScrollView>
+        <Banner tone={error ? "danger" : "neutral"} icon={error ? "alert" : "refresh"}>
+          {error ?? "Reading shifts…"}
+        </Banner>
+      </Screen>
     );
 
   const { view, head } = evaluation;
@@ -182,157 +205,210 @@ export default function Lead() {
       );
     });
 
+  const inZone = (zone: string) => volunteers.filter((v) => currentShift(v)?.zone === zone);
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+    <Screen
+      title="Lead console"
+      subtitle={byLabel}
+      right={isLead ? <Pill label="Shift manager" tone="accent" icon="shield" /> : null}
+    >
       {header}
       {isLead === false && (
-        <Text testID="lead-not-lead">
-          {byLabel} has no shift-manager note bound to its current registration, so nothing you write here
-          will count.
-        </Text>
+        <Banner tone="danger" testID="lead-not-lead" title="Not a lead">
+          {`${byLabel} has no shift-manager note bound to its current registration, so nothing you write here will count.`}
+        </Banner>
       )}
-      <View style={styles.wrap}>
-        <Text style={styles.muted}>Late clock-in: stated minutes ago</Text>
-        <TextInput
-          value={statedMinutesAgo}
-          onChangeText={setStatedMinutesAgo}
-          placeholder="e.g. 10"
-          keyboardType="numeric"
-          style={[styles.input, { minWidth: 80 }]}
-        />
-      </View>
-      {message && <Text testID="lead-message">{message}</Text>}
+      {message && (
+        <Banner testID="lead-message" tone={messageTone(message)}>
+          {message}
+        </Banner>
+      )}
 
-      {zones.map((zone) => (
-        <View key={zone} style={{ gap: 8 }}>
-          <Text style={styles.h3}>{zone}</Text>
-          {volunteers
-            .filter((v) => currentShift(v)?.zone === zone)
-            .map((v) => {
+      {zones.map((zone) => {
+        const people = inZone(zone);
+        const onDutyCount = people.filter((v) => view.onDuty(v, now, zone)).length;
+        return (
+          <Stackv key={zone} gap={10}>
+            <SectionHeader
+              title={zone}
+              icon="pin"
+              right={
+                <Pill
+                  label={`${onDutyCount}/${people.length} on duty`}
+                  tone={onDutyCount ? "success" : "muted"}
+                />
+              }
+            />
+            {people.length === 0 && (
+              <Txt variant="caption" tone="muted">
+                No volunteers scheduled in this zone.
+              </Txt>
+            )}
+            {people.map((v) => {
               const s = currentShift(v)!;
               const onDuty = view.onDuty(v, now, zone);
               const covering = s.startsAt <= now;
               const resumeTo = pending[s.record.key];
               return (
-                <View key={v} style={[styles.row, onDuty ? styles.rowOn : undefined]} testID="lead-volunteer">
-                  <Text>
-                    {onDuty ? "● on duty" : "○ off duty"} · {v}
-                  </Text>
-                  <Text style={styles.muted}>
-                    {clockTime(s.startsAt)}–{clockTime(s.effectiveEnd)}
-                    {s.pass ? " · pass issued" : ""}
-                  </Text>
+                <ListRow
+                  key={v}
+                  testID="lead-volunteer"
+                  tone={onDuty ? "success" : "neutral"}
+                  left={<Avatar letter={initial(v)} tone={onDuty ? "success" : "muted"} />}
+                  title={firstLabel(v)}
+                  subtitle={
+                    <Row gap={6}>
+                      <Txt variant="caption" tone="muted" num>
+                        {clockTime(s.startsAt)}–{clockTime(s.effectiveEnd)}
+                      </Txt>
+                      {s.pass ? <Pill label="pass issued" tone="accent" /> : null}
+                    </Row>
+                  }
+                  right={
+                    <Pill label={onDuty ? "On duty" : "Off duty"} tone={onDuty ? "success" : "muted"} dot />
+                  }
+                >
                   {s.sessions.map((x) => {
                     const stated = u64(x.clockIn, "stated_at");
                     return (
-                      <Text key={x.clockIn.key} style={styles.muted}>
+                      <Txt key={x.clockIn.key} variant="caption" tone="muted">
                         clocked in at block time {clockTime(x.clockIn.obs.createdAtTimestamp)}
                         {stated !== undefined ? ` (stated ${clockTime(stated)})` : ""}
-                      </Text>
+                      </Txt>
                     );
                   })}
-                  <View style={styles.wrap}>
+                  <Row gap={8}>
                     {resumeTo ? (
                       <>
-                        <Text>{PENDING_CLOCK_IN}</Text>
-                        <Pressable style={styles.chip} disabled={busy} onPress={() => void extend(v, s)}>
-                          <Text>Resume</Text>
-                        </Pressable>
+                        <Txt variant="caption" tone="warning">
+                          {PENDING_CLOCK_IN}
+                        </Txt>
+                        <Button
+                          variant="warning"
+                          size="sm"
+                          label="Resume"
+                          disabled={busy}
+                          onPress={() => void extend(v, s)}
+                        />
                       </>
                     ) : onDuty ? (
                       <>
-                        <Pressable style={styles.chip} disabled={busy} onPress={() => void clockOut(v, s)}>
-                          <Text>Clock out</Text>
-                        </Pressable>
-                        <Pressable
-                          style={styles.chip}
+                        <Button
+                          size="sm"
+                          label="Clock out"
+                          disabled={busy}
+                          onPress={() => void clockOut(v, s)}
+                        />
+                        <Button
+                          size="sm"
+                          icon="plus"
+                          label="Extend 1 h"
                           disabled={busy}
                           onPress={() => setConfirmExtend(s.record.key)}
-                        >
-                          <Text>Extend 1 h</Text>
-                        </Pressable>
+                        />
                       </>
                     ) : (
                       covering && (
-                        <Pressable style={styles.chip} disabled={busy} onPress={() => void clockIn(v, s)}>
-                          <Text>Clock in</Text>
-                        </Pressable>
+                        <Button
+                          variant="primary"
+                          icon="check"
+                          label="Clock in"
+                          disabled={busy}
+                          onPress={() => void clockIn(v, s)}
+                        />
                       )
                     )}
-                  </View>
+                  </Row>
                   {confirmExtend === s.record.key && (
-                    <View style={styles.card}>
-                      <Text>
+                    <Card tone="warning">
+                      <Txt>
                         Extending takes two approvals. The first saves a replacement shift and ends the
                         current session at once; the second clocks {v} into the replacement with a new pass.
                         Until the second lands, {v} shows as off duty.
-                      </Text>
-                      <View style={styles.wrap}>
-                        <Pressable
-                          style={styles.chip}
+                      </Txt>
+                      <Row gap={8}>
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          label="Continue"
                           onPress={() => {
                             setConfirmExtend(null);
                             void extend(v, s);
                           }}
-                        >
-                          <Text>Continue</Text>
-                        </Pressable>
-                        <Pressable style={styles.chip} onPress={() => setConfirmExtend(null)}>
-                          <Text>Cancel</Text>
-                        </Pressable>
-                      </View>
-                    </View>
+                        />
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          label="Cancel"
+                          onPress={() => setConfirmExtend(null)}
+                        />
+                      </Row>
+                    </Card>
                   )}
-                </View>
+                </ListRow>
               );
             })}
-        </View>
-      ))}
+          </Stackv>
+        );
+      })}
 
-      <View style={styles.card}>
-        <Text style={styles.h3}>Write a shift</Text>
-        <TextInput
+      <Disclosure title="Lead tools" icon="list">
+        <Field
+          label="Late clock-in"
+          hint="Stated minutes ago, recorded on the next clock-in."
+          value={statedMinutesAgo}
+          onChangeText={setStatedMinutesAgo}
+          placeholder="e.g. 10"
+          keyboardType="numeric"
+          suffix="min"
+        />
+        <Divider />
+        <Txt variant="h2">Write a shift</Txt>
+        <Field
+          label="Volunteer"
           value={form.volunteer}
           onChangeText={(volunteer) => setForm({ ...form, volunteer })}
           placeholder="volunteer label, e.g. ravi.volunteers"
           autoCapitalize="none"
-          style={styles.input}
         />
-        <View style={styles.wrap}>
+        <Txt variant="h3">Zone</Txt>
+        <Row gap={6}>
           {zones.map((z) => (
-            <Pressable
+            <Chip
               key={z}
-              style={[styles.chip, form.zone === z ? styles.chipOn : undefined]}
+              label={z}
+              selected={form.zone === z}
               onPress={() => setForm({ ...form, zone: z })}
-            >
-              <Text>{z}</Text>
-            </Pressable>
+            />
           ))}
-        </View>
-        <View style={styles.wrap}>
-          <Text style={styles.muted}>Starts in (min)</Text>
-          <TextInput
+        </Row>
+        <Row gap={12} wrap={false}>
+          <Field
+            label="Starts in"
+            style={{ flex: 1 }}
             value={form.startsIn}
             onChangeText={(startsIn) => setForm({ ...form, startsIn })}
             keyboardType="numeric"
-            style={[styles.input, { minWidth: 60 }]}
+            suffix="min"
           />
-          <Text style={styles.muted}>Length (h)</Text>
-          <TextInput
+          <Field
+            label="Length"
+            style={{ flex: 1 }}
             value={form.hours}
             onChangeText={(hours) => setForm({ ...form, hours })}
             keyboardType="numeric"
-            style={[styles.input, { minWidth: 60 }]}
+            suffix="h"
           />
-        </View>
-        <Pressable
-          style={styles.chip}
+        </Row>
+        <Button
+          variant="primary"
+          full
+          label="Write shift"
           disabled={busy || !form.volunteer || !form.zone}
           onPress={() => void writeShift()}
-        >
-          <Text>Write shift</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+        />
+      </Disclosure>
+    </Screen>
   );
 }
