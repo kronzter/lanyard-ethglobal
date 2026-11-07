@@ -12,6 +12,7 @@
     "hackersResolver": "0xd62fb6197921392e65dd2bbe894660a186cfa7b8",
     "staffResolver": "0x5acf42b6507c7a6cdb20b0032136de56a97d6836",
     "publicationResolver": "0x8dc784393f1ef24dc304e7b86f231d8ea65e7e4e",
+    "winnerRegistrar": "0x826ec08ccb33e896439c17355edb1a8e559efb6b",
     "ensRootRegistry": "0x9703dbd26dab89504490994138cf2c575251a9ce",
     "ensEthRegistry": "0x657ea849311d3d5823348dded7c2aaafb3ede09e",
     "ensEthRegistrar": "0xabe76f6c8dfced81aa5a2bb8034202a7136b94ca",
