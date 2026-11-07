@@ -1,6 +1,5 @@
 // Small shared pieces for the field screens: times, write outcomes and the fake-mode clock.
-import { Pressable, Text, View } from "react-native";
-import { styles } from "@/shell/styles";
+import { Card, Chip, Icon, Row, Txt, useTheme } from "@/ui";
 import type { SubmitResult } from "./queue";
 
 /** A chain timestamp as local wall-clock time (display only; decisions use block time). */
@@ -35,18 +34,20 @@ export function describeSubmit(r: SubmitResult): string {
 
 /** Fake mode only: move the development chain's clock forward. */
 export function DevClock(props: { now: bigint | null; onAdvance: (seconds: bigint) => void }) {
+  const { c } = useTheme();
   return (
-    <View style={[styles.card, { borderStyle: "dashed" }]}>
-      <Text style={styles.muted}>
-        Development Arkiv (fake) · chain time {props.now === null ? "…" : clockTime(props.now)}
-      </Text>
-      <View style={styles.wrap}>
+    <Card dashed tone="muted" style={{ paddingVertical: 10, gap: 8 }}>
+      <Row gap={6}>
+        <Icon name="clock" size={14} color={c.muted} />
+        <Txt variant="caption" tone="muted">
+          Dev clock · chain time {props.now === null ? "…" : clockTime(props.now)}
+        </Txt>
+      </Row>
+      <Row gap={6}>
         {[300n, 900n, 3600n].map((s) => (
-          <Pressable key={s.toString()} style={styles.chip} onPress={() => props.onAdvance(s)}>
-            <Text>+{Number(s / 60n)} min</Text>
-          </Pressable>
+          <Chip key={s.toString()} onPress={() => props.onAdvance(s)} label={`+${Number(s / 60n)} min`} />
         ))}
-      </View>
-    </View>
+      </Row>
+    </Card>
   );
 }
