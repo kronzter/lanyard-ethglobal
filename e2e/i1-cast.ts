@@ -3,7 +3,8 @@
 import { z } from "zod";
 
 /** Team zkpay (Person A–D) and two volunteers: the A1 identities I1 writes records with. */
-export const I1_CAST = ["zkpay-a", "zkpay-b", "zkpay-c", "zkpay-d", "priya", "ravi"] as const;
+// I3 adds a second north-zone volunteer (anita) and an Arkiv partner staffer (sam) for its smoke test.
+export const I1_CAST = ["zkpay-a", "zkpay-b", "zkpay-c", "zkpay-d", "priya", "ravi", "anita", "sam"] as const;
 
 export const SEPOLIA_PERSONAS_FILE = "fixtures/sepolia-personas.json";
 

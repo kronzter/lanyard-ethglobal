@@ -118,6 +118,14 @@ async function main(): Promise<void> {
     const names: SepoliaPersona["names"] = [];
     for (const label of p.labels) {
       const parts = label.split(".");
+      // Partner badges are issued by the partner's own wallet (scripts/ens/issue-partner-badge.ts), never
+      // the organizer: record one only once it exists for this persona.
+      if (parts.at(-1) === "partners") {
+        const kept = earlier?.names.find((n) => n.label === label);
+        if (kept) names.push(kept);
+        else console.log(`${label}: issued by the partner wallet; see pnpm e2e:i3:seed`);
+        continue;
+      }
       const args =
         parts.length === 1
           ? ["scripts/ens/register-team.ts", "--label", label, "--lead", address]
