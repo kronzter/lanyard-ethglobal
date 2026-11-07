@@ -1,4 +1,5 @@
-import { describe, expect, it } from "vitest";
+import { Suspense, type ReactElement } from "react";
+import { describe, expect, it, vi } from "vitest";
 import { FlagError, parseFlags } from "./flags";
 import { fixtureVenue } from "@/shared/mocks/fixtures";
 import { createProviders } from "./providers";
@@ -70,5 +71,42 @@ describe("createProviders", () => {
         .identityDirectory()
         .labelsFor("0x000000000000000000000000000000000000dead", { sepoliaBlock: 9_021_610n }),
     ).toEqual([]);
+  });
+
+  describe("winnerBadge", () => {
+    // Calling the adapter as a plain function returns its element tree without rendering, so the
+    // lazily loaded react-native badge is never imported here.
+    const child = (p: ReturnType<typeof createProviders>, team: string) => {
+      const Badge = p.winnerBadge() as (props: { team: string }) => ReactElement<{
+        children: ReactElement<{ label: string; reader?: unknown }>;
+      }>;
+      const el = Badge({ team });
+      expect(el.type).toBe(Suspense);
+      return el.props.children.props;
+    };
+
+    it("passes the team label and the provider's fixture reader in mock mode, one component", () => {
+      const p = createProviders({ ens: "mock", router: "stub", arkiv: "rabdi" });
+      expect(p.winnerBadge()).toBe(p.winnerBadge());
+      expect(child(p, "zkpay")).toEqual({ label: "zkpay", reader: p.ensReader() });
+    });
+
+    it("passes the live reader in sepolia mode", () => {
+      const p = createProviders(
+        { ens: "sepolia", router: "stub", arkiv: "rabdi" },
+        { sepoliaRpcUrl: "http://127.0.0.1:8545" },
+      );
+      expect(child(p, "zkpay").reader).toBe(p.ensReader());
+    });
+
+    it("leaves the reader to the badge's own fallback when no RPC is configured", () => {
+      vi.stubEnv("EXPO_PUBLIC_SEPOLIA_RPC_URL", "");
+      try {
+        const p = createProviders({ ens: "sepolia", router: "stub", arkiv: "rabdi" });
+        expect(child(p, "zkpay")).toEqual({ label: "zkpay", reader: undefined });
+      } finally {
+        vi.unstubAllEnvs();
+      }
+    });
   });
 });

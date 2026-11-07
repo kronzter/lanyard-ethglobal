@@ -45,6 +45,19 @@ function VenueMap(props: VenueMapProps) {
   return createElement(Suspense, { fallback: null }, createElement(LazyVenueMap, props));
 }
 
+// A4.3's badge renders through react-native, so it loads on first render too. WinnerBadge builds
+// `winner.<label>` itself: it takes the team's edition-relative label, not the full winner name.
+const LazyWinnerBadge = lazy(() => import("./components/ens/WinnerBadge"));
+function winnerBadgeFor(reader: () => EnsReader | undefined): ComponentType<{ team: string }> {
+  return function ProviderWinnerBadge({ team }: { team: string }) {
+    return createElement(
+      Suspense,
+      { fallback: null },
+      createElement(LazyWinnerBadge, { label: team, reader: reader() }),
+    );
+  };
+}
+
 export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcUrl?: string } = {}) {
   const rpcUrl = () => {
     const url = opts.sepoliaRpcUrl ?? process.env.EXPO_PUBLIC_SEPOLIA_RPC_URL;
@@ -56,6 +69,7 @@ export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcU
   let identityDirectory: IdentityDirectory | undefined;
   let router: Router | undefined;
   let arkiv: AppArkiv | undefined;
+  let winnerBadge: ComponentType<{ team: string }> | undefined;
   return {
     flags,
     config: flags.ens === "sepolia" ? sepoliaEventConfig : eventConfig,
@@ -95,8 +109,19 @@ export function createProviders(flags: Flags = defaultFlags, opts: { sepoliaRpcU
     router(): Router {
       return (router ??= flags.router === "stub" ? new StubRouter() : new GridRouter());
     },
+    /**
+     * `lanyard.prizes` on `winner.<team>`, read through this provider's ENS reader (the fixture reader
+     * in mock mode, which holds no winner names, so the badge renders nothing). Without a usable live
+     * reader (no RPC configured) the badge falls back to its own lookup and shows "unavailable".
+     */
     winnerBadge(): ComponentType<{ team: string }> {
-      return () => null;
+      return (winnerBadge ??= winnerBadgeFor(() => {
+        try {
+          return this.ensReader();
+        } catch {
+          return undefined;
+        }
+      }));
     },
     venueMap(): ComponentType<VenueMapProps> {
       return flags.router === "stub" ? StubVenueMap : VenueMap;
