@@ -211,12 +211,6 @@ Recorded here as phases find them (see `plans/00-README.md` › Evidence and pro
 - `SepoliaResultsPublisher` passes both publisher conformance suites (ordinary and prepared, the
   latter over the durable file journal) on an anvil Sepolia fork only. It is not yet wired into
   `cli/providers.ts`, and no live Sepolia publication has run.
-- **Open (I4):** the plan's completed-freeze UI gate expects the atomic lock to write edition text
-  `lanyard.locked = "1"`, and `src/arkiv/published.ts` requires it before showing rankings, but
-  `WinnerRegistrar.lockResults` only sets its own `locked` flag and revokes resolver roles; it
-  writes no such text. Until that is reconciled, committed rankings stay hidden after a real lock.
-- **Open (I4):** `WinnerBadge` reads `lanyard.prizes` on `winner.<team>` at the head block without
-  checking the lock, so a declared but not yet locked winner already shows its badge.
 - The publisher's file journal cannot fsync its directory on Windows (Node returns EPERM); there
   the atomic rename relies on NTFS metadata journaling. Run live freezes on Linux/macOS/WSL.
 - Physical Android tests and the remaining phase bug hunt were skipped at the user’s request. Browser flows and a separate Node verifier process were exercised; live host CORS, Sepolia publication and a second physical laptop were not tested in B4.
