@@ -318,8 +318,29 @@ Not claimed as passed: recorded live Sepolia/Rabdi scenario (`fixtures/sepolia-h
 
 **Requires I2 complete.** **Two-phone smoke:** todo · **Merged:** no
 
+**Status · 2026-11-07:** A3.3 real map merged (#53/#54). On `int/I3-real-venue`:
+- `issue-partner-badge.ts` added.
+- `pnpm e2e:i3:seed` plans and applies the venue, seats and north shifts.
+- Router default is `grid`.
+- `e2e/i3.test.ts` passes (5 deterministic tests; live readback is gated).
+
+**Left (live keys, user-run):**
+- coordinator `set-perms --volunteer priya --make`;
+- `grant-roles --partners arkiv=<wallet>`;
+- `pnpm e2e:i1:seed` (anita, sam);
+- `issue-partner-badge` for sam;
+- `pnpm e2e:i3:seed --apply`;
+- `pnpm e2e:i3`;
+- `pnpm app:apk` and the two-phone smoke test.
+
 | # | Found by | What we tried | Expected | Actual | Severity | Status |
 | --- | --- | --- | --- | --- | --- | --- |
+| 1 | A | Live preconditions for the smoke test | Lead, second volunteer and Arkiv staff exist on Sepolia | `priya.volunteers` has no `lanyard.perms`, `anita.volunteers` unregistered, `arkiv.partners` not onboarded (partner authorities are still fixture addresses in `live-event.config.ts`) | High (blocks smoke) | open: seed prints the exact commands |
+| 2 | A | Partner staff badge from the CLI | A script like `issue-badge` | Only the web partner console could issue one | Medium | fixed: `scripts/ens/issue-partner-badge.ts` |
+| 3 | A | Seat taps after a window resize on web | Correct seat | `onLayout` lagged the resize, so taps mapped through the old size | Medium | fixed in A3.3 (measure at tap time) |
+| 4 | A | Pinch-zoom on desktop web | Zoom | Pinch needs touch | Low | fixed in A3.3 (+/−/fit buttons) |
+| 5 | A | Unreachable cell on the Mumbai venue | `null`, no route | `null` (`e2e/i3.test.ts`) | — | checked |
+| 6 | A | Losing claim after the lease lapses | Never becomes the winner; ticket reopens | Reopens (`e2e/i3.test.ts`) | — | checked |
 
 ### I4 · Full demo
 
