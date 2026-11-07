@@ -8,7 +8,6 @@ import { sepoliaEventConfig as config } from "../src/shared/live-event.config";
 
 export const VENUE_VERSION = "mumbai-i3";
 export const SEPOLIA_VENUE_FILE = "fixtures/sepolia-venue.json";
-export const SEATS_FILE = "fixtures/seats.mumbai.csv";
 /** Venue records must stay small enough to read on a phone (I3 bug hunt: under 128 KiB). */
 export const MAX_VENUE_BYTES = 128 * 1024;
 /** The Mumbai venue checked the way the organizer screen checks it, with its exact record bytes. */

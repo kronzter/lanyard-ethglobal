@@ -3,18 +3,12 @@
 import { z } from "zod";
 
 /** Team zkpay (Person A–D) and two volunteers: the A1 identities I1 writes records with. */
-// The demo adds a second north-zone volunteer (anita), Arkiv partner staff (sam) and an Arkiv partner judge (ana).
-export const I1_CAST = [
-  "zkpay-a",
-  "zkpay-b",
-  "zkpay-c",
-  "zkpay-d",
-  "priya",
-  "ravi",
-  "anita",
-  "sam",
-  "ana",
-] as const;
+export const I1_CAST = ["zkpay-a", "zkpay-b", "zkpay-c", "zkpay-d", "priya", "ravi"] as const;
+/**
+ * The demo cast, wallets generated on the demo machine (pnpm e2e:demo:names): team chainchat, lead
+ * Meera, north volunteers Dev and Anita, Arkiv partner staff Sam and Arkiv partner judge Ana.
+ */
+export const DEMO_CAST = ["chainchat-a", "chainchat-b", "meera", "dev", "anita", "sam", "ana"] as const;
 
 export const SEPOLIA_PERSONAS_FILE = "fixtures/sepolia-personas.json";
 

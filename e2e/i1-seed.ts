@@ -21,6 +21,7 @@ import { parsePersonas, type Persona } from "../src/shared/fixtures/personas";
 import { sepoliaEventConfig } from "../src/shared/live-event.config";
 import { privateKeyFromEnv } from "../scripts/ens/safety";
 import {
+  DEMO_CAST,
   I1_CAST,
   SEPOLIA_PERSONAS_FILE,
   parseSepoliaPersonas,
@@ -92,7 +93,8 @@ async function main(): Promise<void> {
   const all = parsePersonas(
     JSON.parse(readFileSync(resolve(ROOT, "fixtures/personas.json"), "utf8")),
   ).personas;
-  const cast = I1_CAST.map((id) => {
+  const ids: readonly string[] = process.argv.includes("--demo") ? DEMO_CAST : I1_CAST;
+  const cast = ids.map((id) => {
     const p = all.find((x) => x.id === id);
     if (!p) throw new Error(`persona ${id} is not in fixtures/personas.json`);
     return p;
@@ -175,7 +177,11 @@ async function main(): Promise<void> {
     edition: sepoliaEventConfig.edition,
     organizer,
     organizerDrip: drips.organizer ?? null,
-    personas: out.map((p) => ({ ...p, drip: drips[p.id] ?? null })),
+    // Personas seeded by another run (the I1 cast vs the demo cast) stay in the file.
+    personas: [
+      ...(before?.personas.filter((p) => !out.some((o) => o.id === p.id)) ?? []),
+      ...out.map((p) => ({ ...p, drip: drips[p.id] ?? null })),
+    ],
   };
   parseSepoliaPersonas(file);
   writeFileSync(resolve(ROOT, SEPOLIA_PERSONAS_FILE), JSON.stringify(file, null, 2) + "\n");

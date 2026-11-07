@@ -6,9 +6,13 @@
 //    missing is printed as the exact command to run with the right key (never sent from here).
 // 1. The organizer publishes fixtures/venue.mumbai.json as a readonly `venue` record (version
 //    `mumbai-i3`) unless an identical one exists; its key goes to fixtures/sepolia-venue.json.
-// 2. The organizer writes fixtures/seats.mumbai.csv as `seat_assignment` records for that venue.
-// 3. Lead Priya schedules north-zone shifts for Ravi and Anita from now, and clocks both in with a duty
-//    pass (one batch each), unless the volunteer already has a shift covering now.
+// 2. The organizer seats team chainchat in the north zone (`seat_assignment` records for that venue).
+// 3. Lead Meera schedules north-zone shifts for Dev and Anita from now and clocks Anita in with a duty
+//    pass; Dev is checked in live in the demo. A volunteer with a shift covering now is skipped.
+// 4. Judging: an Arkiv-track rubric, chainchat's submission and acceptance, and partner judge Ana's
+//    assignment. Ana writes her own scores from her phone.
+//
+// Run `pnpm e2e:demo:names` first: it creates the demo cast's wallets, names and tGLM.
 //
 // Keys come from the environment (ORGANIZER_PRIVATE_KEY and each persona's keyEnv); none is printed.
 import { readFileSync, renameSync, writeFileSync } from "node:fs";
@@ -28,17 +32,20 @@ import { parseRabdiDeployment, requireLive } from "../src/shared/deployments/loa
 import { sepoliaEventConfig as config } from "../src/shared/live-event.config";
 import { privateKeyFromEnv } from "../scripts/ens/safety";
 import { SEPOLIA_PERSONAS_FILE, parseSepoliaPersonas } from "./i1-cast";
-import { SEATS_FILE, SEPOLIA_VENUE_FILE, VENUE_VERSION, mumbaiVenue } from "./i3-venue";
+import { SEPOLIA_VENUE_FILE, VENUE_VERSION, mumbaiVenue } from "./i3-venue";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const SHIFT_ZONE = "north";
-const SHIFT_VOLUNTEERS = ["ravi", "anita"] as const;
+const LEAD = "meera";
+const SHIFT_VOLUNTEERS = ["dev", "anita"] as const;
+/** Team chainchat sits in the north zone; Person A raises the demo ticket from s014. */
+const SEATS: Record<string, string> = { "chainchat-a": "s014", "chainchat-b": "s015" };
 const SHIFT_HOURS = BigInt(process.env.I3_SHIFT_HOURS ?? "12");
 const STAFF = { partner: "arkiv", sub: "staff", label: "sam" } as const;
-/** Clocked in by the seed so tickets have a helper at once; Ravi is clocked in live by Priya (demo 2). */
+/** Clocked in by the seed so tickets have a helper at once; Dev is clocked in live by Meera (demo 2). */
 const PRE_CLOCKED = new Set(["anita"]);
-/** Demo 3: team zkpay submits to the Arkiv track and partner judge Ana is assigned to score it. */
-const JUDGE = { partner: "arkiv", sub: "judges", label: "ana", track: "arkiv", team: "zkpay" } as const;
+/** Demo 3: team chainchat submits to the Arkiv track and partner judge Ana is assigned to score it. */
+const JUDGE = { partner: "arkiv", sub: "judges", label: "ana", track: "arkiv", team: "chainchat" } as const;
 
 const apply = process.argv.includes("--apply");
 const lower = (a: string) => a.toLowerCase();
@@ -64,7 +71,9 @@ async function main(): Promise<void> {
   const persona = (id: string) => {
     const p = cast.personas.find((x) => x.id === id);
     if (!p)
-      throw new Error(`${id} is not in ${SEPOLIA_PERSONAS_FILE}; add it to I1_CAST and run pnpm e2e:i1:seed`);
+      throw new Error(
+        `${id} is not in ${SEPOLIA_PERSONAS_FILE}; add it to DEMO_CAST and run pnpm e2e:demo:names`,
+      );
     return p;
   };
   const access = { rpcUrl: process.env.RABDI_RPC_URL, accessKey: process.env.RABDI_ACCESS_KEY };
@@ -77,17 +86,18 @@ async function main(): Promise<void> {
   // 0. Preconditions on live Sepolia.
   const at = { sepoliaBlock: await ens.headBlock() };
   const todo: string[] = [];
-  const priya = persona("priya");
-  const perms = await ens.text(priya.by, "lanyard.perms", at);
+  const leadP = cast.personas.find((p) => p.id === LEAD);
+  if (!leadP) throw new Error(`${LEAD} has no live wallet yet: run pnpm e2e:demo:names first`);
+  const perms = await ens.text(leadP.by, "lanyard.perms", at);
   if (!perms?.includes("shift-manager"))
     todo.push(
-      `${priya.by} is not a lead: SIGNER_PRIVATE_KEY=<coordinator> pnpm exec tsx scripts/ens/set-perms.ts --volunteer priya --make`,
+      `${leadP.by} is not a lead: SIGNER_PRIVATE_KEY=<coordinator> pnpm exec tsx scripts/ens/set-perms.ts --volunteer ${LEAD} --make`,
     );
   for (const id of SHIFT_VOLUNTEERS) {
     const p = cast.personas.find((x) => x.id === id);
-    if (!p) todo.push(`${id} has no live wallet yet: pnpm e2e:i1:seed`);
+    if (!p) todo.push(`${id} has no live wallet yet: pnpm e2e:demo:names`);
     else if (lower((await ens.owner(p.by, at)) ?? "") !== lower(p.address))
-      todo.push(`${p.by} is not held by ${p.address}: pnpm e2e:i1:seed`);
+      todo.push(`${p.by} is not held by ${p.address}: pnpm e2e:demo:names`);
   }
   const staffLabel = `${STAFF.label}.${STAFF.sub}.${STAFF.partner}.partners`;
   const staff = cast.personas.find((p) => p.id === STAFF.label);
@@ -105,7 +115,7 @@ async function main(): Promise<void> {
   const judgeReady = !!judge && lower((await ens.owner(judgeLabel, at)) ?? "") === lower(judge.address);
   if (!judgeReady)
     todo.push(
-      `${judgeLabel} is missing: SIGNER_PRIVATE_KEY=<partner wallet> pnpm exec tsx scripts/ens/issue-partner-badge.ts --partner ${JUDGE.partner} --sub ${JUDGE.sub} --label ${JUDGE.label} --owner ${judge?.address ?? "<ana's wallet; run pnpm e2e:i1:seed first>"}`,
+      `${judgeLabel} is missing: SIGNER_PRIVATE_KEY=<partner wallet> pnpm exec tsx scripts/ens/issue-partner-badge.ts --partner ${JUDGE.partner} --sub ${JUDGE.sub} --label ${JUDGE.label} --owner ${judge?.address ?? "<ana's wallet; run pnpm e2e:demo:names first>"}`,
     );
 
   // 1. Venue.
@@ -128,8 +138,15 @@ async function main(): Promise<void> {
   );
 
   // 2. Seats (only once the venue exists; a plan lists all of them).
-  const { rows, errors } = parseSeatCsv(readFileSync(resolve(ROOT, SEATS_FILE), "utf8"), venue);
-  if (errors.length) throw new Error(`${SEATS_FILE}:\n${errors.join("\n")}`);
+  // Built from the live cast, then checked exactly as the organizer screen checks an imported CSV.
+  const csv = [
+    "hacker_address,hacker_label,seat",
+    ...Object.entries(SEATS)
+      .filter(([id]) => cast.personas.some((p) => p.id === id))
+      .map(([id, seat]) => `${persona(id).address},${persona(id).by},${seat}`),
+  ].join("\n");
+  const { rows, errors } = parseSeatCsv(csv, venue);
+  if (errors.length) throw new Error(`seat assignments:\n${errors.join("\n")}`);
   const seated = venueKey
     ? new Set(
         (await scanKind(arkiv, config.edition, "seat_assignment", {}, { creator: organizer })).records
@@ -149,7 +166,7 @@ async function main(): Promise<void> {
       config.edition,
       "shift",
       { zone: str(SHIFT_ZONE) },
-      { creator: priya.address as Address },
+      { creator: leadP.address as Address },
     )
   ).records;
   const covered = (by: string) =>
@@ -234,26 +251,26 @@ async function main(): Promise<void> {
   }
 
   if (shiftsTodo.length) {
-    if (todo.some((t) => t.startsWith(priya.by)))
-      throw new Error(`${priya.by} must be a lead before scheduling shifts`);
-    const leadW = writer(priya.keyEnv);
+    if (todo.some((t) => t.startsWith(leadP.by)))
+      throw new Error(`${leadP.by} must be a lead before scheduling shifts`);
+    const leadW = writer(leadP.keyEnv);
     const endsAt = now + SHIFT_HOURS * 3_600n;
     for (const v of shiftsTodo) {
       const [shift] = (
         await leadW.write({
           creates: [
-            buildCreate("shift", ctx(priya.by), { volunteer: v.by, zone: SHIFT_ZONE, startsAt: now, endsAt }),
+            buildCreate("shift", ctx(leadP.by), { volunteer: v.by, zone: SHIFT_ZONE, startsAt: now, endsAt }),
           ],
         })
       ).created;
       if (!PRE_CLOCKED.has(v.id)) {
-        console.log(`${v.by} scheduled in ${SHIFT_ZONE} until ${endsAt}; Priya clocks them in live`);
+        console.log(`${v.by} scheduled in ${SHIFT_ZONE} until ${endsAt}; ${LEAD} clocks them in live`);
         continue;
       }
       const res = await leadW.write({
         creates: [
-          buildCreate("clock", ctx(priya.by), { volunteer: v.by, shift: shift!, action: "in" }),
-          buildCreate("duty_pass", ctx(priya.by), { volunteer: v.by, shift: shift!, endsAt }),
+          buildCreate("clock", ctx(leadP.by), { volunteer: v.by, shift: shift!, action: "in" }),
+          buildCreate("duty_pass", ctx(leadP.by), { volunteer: v.by, shift: shift!, endsAt }),
         ],
       });
       console.log(`${v.by} on duty in ${SHIFT_ZONE} until ${endsAt}  ${res.txHash}`);
