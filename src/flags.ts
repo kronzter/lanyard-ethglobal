@@ -1,6 +1,6 @@
 // App feature flags (plans/00-README.md › Feature flags). Expo inlines EXPO_PUBLIC_* values at
 // build time, so each one must be read as a literal `process.env.EXPO_PUBLIC_…` member access.
-// Every value here is public. ENS defaults to Sepolia after I2; the router stays a stub until I3.
+// Every value here is public. ENS defaults to Sepolia after I2 and the router to A3's grid after I3; the mocks remain for development.
 
 export const ENS_MODES = ["mock", "sepolia"] as const;
 export const ROUTER_MODES = ["stub", "grid"] as const;
@@ -33,7 +33,7 @@ function pick<T extends string>(
 export function parseFlags(env: { ens?: string; router?: string; arkiv?: string }): Flags {
   return {
     ens: pick("EXPO_PUBLIC_LANYARD_ENS", env.ens, ENS_MODES, "sepolia"),
-    router: pick("EXPO_PUBLIC_LANYARD_ROUTER", env.router, ROUTER_MODES, "stub"),
+    router: pick("EXPO_PUBLIC_LANYARD_ROUTER", env.router, ROUTER_MODES, "grid"),
     arkiv: pick("EXPO_PUBLIC_LANYARD_ARKIV", env.arkiv, ARKIV_MODES, "rabdi"),
   };
 }
