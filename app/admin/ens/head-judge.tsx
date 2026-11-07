@@ -1,6 +1,5 @@
 // A4.3 head-judge console: issue global judges (registerJudge) and revoke them (unregister).
 import { useState } from "react";
-import { Text, View } from "react-native";
 import { type Address } from "viem";
 import { registerJudgeData, unregisterData } from "@/consoles/calldata";
 import { bookRegistry, ownerOf, statusOf } from "@/consoles/observe";
@@ -8,7 +7,7 @@ import { Btn, ConsoleFrame, Field, Log, useRunner } from "@/consoles/ui";
 import { useConsole } from "@/consoles/useConsole";
 import { decideBadge, parseBadgeArgs } from "@/ens/badge-plan";
 import { decideRevoke } from "@/ens/revive-plan";
-import { styles } from "@/shell/styles";
+import { Card, Row, Txt } from "@/ui";
 
 export default function HeadJudge() {
   const c = useConsole();
@@ -54,8 +53,8 @@ export default function HeadJudge() {
 
   return (
     <ConsoleFrame title="Head judge">
-      <Text style={styles.muted}>Head judge wallet only. Issues global (main track) judges.</Text>
-      <View style={styles.card}>
+      <Txt tone="muted">Head judge wallet only. Issues global (main track) judges.</Txt>
+      <Card>
         <Field label="Judge label" value={label} onChange={setLabel} placeholder="ana" testID="judge-label" />
         <Field
           label="Judge wallet (to issue)"
@@ -64,11 +63,11 @@ export default function HeadJudge() {
           placeholder="0x…"
           testID="judge-owner"
         />
-        <View style={styles.wrap}>
+        <Row gap={8}>
           <Btn label="Issue judge" onPress={issue} disabled={busy} testID="issue" />
           <Btn label="Revoke judge" onPress={revoke} disabled={busy} testID="revoke" />
-        </View>
-      </View>
+        </Row>
+      </Card>
       <Log log={log} />
     </ConsoleFrame>
   );

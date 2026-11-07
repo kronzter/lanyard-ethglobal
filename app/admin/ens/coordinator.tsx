@@ -1,6 +1,5 @@
 // A4.3 coordinator console: make or unmake a lead by writing the bound lanyard.perms envelope.
 import { useState } from "react";
-import { Text, View } from "react-native";
 import { sepolia } from "viem/chains";
 import { type Address } from "viem";
 import { setTextData } from "@/consoles/calldata";
@@ -12,7 +11,7 @@ import { readRegistration, registryReadAbi } from "@/ens/registry-read";
 import { PERMS_TEXT_KEY } from "@/shared/ens/permission-envelope";
 import { eventConfig } from "@/shared/event.config";
 import { toFullName } from "@/shared/labels";
-import { styles } from "@/shell/styles";
+import { Card, Row, Txt } from "@/ui";
 
 export default function Coordinator() {
   const c = useConsole();
@@ -65,11 +64,11 @@ export default function Coordinator() {
 
   return (
     <ConsoleFrame title="Coordinator">
-      <Text style={styles.muted}>
+      <Txt tone="muted">
         Volunteer coordinator wallet only (ROLE_SET_TEXT on lanyard.perms). Wrong wallets are blocked before
         sending.
-      </Text>
-      <View style={styles.card}>
+      </Txt>
+      <Card>
         <Field
           label="Volunteer label"
           value={label}
@@ -77,11 +76,11 @@ export default function Coordinator() {
           placeholder="priya"
           testID="volunteer"
         />
-        <View style={styles.wrap}>
+        <Row gap={8}>
           <Btn label="Make lead" onPress={() => act(true)} disabled={busy} testID="make" />
           <Btn label="Unmake lead" onPress={() => act(false)} disabled={busy} testID="unmake" />
-        </View>
-      </View>
+        </Row>
+      </Card>
       <Log log={log} />
     </ConsoleFrame>
   );
