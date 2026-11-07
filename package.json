@@ -12,6 +12,7 @@
     "start": "expo start",
     "web": "expo start --web",
     "app:dev-apk": "eas build --platform android --profile development",
+    "demo:eas-env": "node --env-file-if-exists=.env scripts/eas-env.mjs",
     "app:apk": "eas build --platform android --profile preview",
     "app:dev-apk:local": "eas build --platform android --profile development --local",
     "app:apk:local": "eas build --platform android --profile preview --local",

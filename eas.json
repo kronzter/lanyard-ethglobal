@@ -7,11 +7,21 @@
     "development": {
       "developmentClient": true,
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      }
     },
     "preview": {
       "distribution": "internal",
-      "android": { "buildType": "apk" }
+      "android": {
+        "buildType": "apk"
+      },
+      "environment": "preview",
+      "env": {
+        "EXPO_PUBLIC_LANYARD_ROUTER": "grid",
+        "EXPO_PUBLIC_LANYARD_ENS": "sepolia",
+        "EXPO_PUBLIC_LANYARD_ARKIV": "rabdi"
+      }
     }
   }
 }
