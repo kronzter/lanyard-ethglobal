@@ -114,6 +114,118 @@
         "tx": "0x88895a9c0bbbab7fbc13ea75876254d8dce9315f7be95b22558ec6ee3d53da95",
         "record": "0x240e0094d64b59020489744afecfdc58041d7dc19932313680bd550b4153e5e6"
       }
+    },
+    {
+      "id": "chainchat-a",
+      "by": "chainchat-a.hackers",
+      "keyEnv": "LANYARD_KEY_CHAINCHAT_A",
+      "address": "0xa1415cff38d107ab2fa89de71ecb4724f1a325d1",
+      "names": [
+        {
+          "label": "chainchat-a.hackers",
+          "tx": "0x4ef4ccbb11583e620931ac7e9a827b23b07ba5af9acdd21a44712cf53a9a8887",
+          "block": "12080541"
+        },
+        {
+          "label": "chainchat",
+          "tx": "0x28f09f7b0119523974aaab88bec766a0aecdb84baf9045d47dcf6a9626123fde",
+          "block": "12080543"
+        }
+      ],
+      "drip": {
+        "tx": "0x9931761ab61ab77567db4a3b237d7addacd0f4b916797c4b0425d4f3bd077596",
+        "record": "0x3e7bb31eed8b3360d7a0958c9db6097db521bbbb4e9ed048c1cbdbef74f4019d"
+      }
+    },
+    {
+      "id": "chainchat-b",
+      "by": "chainchat-b.hackers",
+      "keyEnv": "LANYARD_KEY_CHAINCHAT_B",
+      "address": "0xa78dae3dcc27b8f8f8133d4ddfe7d8a2f2fb639e",
+      "names": [
+        {
+          "label": "chainchat-b.hackers",
+          "tx": "0xf569d4b1f845cab602099f2b48a8592dd23dd8b7b7afc23fd0de99bf18ed27f1",
+          "block": "12080544"
+        }
+      ],
+      "drip": {
+        "tx": "0x234ef51ac8edb6b4da7bdc3e9bb1527835a3403192686599519470154cba881e",
+        "record": "0xaa8b5b28404e376a87dda626dd5830212ee0b01d666bd84469bd80fe441c96f2"
+      }
+    },
+    {
+      "id": "meera",
+      "by": "meera.volunteers",
+      "keyEnv": "LANYARD_KEY_MEERA",
+      "address": "0x56893ef6f997332291bd4765394495fffb8f9532",
+      "names": [
+        {
+          "label": "meera.volunteers",
+          "tx": "0x6aea117b5f681c80991282b984cc695bee667de545738b48aa4c2d31265b33e7",
+          "block": "12080545"
+        }
+      ],
+      "drip": {
+        "tx": "0x3a25d240e655413415e64b0052b1f3b526ee6b941867d84108be9d1149e423d2",
+        "record": "0xf6ad436c743f0877f0dd3dd9dbcb09a83d75eed911bd7543637009d383465038"
+      }
+    },
+    {
+      "id": "dev",
+      "by": "dev.volunteers",
+      "keyEnv": "LANYARD_KEY_DEV",
+      "address": "0x79b4db31ecd27c2287ec000192102bc8dc882a8d",
+      "names": [
+        {
+          "label": "dev.volunteers",
+          "tx": "0x1b99a290f651786286597739f45e3fd57c4377550879a36311419558faf0a8c3",
+          "block": "12080546"
+        }
+      ],
+      "drip": {
+        "tx": "0xad2a577ef779073a01d5cc1ecffef0bda13c9c0fb1ffc707af03a67cd66b1a80",
+        "record": "0x365c0886d215f1497894a45b255d143875de3854fbe1c34ef281a8a95cca61c9"
+      }
+    },
+    {
+      "id": "anita",
+      "by": "anita.volunteers",
+      "keyEnv": "LANYARD_KEY_ANITA",
+      "address": "0xfa7feef1942a36706c0db895ad868a3347829864",
+      "names": [
+        {
+          "label": "anita.volunteers",
+          "tx": "0x4993739d6fe246697ba59c3edbf4ea000d32a6f8b45ec1c4275bc9b4701591e6",
+          "block": "12080547"
+        }
+      ],
+      "drip": {
+        "tx": "0x386e478ab68aa6fb2c9dfc249c5c3fc8ee79e5aff427a5f6430bdc80f02343ce",
+        "record": "0xf75537f5d2953b7ed723cccafc3ba69d89907f26d37b76b01525df1d526b4afe"
+      }
+    },
+    {
+      "id": "sam",
+      "by": "sam.staff.arkiv.partners",
+      "keyEnv": "LANYARD_KEY_SAM",
+      "address": "0x2caa0c375fceee97dc717b3724e36f89313bfb04",
+      "names": [],
+      "drip": {
+        "tx": "0x9fd1e02187b2c2527d70927a99efc797b247a7eb7fadcf59766ac37e779b7124",
+        "record": "0x72cb2deb019a42d6e59b637430c49a04967d411988219ac78e87a32f86d61afc"
+      }
+    },
+    {
+      "id": "ana",
+      "by": "ana.judges.arkiv.partners",
+      "keyEnv": "LANYARD_KEY_ANA",
+      "address": "0xaa8a6e3e09e2c8ed1497fa1fc84c5d6f36abc802",
+      "names": [],
+      "drip": {
+        "tx": "0xad3a800b3f51c55c565ff82b4f19daf8462ef61d8b70bf4d4b9c46e6bc9e2285",
+        "record": "0xdb657f2cae7867e3c5697ad391fe7c295600e0e3dc7bde6a66199b9e74748beb"
+      }
     }
   ]
 }

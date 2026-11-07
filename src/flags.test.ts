@@ -5,9 +5,9 @@ import { createProviders } from "./providers";
 import { GridRouter } from "@/venue/grid-router";
 
 describe("parseFlags", () => {
-  it("defaults to Sepolia ENS and the stub router", () => {
-    expect(parseFlags({})).toEqual({ ens: "sepolia", router: "stub", arkiv: "rabdi" });
-    expect(parseFlags({ ens: "", router: "" })).toEqual({ ens: "sepolia", router: "stub", arkiv: "rabdi" });
+  it("defaults to Sepolia ENS and the grid router", () => {
+    expect(parseFlags({})).toEqual({ ens: "sepolia", router: "grid", arkiv: "rabdi" });
+    expect(parseFlags({ ens: "", router: "" })).toEqual({ ens: "sepolia", router: "grid", arkiv: "rabdi" });
   });
 
   it("accepts the integration values", () => {
