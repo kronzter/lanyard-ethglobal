@@ -15,6 +15,7 @@ import { readFileSync, renameSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { isHex, keccak256, toHex, type Address, type Hex } from "viem";
 import rabdiJson from "../deployments/rabdi.json";
+import teamPages from "../fixtures/team-pages.json";
 import venueMumbai from "../fixtures/venue.mumbai.json";
 import { createArkivReader, createKeyWriter } from "../src/arkiv/client";
 import type { ArkivValue } from "@arkiv-network/sdk";
@@ -34,6 +35,10 @@ const SHIFT_ZONE = "north";
 const SHIFT_VOLUNTEERS = ["ravi", "anita"] as const;
 const SHIFT_HOURS = BigInt(process.env.I3_SHIFT_HOURS ?? "12");
 const STAFF = { partner: "arkiv", sub: "staff", label: "sam" } as const;
+/** Clocked in by the seed so tickets have a helper at once; Ravi is clocked in live by Priya (demo 2). */
+const PRE_CLOCKED = new Set(["anita"]);
+/** Demo 3: team zkpay submits to the Arkiv track and partner judge Ana is assigned to score it. */
+const JUDGE = { partner: "arkiv", sub: "judges", label: "ana", track: "arkiv", team: "zkpay" } as const;
 
 const apply = process.argv.includes("--apply");
 const lower = (a: string) => a.toLowerCase();
@@ -95,6 +100,14 @@ async function main(): Promise<void> {
       `${staffLabel} is missing: SIGNER_PRIVATE_KEY=<partner wallet> pnpm exec tsx scripts/ens/issue-partner-badge.ts --partner ${STAFF.partner} --sub ${STAFF.sub} --label ${STAFF.label} --owner <sam's wallet>`,
     );
 
+  const judgeLabel = `${JUDGE.label}.${JUDGE.sub}.${JUDGE.partner}.partners`;
+  const judge = cast.personas.find((p) => p.id === JUDGE.label);
+  const judgeReady = !!judge && lower((await ens.owner(judgeLabel, at)) ?? "") === lower(judge.address);
+  if (!judgeReady)
+    todo.push(
+      `${judgeLabel} is missing: SIGNER_PRIVATE_KEY=<partner wallet> pnpm exec tsx scripts/ens/issue-partner-badge.ts --partner ${JUDGE.partner} --sub ${JUDGE.sub} --label ${JUDGE.label} --owner ${judge?.address ?? "<ana's wallet; run pnpm e2e:i1:seed first>"}`,
+    );
+
   // 1. Venue.
   const { venue, bytes, hash } = mumbaiVenue();
   const organizer = config.authorities.organizer;
@@ -151,6 +164,30 @@ async function main(): Promise<void> {
     `shifts (${SHIFT_ZONE}): ${shiftsTodo.length ? `to schedule for ${shiftsTodo.map((p) => p.id).join(", ")}` : "on duty"}`,
   );
 
+  // 4. Judging: rubric, project, submission, acceptance, Ana's assignment (each once).
+  const lead = persona(`${JUDGE.team}-a`);
+  const mine = async (
+    kind: "rubric" | "project" | "submission" | "acceptance" | "judge_assignment",
+    creator: string,
+  ) => (await scanKind(arkiv, config.edition, kind, {}, { creator: creator as Address })).records;
+  const rubric = (await mine("rubric", organizer)).find((r) => r.values.track === JUDGE.track);
+  const project = (await mine("project", lead.address)).find((r) => r.values.team === JUDGE.team);
+  const submission = (await mine("submission", lead.address)).find((r) => r.values.team === JUDGE.team);
+  const accepted =
+    !!submission &&
+    (await mine("acceptance", organizer)).some(
+      (r) => lower(String(r.values.submission)) === lower(submission.key),
+    );
+  const assigned =
+    !!submission &&
+    (await mine("judge_assignment", organizer)).some(
+      (r) => r.values.judge === judgeLabel && lower(String(r.values.submission)) === lower(submission.key),
+    );
+  console.log(
+    `judging (${JUDGE.track}): rubric ${rubric ? "set" : "to write"}, submission ${submission ? "made" : "to make"}, ` +
+      `acceptance ${accepted ? "done" : "to write"}, ${judgeLabel} ${assigned ? "assigned" : judgeReady ? "to assign" : "waits for the badge"}`,
+  );
+
   if (todo.length)
     console.log(`\nlive ENS steps still needed (run these, then rerun):\n- ${todo.join("\n- ")}`);
   if (!apply) {
@@ -199,17 +236,21 @@ async function main(): Promise<void> {
   if (shiftsTodo.length) {
     if (todo.some((t) => t.startsWith(priya.by)))
       throw new Error(`${priya.by} must be a lead before scheduling shifts`);
-    const lead = writer(priya.keyEnv);
+    const leadW = writer(priya.keyEnv);
     const endsAt = now + SHIFT_HOURS * 3_600n;
     for (const v of shiftsTodo) {
       const [shift] = (
-        await lead.write({
+        await leadW.write({
           creates: [
             buildCreate("shift", ctx(priya.by), { volunteer: v.by, zone: SHIFT_ZONE, startsAt: now, endsAt }),
           ],
         })
       ).created;
-      const res = await lead.write({
+      if (!PRE_CLOCKED.has(v.id)) {
+        console.log(`${v.by} scheduled in ${SHIFT_ZONE} until ${endsAt}; Priya clocks them in live`);
+        continue;
+      }
+      const res = await leadW.write({
         creates: [
           buildCreate("clock", ctx(priya.by), { volunteer: v.by, shift: shift!, action: "in" }),
           buildCreate("duty_pass", ctx(priya.by), { volunteer: v.by, shift: shift!, endsAt }),
@@ -217,6 +258,76 @@ async function main(): Promise<void> {
       });
       console.log(`${v.by} on duty in ${SHIFT_ZONE} until ${endsAt}  ${res.txHash}`);
     }
+  }
+
+  // 4. Judging writes, organizer and team lead only; scores are Ana's own, written from her phone.
+  let rubricKey = rubric?.key;
+  if (!rubricKey) {
+    const res = await org.write({
+      creates: [
+        buildCreate("rubric", ctx("organizer"), {
+          track: JUDGE.track,
+          rubric: {
+            criteria: [
+              { id: "impact", name: "Impact", weight: 2 },
+              { id: "execution", name: "Execution", weight: 1 },
+            ],
+            scale: 10,
+          },
+        }),
+      ],
+    });
+    rubricKey = res.created[0]!;
+    console.log(`rubric for ${JUDGE.track}  ${res.txHash}`);
+  }
+  let submissionKey = submission?.key;
+  if (!submissionKey) {
+    const teamW = writer(lead.keyEnv);
+    const content = { page: { ...teamPages.populated.content } as never };
+    const projectKey =
+      project?.key ??
+      (
+        await teamW.write({
+          creates: [buildCreate("project", ctx(lead.by), { team: JUDGE.team, track: JUDGE.track, content })],
+        })
+      ).created[0]!;
+    const res = await teamW.write({
+      creates: [
+        buildCreate("submission", ctx(lead.by), {
+          project: projectKey,
+          team: JUDGE.team,
+          track: JUDGE.track,
+          lead: lead.address as Address,
+          content,
+        }),
+      ],
+    });
+    submissionKey = res.created[0]!;
+    console.log(`${JUDGE.team} submitted to ${JUDGE.track}  ${res.txHash}`);
+  }
+  if (!accepted) {
+    const res = await org.write({
+      creates: [
+        buildCreate("acceptance", ctx("organizer"), { submission: submissionKey, track: JUDGE.track }),
+      ],
+    });
+    console.log(`accepted ${JUDGE.team}  ${res.txHash}`);
+  }
+  if (!assigned) {
+    if (!judgeReady) {
+      console.log(`${judgeLabel} has no badge yet: issue it, then rerun to assign`);
+      return;
+    }
+    const res = await org.write({
+      creates: [
+        buildCreate("judge_assignment", ctx("organizer"), {
+          judge: judgeLabel,
+          submission: submissionKey,
+          rubric: rubricKey,
+        }),
+      ],
+    });
+    console.log(`assigned ${judgeLabel} to ${JUDGE.team}  ${res.txHash}`);
   }
 }
 
