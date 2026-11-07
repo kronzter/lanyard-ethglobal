@@ -1,7 +1,7 @@
 import { str as arkivString } from "@arkiv-network/sdk";
 import { useEffect, useState } from "react";
 import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { View } from "react-native";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import { scanKind, type LanyardRecord } from "@/arkiv/readers";
 import { KINDS } from "@/arkiv/kinds";
@@ -12,7 +12,25 @@ import { isTeamLabel } from "@/shared/labels";
 import { validateTeamPageContent, type TeamPageContent } from "@/shared/types/team-page";
 import { providers } from "@/providers";
 import { str } from "@/rules/decode";
-import { styles } from "@/shell/styles";
+import {
+  Banner,
+  Button,
+  Card,
+  Chip,
+  Disclosure,
+  Divider,
+  EmptyState,
+  Field,
+  IconBubble,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Txt,
+  messageTone,
+} from "@/ui";
 
 const empty: TeamPageContent = { title: "", description: "", members: [], links: {} };
 export default function Team() {
@@ -117,120 +135,160 @@ export default function Team() {
     }
   };
   const WinnerBadge = providers.winnerBadge();
+  const LINK_FIELDS = {
+    ethglobal: "ETHGlobal showcase",
+    repository: "Source",
+    demo: "Live demo",
+    video: "Demo video",
+  };
+  const deadlinePassed =
+    !!evaluation && evaluation.head.timestamp >= providers.config.times.submissionDeadline;
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 720, width: "100%", alignSelf: "center" }}
+    <Screen
+      title="My project"
+      subtitle={team ? undefined : "Team leads edit and submit here."}
+      right={sealed ? <Pill label="Submitted" tone="success" icon="check" /> : null}
     >
-      <Text style={styles.h2}>Your project</Text>
       {!team ? (
-        <Text>Select your team-lead role to edit and submit.</Text>
+        <Card>
+          <EmptyState
+            icon="star"
+            title="Choose your team-lead role"
+            body="Select your team-lead role to edit and submit."
+          />
+        </Card>
       ) : (
         <>
-          <Link href={`/teams/${team}`}>{team} · Public team page</Link>
-          <WinnerBadge team={team} />
-          <Text style={styles.muted}>
+          <Card>
+            <Row wrap={false} gap={12}>
+              <IconBubble name="users" />
+              <View style={{ flex: 1, gap: 2 }}>
+                <Txt variant="h2">{team}</Txt>
+                <Link href={`/teams/${team}`}>
+                  <Txt variant="caption" tone="accent">
+                    {team} · Public team page
+                  </Txt>
+                </Link>
+              </View>
+            </Row>
+            <WinnerBadge team={team} />
+          </Card>
+          <Banner icon="lock">
             Your submission seals these details. Later draft edits cannot change the submitted project.
-          </Text>
-          <View style={styles.card}>
-            <Text>Project title</Text>
-            <TextInput
+          </Banner>
+          <Card>
+            <Field
+              label="Project title"
               accessibilityLabel="Project title"
-              style={styles.input}
               value={loadedFor === identity ? page.title : ""}
               onChangeText={(title) => setPage({ ...page, title })}
             />
-            <Text>Description</Text>
-            <TextInput
+            <Field
+              label="Description"
               accessibilityLabel="Description"
-              style={styles.input}
               multiline
               value={loadedFor === identity ? page.description : ""}
               onChangeText={(description) => setPage({ ...page, description })}
             />
-            <Text>Members · one per line, up to four</Text>
-            <TextInput
+            <Field
+              label="Members"
+              hint="One per line, up to four."
               accessibilityLabel="Members"
-              style={styles.input}
               multiline
               value={loadedFor === identity ? page.members.join("\n") : ""}
               onChangeText={(members) => setPage({ ...page, members: members.split("\n") })}
             />
+            <Divider />
+            <SectionHeader title="Links" icon="link" />
             {(["ethglobal", "repository", "demo", "video"] as const).map((k) => (
-              <View key={k}>
-                <Text>{k === "ethglobal" ? "ETHGlobal showcase · required for submission" : k}</Text>
-                <TextInput
-                  accessibilityLabel={k}
-                  style={styles.input}
-                  autoCapitalize="none"
-                  value={loadedFor === identity ? (page.links[k] ?? "") : ""}
-                  onChangeText={(v) => {
-                    const links = { ...page.links };
-                    if (v) links[k] = v;
-                    else delete links[k];
-                    setPage({ ...page, links });
-                  }}
-                />
-              </View>
+              <Field
+                key={k}
+                label={LINK_FIELDS[k]}
+                {...(k === "ethglobal" ? { hint: "Required for submission." } : {})}
+                accessibilityLabel={k}
+                autoCapitalize="none"
+                placeholder="https://…"
+                value={loadedFor === identity ? (page.links[k] ?? "") : ""}
+                onChangeText={(v) => {
+                  const links = { ...page.links };
+                  if (v) links[k] = v;
+                  else delete links[k];
+                  setPage({ ...page, links });
+                }}
+              />
             ))}
-            <Text>Track</Text>
-            <View style={styles.wrap}>
+            <Divider />
+            <SectionHeader title="Track" icon="star" />
+            <Row gap={6}>
               {providers.config.tracks.map((t) => (
-                <Pressable
-                  key={t.id}
-                  style={[styles.chip, track === t.id && styles.chipOn]}
-                  onPress={() => setTrack(t.id)}
-                >
-                  <Text>{t.name}</Text>
-                </Pressable>
+                <Chip key={t.id} label={t.name} selected={track === t.id} onPress={() => setTrack(t.id)} />
               ))}
-            </View>
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy || loadedFor !== identity}
-              onPress={() => void save(false)}
-              style={styles.chip}
-            >
-              <Text>Save draft</Text>
-            </Pressable>
-            <Pressable
-              accessibilityRole="button"
-              disabled={
-                busy ||
-                loadedFor !== identity ||
-                !draft ||
-                sealed ||
-                !evaluation ||
-                evaluation.head.timestamp >= providers.config.times.submissionDeadline
-              }
-              onPress={() => void save(true)}
-              style={styles.chip}
-            >
-              <Text>{sealed ? "Submitted" : "Seal submission"}</Text>
-            </Pressable>
-          </View>
-          {draft && loadedFor === identity && (
-            <Text selectable style={styles.muted}>
-              Project {draft.key}
-              {"\n"}Creator {draft.creator}
-              {"\n"}Owner {draft.owner} · Block {String(draft.createdAt)}
-            </Text>
+            </Row>
+            <Row gap={8} style={{ marginTop: 4 }}>
+              <Button
+                accessibilityRole="button"
+                disabled={busy || loadedFor !== identity}
+                onPress={() => void save(false)}
+                label="Save draft"
+              />
+              <Button
+                accessibilityRole="button"
+                variant={sealed ? "success" : "primary"}
+                icon={sealed ? "check" : "lock"}
+                disabled={busy || loadedFor !== identity || !draft || sealed || !evaluation || deadlinePassed}
+                onPress={() => void save(true)}
+                label={sealed ? "Submitted" : "Seal submission"}
+              />
+            </Row>
+          </Card>
+          {((draft && loadedFor === identity) || submissions.length > 0) && (
+            <Disclosure title="Evidence" icon="shield">
+              {draft && loadedFor === identity && (
+                <Stackv gap={2}>
+                  <Txt variant="label" tone="muted">
+                    Project draft
+                  </Txt>
+                  <Txt selectable mono tone="muted">
+                    Project {draft.key}
+                    {"\n"}Creator {draft.creator}
+                    {"\n"}Owner {draft.owner} · Block {String(draft.createdAt)}
+                  </Txt>
+                </Stackv>
+              )}
+              {submissions.map((r) => {
+                const counts = evaluation?.view.verdict(r.key)?.counts;
+                return (
+                  <ListRow
+                    key={r.key}
+                    dim={!counts}
+                    title={
+                      <Pill
+                        label={counts ? "Counted" : "Not counted"}
+                        tone={counts ? "success" : "muted"}
+                        dot
+                      />
+                    }
+                    subtitle={
+                      <Txt selectable mono tone={counts ? "text" : "muted"}>
+                        Submission {r.key}
+                        {"\n"}Creator {r.creator}
+                        {"\n"}Observed owner {r.obs.owner} · Block {String(r.obs.createdAtBlock)}
+                        {"\n"}
+                        {evaluation?.view.verdict(r.key)?.reason ?? "Counted"}
+                      </Txt>
+                    }
+                  />
+                );
+              })}
+            </Disclosure>
           )}
-          {submissions.map((r) => (
-            <Text
-              key={r.key}
-              selectable
-              style={evaluation?.view.verdict(r.key)?.counts ? styles.mono : styles.muted}
-            >
-              Submission {r.key}
-              {"\n"}Creator {r.creator}
-              {"\n"}Observed owner {r.obs.owner} · Block {String(r.obs.createdAtBlock)}
-              {"\n"}
-              {evaluation?.view.verdict(r.key)?.reason ?? "Counted"}
-            </Text>
-          ))}
         </>
       )}
-      {(message || error) && <Text accessibilityRole="alert">{message || error}</Text>}
-    </ScrollView>
+      {(message || error) && (
+        <Banner accessibilityRole="alert" tone={messageTone(message || error || "")}>
+          {message || error}
+        </Banner>
+      )}
+    </Screen>
   );
 }

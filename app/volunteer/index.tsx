@@ -4,13 +4,27 @@
 // block time; the countdown ticks locally from that block time. A self-start writes one `clock in`
 // inside [starts_at-60 min, starts_at+15 min]; outside it the screen says "Ask a lead".
 import { useEffect, useState } from "react";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { View } from "react-native";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import { PENDING_CLOCK_IN } from "@/arkiv/batches";
 import { clockTime, countdown, describeSubmit, DevClock } from "@/arkiv/ui";
 import { buildCreate } from "@/arkiv/writers";
 import { SELF_START_AFTER, SELF_START_BEFORE, type ShiftView } from "@/rules";
-import { styles } from "@/shell/styles";
+import {
+  Banner,
+  Button,
+  Card,
+  EmptyState,
+  IconBubble,
+  Pill,
+  ProgressBar,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Txt,
+  messageTone,
+} from "@/ui";
 
 /** Seconds since the evaluation was read, so the countdown follows block time between refreshes. */
 function useElapsed(stamp: unknown): bigint {
@@ -31,27 +45,31 @@ export default function Volunteer() {
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const header = (
-    <>
-      <Text style={styles.h2}>My shift</Text>
-      {mode === "fake" && advance && (
-        <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
-      )}
-    </>
-  );
+  const header =
+    mode === "fake" && advance ? (
+      <DevClock now={evaluation?.head.timestamp ?? null} onAdvance={advance} />
+    ) : null;
   if (!byLabel?.endsWith(".volunteers"))
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Screen title="My shift">
         {header}
-        <Text style={styles.muted}>Connect and choose a volunteer badge to see your shifts.</Text>
-      </ScrollView>
+        <Card>
+          <EmptyState
+            icon="badge"
+            title="Choose a volunteer badge"
+            body="Connect and choose a volunteer badge to see your shifts."
+          />
+        </Card>
+      </Screen>
     );
   if (!evaluation)
     return (
-      <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+      <Screen title="My shift">
         {header}
-        <Text style={styles.muted}>{error ?? "Reading your shifts…"}</Text>
-      </ScrollView>
+        <Banner tone={error ? "danger" : "neutral"} icon={error ? "alert" : "refresh"}>
+          {error ?? "Reading your shifts…"}
+        </Banner>
+      </Screen>
     );
 
   const { view, head } = evaluation;
@@ -89,57 +107,85 @@ export default function Volunteer() {
     refresh();
   };
 
+  const hasPass = active ? !!shifts.find((s) => s.record.key === active.shift.record.key)?.pass : false;
+  const left = active ? active.end - now - elapsed : 0n;
+  const total = active ? active.end - active.start : 0n;
+  const progress = active && total > 0n ? 1 - Number(left) / Number(total) : 0;
+
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+    <Screen title="My shift" subtitle={byLabel}>
       {header}
-      <View style={[styles.card, active ? styles.rowOn : undefined]} testID="volunteer-status">
-        <Text style={styles.h3}>{active ? `On duty · ${active.shift.zone}` : "Off duty"}</Text>
-        {active && (
-          <>
-            <Text style={{ fontSize: 28 }}>{countdown(active.end - now - elapsed)}</Text>
-            <Text style={styles.muted}>
-              until {clockTime(active.end)} ·{" "}
-              {shifts.find((s) => s.record.key === active.shift.record.key)?.pass
-                ? "lead pass issued"
-                : "self-started (no lead pass)"}
-            </Text>
-          </>
+      <Card tone={active ? "success" : "neutral"} testID="volunteer-status">
+        <Row justify="space-between">
+          <Pill
+            label={active ? `On duty · ${active.shift.zone}` : "Off duty"}
+            tone={active ? "success" : "muted"}
+            dot
+          />
+          {active ? (
+            <Pill label={hasPass ? "Lead pass" : "Self-started"} tone="neutral" icon="badge" />
+          ) : null}
+        </Row>
+        {active ? (
+          <Stackv gap={6}>
+            <Txt variant="display" num style={{ fontSize: 48 }}>
+              {countdown(left)}
+            </Txt>
+            <Txt tone="muted">
+              until {clockTime(active.end)} · {hasPass ? "lead pass issued" : "self-started (no lead pass)"}
+            </Txt>
+            <ProgressBar value={progress} tone="success" />
+          </Stackv>
+        ) : (
+          <Txt tone="muted">You are not clocked in right now.</Txt>
         )}
         {!active && early && (
-          <Text>
-            Clocked in for {early.shift.zone}; duty starts at {clockTime(early.start)}.
-          </Text>
+          <Banner tone="warning" icon="clock">
+            {`Clocked in for ${early.shift.zone}; duty starts at ${clockTime(early.start)}.`}
+          </Banner>
         )}
-        {pending && <Text>{PENDING_CLOCK_IN}</Text>}
-      </View>
+        {pending && <Banner tone="warning">{PENDING_CLOCK_IN}</Banner>}
+      </Card>
 
       {next && (
-        <View style={styles.card}>
-          <Text style={styles.h3}>Next shift · {next.zone}</Text>
-          <Text>
-            {clockTime(next.startsAt)}–{clockTime(next.effectiveEnd)}
-          </Text>
+        <Card>
+          <SectionHeader title="Next shift" icon="clock" />
+          <Row wrap={false} gap={12}>
+            <IconBubble name="pin" />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt variant="h2">{next.zone}</Txt>
+              <Txt tone="muted" num>
+                {clockTime(next.startsAt)} – {clockTime(next.effectiveEnd)}
+              </Txt>
+            </View>
+          </Row>
           {canSelfStart(next) ? (
-            <Pressable
+            <Button
               testID="volunteer-start"
               accessibilityRole="button"
               disabled={busy}
-              style={styles.chip}
+              variant="primary"
+              size="lg"
+              full
+              icon="check"
+              label={busy ? "Starting…" : "Start shift"}
               onPress={() => void start(next)}
-            >
-              <Text>{busy ? "Starting…" : "Start shift"}</Text>
-            </Pressable>
+            />
           ) : (
-            <Text style={styles.muted}>
+            <Banner icon="info">
               {now < next.startsAt - SELF_START_BEFORE
                 ? `You can start from ${clockTime(next.startsAt - SELF_START_BEFORE)}.`
                 : "Ask a lead to clock you in."}
-            </Text>
+            </Banner>
           )}
-        </View>
+        </Card>
       )}
-      {!active && !next && <Text style={styles.muted}>No upcoming shifts.</Text>}
-      {message && <Text>{message}</Text>}
-    </ScrollView>
+      {!active && !next && (
+        <Card>
+          <EmptyState icon="clock" title="No upcoming shifts" body="Your lead will add one for you." />
+        </Card>
+      )}
+      {message && <Banner tone={messageTone(message)}>{message}</Banner>}
+    </Screen>
   );
 }

@@ -1,7 +1,7 @@
 // Plain building blocks shared by the ENS console screens.
 import { useCallback, useState, type ReactNode } from "react";
-import { Pressable, ScrollView, Text, TextInput, View } from "react-native";
-import { styles } from "@/shell/styles";
+import { View } from "react-native";
+import { Banner, Button, Card, Chip, Field as UiField, IconBubble, Pill, Row, Screen, Txt } from "@/ui";
 import { SEPOLIA_CHAIN_ID } from "./chain-guard";
 import { formatTxResult, TxUncertain, type TxResult } from "./tx";
 import { useConsole } from "./useConsole";
@@ -9,30 +9,36 @@ import { useConsole } from "./useConsole";
 export function ConsoleFrame({ title, children }: { title: string; children: ReactNode }) {
   const { wallet, problem } = useConsole();
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 12, maxWidth: 720 }}>
-      <Text style={{ fontSize: 22, fontWeight: "600" }}>{title}</Text>
-      <View style={styles.card}>
+    <Screen title={title}>
+      <Card>
         {wallet.status === "unavailable" ? (
-          <Text testID="wallet-unavailable" style={styles.muted}>
+          <Txt testID="wallet-unavailable" tone="muted">
             {wallet.reason}
-          </Text>
+          </Txt>
         ) : wallet.status !== "connected" ? (
           <Btn label="Connect wallet" onPress={wallet.connect} testID="wallet-connect" />
         ) : (
-          <>
-            <Text style={styles.mono}>{wallet.address}</Text>
-            <Text style={styles.muted}>
-              {wallet.chainId === SEPOLIA_CHAIN_ID ? "Sepolia" : `Wrong chain (${wallet.chainId})`}
-            </Text>
+          <Row wrap={false} gap={12}>
+            <IconBubble name="wallet" size={36} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt mono selectable>
+                {wallet.address}
+              </Txt>
+              <Pill
+                label={wallet.chainId === SEPOLIA_CHAIN_ID ? "Sepolia" : `Wrong chain (${wallet.chainId})`}
+                tone={wallet.chainId === SEPOLIA_CHAIN_ID ? "success" : "warning"}
+                dot
+              />
+            </View>
             {wallet.chainId !== SEPOLIA_CHAIN_ID && (
               <Btn label="Switch to Sepolia" onPress={() => wallet.switchChain(SEPOLIA_CHAIN_ID)} />
             )}
-          </>
+          </Row>
         )}
-        {problem && wallet.status !== "unavailable" && <Text style={{ color: "#b91c1c" }}>{problem}</Text>}
-      </View>
+        {problem && wallet.status !== "unavailable" && <Banner tone="danger">{problem}</Banner>}
+      </Card>
       {children}
-    </ScrollView>
+    </Screen>
   );
 }
 
@@ -47,17 +53,7 @@ export function Btn({
   disabled?: boolean;
   testID?: string;
 }) {
-  return (
-    <Pressable
-      testID={testID}
-      accessibilityRole="button"
-      disabled={disabled}
-      onPress={onPress}
-      style={[styles.chip, styles.chipOn, disabled ? { opacity: 0.5 } : null, { alignSelf: "flex-start" }]}
-    >
-      <Text>{label}</Text>
-    </Pressable>
-  );
+  return <Button testID={testID} variant="primary" disabled={disabled} onPress={onPress} label={label} />;
 }
 
 export function Field({
@@ -74,18 +70,16 @@ export function Field({
   testID?: string;
 }) {
   return (
-    <View style={{ gap: 4 }}>
-      <Text style={styles.h3}>{label}</Text>
-      <TextInput
-        testID={testID}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        autoCapitalize="none"
-        autoCorrect={false}
-        style={styles.input}
-      />
-    </View>
+    <UiField
+      label={label}
+      testID={testID}
+      value={value}
+      onChangeText={onChange}
+      placeholder={placeholder}
+      autoCapitalize="none"
+      autoCorrect={false}
+      mono={placeholder?.startsWith("0x")}
+    />
   );
 }
 
@@ -99,18 +93,17 @@ export function Choice<T extends string>({
   onChange: (v: T) => void;
 }) {
   return (
-    <View style={styles.wrap}>
+    <Row gap={6}>
       {options.map((o) => (
-        <Pressable
+        <Chip
           key={o}
           accessibilityRole="button"
           onPress={() => onChange(o)}
-          style={[styles.chip, value === o ? styles.chipOn : null]}
-        >
-          <Text>{o}</Text>
-        </Pressable>
+          selected={value === o}
+          label={o}
+        />
       ))}
-    </View>
+    </Row>
   );
 }
 
@@ -142,11 +135,11 @@ export function useRunner() {
 
 export function Log({ log }: { log: Outcome[] }) {
   return (
-    <View style={{ gap: 4 }} testID="console-log">
+    <View style={{ gap: 8 }} testID="console-log">
       {log.map((o, i) => (
-        <Text key={i} selectable style={{ color: o.kind === "ok" ? "#15803d" : "#b91c1c" }}>
+        <Banner key={i} tone={o.kind === "ok" ? "success" : "danger"}>
           {o.text}
-        </Text>
+        </Banner>
       ))}
     </View>
   );

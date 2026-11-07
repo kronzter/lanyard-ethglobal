@@ -1,10 +1,25 @@
 import { useEffect, useState } from "react";
-import { ScrollView, Text, View, Pressable } from "react-native";
+import { View } from "react-native";
 import { useEvaluation } from "@/arkiv/app-hooks";
 import { publishedBundle } from "@/arkiv/published";
 import { providers } from "@/providers";
 import type { TrackRanking } from "@/rules/rankings";
-import { styles } from "@/shell/styles";
+import {
+  Avatar,
+  Banner,
+  Button,
+  Card,
+  IconBubble,
+  ListRow,
+  Pill,
+  Row,
+  Screen,
+  SectionHeader,
+  Stackv,
+  Stat,
+  Txt,
+  shortKey,
+} from "@/ui";
 export default function Leaderboard() {
   const { evaluation, error } = useEvaluation();
   const [rankings, setRankings] = useState<TrackRanking[] | null>(null);
@@ -40,51 +55,85 @@ export default function Leaderboard() {
   const assignments =
     evaluation?.view.records("judge_assignment").filter((r) => evaluation.view.verdict(r.key)?.counts) ?? [];
   const finals = evaluation?.view.records("final_score") ?? [];
+  const eligible = finals.filter((r) => evaluation?.view.verdict(r.key)?.counts).length;
+  const published = status.startsWith("Verified");
   return (
-    <ScrollView
-      contentContainerStyle={{ padding: 20, gap: 16, maxWidth: 900, width: "100%", alignSelf: "center" }}
-    >
-      <Text style={styles.h2}>Judging progress</Text>
-      <Text>{status}</Text>
-      <Pressable style={styles.chip} onPress={() => setGeneration((g) => g + 1)}>
-        <Text>Check publication</Text>
-      </Pressable>
+    <Screen title="Judging progress" maxWidth={900}>
+      <Banner
+        tone={published ? "success" : status.startsWith("Published evidence") ? "danger" : "neutral"}
+        icon={published ? "check" : "lock"}
+      >
+        {status}
+      </Banner>
+      <Button
+        variant="ghost"
+        icon="refresh"
+        label="Check publication"
+        onPress={() => setGeneration((g) => g + 1)}
+      />
       {!rankings ? (
-        <View style={styles.card}>
-          <Text>
-            {assignments.length} valid assignments ·{" "}
-            {finals.filter((r) => evaluation?.view.verdict(r.key)?.counts).length} eligible final records
-          </Text>
+        <Stackv gap={12}>
+          <Row gap={12} align="stretch">
+            <Stat label="valid assignments" value={assignments.length} />
+            <Stat label="eligible final records" value={eligible} tone="success" />
+          </Row>
           {finals
             .filter((r) => !evaluation?.view.verdict(r.key)?.counts)
             .map((r) => (
-              <Text key={r.key} style={styles.muted}>
-                {r.key}: {evaluation?.view.verdict(r.key)?.reason}
-              </Text>
+              <ListRow
+                key={r.key}
+                dim
+                tone="muted"
+                left={<IconBubble name="x" tone="muted" size={32} />}
+                title={
+                  <Txt mono tone="muted">
+                    {shortKey(r.key)}
+                  </Txt>
+                }
+                subtitle={`${r.key}: ${evaluation?.view.verdict(r.key)?.reason ?? ""}`}
+              />
             ))}
-          <Text>{error}</Text>
-        </View>
+          {error ? <Banner tone="danger">{error}</Banner> : null}
+        </Stackv>
       ) : (
         rankings.map((track) => (
-          <View key={track.track} style={styles.card}>
-            <Text style={styles.h3}>{track.track}</Text>
-            {track.projects.map((p) => (
-              <Text key={p.submission}>
-                {p.rank ? `${p.rank}. ` : "Unranked · "}
-                {p.team}
-                {p.displayHundredths !== undefined
-                  ? ` · ${p.displayHundredths / 100n}.${(p.displayHundredths % 100n).toString().padStart(2, "0")}`
-                  : " · no counted judges"}{" "}
-                · {p.judgeCount} judges{p.spread ? " · score spread flagged" : ""}
-              </Text>
-            ))}
-          </View>
+          <Card key={track.track}>
+            <SectionHeader title={`${track.track} track`} icon="trophy" />
+            {track.projects.map((p) => {
+              const score =
+                p.displayHundredths !== undefined
+                  ? `${p.displayHundredths / 100n}.${(p.displayHundredths % 100n).toString().padStart(2, "0")}`
+                  : null;
+              const medal =
+                p.rank === 1 ? "warning" : p.rank === 2 ? "muted" : p.rank === 3 ? "accent" : "neutral";
+              return (
+                <Row key={p.submission} wrap={false} gap={12}>
+                  <Avatar letter={p.rank ? String(p.rank) : "–"} tone={medal} size={36} />
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Txt variant="h3">
+                      {p.rank ? `${p.rank}. ` : "Unranked · "}
+                      {p.team}
+                    </Txt>
+                    <Row gap={6}>
+                      <Txt variant="caption" tone="muted">
+                        {p.judgeCount} judges
+                      </Txt>
+                      {p.spread ? <Pill label="score spread flagged" tone="warning" icon="alert" /> : null}
+                    </Row>
+                  </View>
+                  <Txt variant="h2" num tone={score ? "text" : "faint"}>
+                    {score ?? "no counted judges"}
+                  </Txt>
+                </Row>
+              );
+            })}
+          </Card>
         ))
       )}
-      <Text style={styles.muted}>
+      <Txt variant="caption" tone="muted">
         Rankings reproduce operator-attested captured evidence; completeness is unproven. Prize allocation is
         a separately disclosed manual input. Later revocations do not change frozen rankings.
-      </Text>
-    </ScrollView>
+      </Txt>
+    </Screen>
   );
 }

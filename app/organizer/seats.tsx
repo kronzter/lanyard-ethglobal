@@ -3,14 +3,14 @@
 // checked first: zones, help desks and partner tables for the venue; label shape, seat IDs from the
 // current venue and duplicates for the CSV. The rules decide again what counts.
 import { useState } from "react";
-import { Platform, Pressable, ScrollView, Text, TextInput, View } from "react-native";
+import { Platform } from "react-native";
 import { useEvaluation, useWriter } from "@/arkiv/app-hooks";
 import { parseSeatCsv, venueProblems } from "@/arkiv/seat-import";
 import { describeSubmit } from "@/arkiv/ui";
 import { buildCreate } from "@/arkiv/writers";
 import { providers } from "@/providers";
 import { parseJsonStrict } from "@/shared/canonical";
-import { styles } from "@/shell/styles";
+import { Banner, Button, Card, Field, Icon, Pill, Row, Screen, Step, Txt, messageTone, useTheme } from "@/ui";
 
 /** Seat rows per batch: one wallet approval each. */
 const SEATS_PER_BATCH = 20;
@@ -33,6 +33,7 @@ export default function Seats() {
   const [log, setLog] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const current = evaluation?.view.venueAt();
+  const { c } = useTheme();
 
   let parsedVenue: ReturnType<typeof venueProblems> | null = null;
   if (venueText.trim() !== "") {
@@ -89,92 +90,92 @@ export default function Seats() {
     });
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Text style={styles.h2}>Venue and seats</Text>
+    <Screen title="Venue & seats" subtitle="Publish the floor plan, then import everyone's assigned seat.">
       {byLabel !== "organizer" && (
-        <Text>
+        <Banner tone="warning" title="Organizer only">
           Connect the organizer wallet and act as Organizer (configured authority wallet) to publish.
-        </Text>
+        </Banner>
       )}
-      <Text style={styles.muted}>
+      <Banner tone={error ? "danger" : current ? "success" : "neutral"} icon={current ? "map" : "info"}>
         {error ??
           (current
             ? `Current venue: ${current.venue.name} (${String(current.record.attrs.get("version")?.value ?? "")}), ${current.venue.seats.length} seats`
             : "No venue published yet.")}
-      </Text>
+      </Banner>
 
-      <View style={styles.card}>
-        <Text style={styles.h3}>Publish venue.json</Text>
-        <View style={styles.wrap}>
-          <Pressable style={styles.chip} onPress={() => pickFile(setVenueText)}>
-            <Text>Choose venue.json…</Text>
-          </Pressable>
-        </View>
-        <TextInput
+      <Card>
+        <Step
+          n={1}
+          title="Publish venue.json"
+          right={<Pill label={current ? "Published" : "Not yet"} tone={current ? "success" : "muted"} dot />}
+        />
+        <Button icon="plus" label="Choose venue.json…" onPress={() => pickFile(setVenueText)} />
+        <Field
           value={venueText}
           onChangeText={setVenueText}
           placeholder="…or paste venue.json"
           multiline
-          numberOfLines={4}
-          style={[styles.input, styles.mono]}
+          mono
         />
-        <TextInput
+        <Field
+          label="Version"
           value={version}
           onChangeText={setVersion}
           placeholder="version, e.g. mumbai-v2"
-          style={styles.input}
         />
         {parsedVenue?.problems.map((p) => (
-          <Text key={p}>✗ {p}</Text>
+          <Row key={p} gap={6} wrap={false}>
+            <Icon name="x" size={14} color={c.danger} />
+            <Txt variant="caption" tone="danger" style={{ flex: 1 }}>
+              {p}
+            </Txt>
+          </Row>
         ))}
-        <Pressable
-          style={styles.chip}
+        <Button
+          variant="primary"
+          icon="map"
+          label="Publish venue"
           disabled={busy || !parsedVenue?.venue || parsedVenue.problems.length > 0 || version.trim() === ""}
           onPress={() => void publishVenue()}
-        >
-          <Text>Publish venue</Text>
-        </Pressable>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.h3}>Import seat assignments</Text>
-        <Text style={styles.muted}>
-          CSV columns: hacker_address, hacker_label, seat (IDs from the current venue).
-        </Text>
-        <View style={styles.wrap}>
-          <Pressable style={styles.chip} onPress={() => pickFile(setCsv)}>
-            <Text>Choose CSV…</Text>
-          </Pressable>
-        </View>
-        <TextInput
-          value={csv}
-          onChangeText={setCsv}
-          placeholder="…or paste CSV rows"
-          multiline
-          numberOfLines={4}
-          style={[styles.input, styles.mono]}
         />
-        {!current && csv.trim() !== "" && <Text>Publish a venue first.</Text>}
+      </Card>
+
+      <Card>
+        <Step n={2} title="Import seat assignments" />
+        <Txt variant="caption" tone="muted">
+          CSV columns: hacker_address, hacker_label, seat (IDs from the current venue).
+        </Txt>
+        <Button icon="plus" label="Choose CSV…" onPress={() => pickFile(setCsv)} />
+        <Field value={csv} onChangeText={setCsv} placeholder="…or paste CSV rows" multiline mono />
+        {!current && csv.trim() !== "" && <Banner tone="warning">Publish a venue first.</Banner>}
         {seatCheck?.errors.map((e) => (
-          <Text key={e}>✗ {e}</Text>
+          <Row key={e} gap={6} wrap={false}>
+            <Icon name="x" size={14} color={c.danger} />
+            <Txt variant="caption" tone="danger" style={{ flex: 1 }}>
+              {e}
+            </Txt>
+          </Row>
         ))}
         {seatCheck && seatCheck.errors.length === 0 && (
-          <Text style={styles.muted}>
-            {seatCheck.rows.length} rows ready ({Math.ceil(seatCheck.rows.length / SEATS_PER_BATCH)}{" "}
-            approvals)
-          </Text>
+          <Pill
+            tone="success"
+            icon="check"
+            label={`${seatCheck.rows.length} rows ready (${Math.ceil(seatCheck.rows.length / SEATS_PER_BATCH)} approvals)`}
+          />
         )}
-        <Pressable
-          style={styles.chip}
+        <Button
+          variant="primary"
+          icon="users"
+          label="Write seat assignments"
           disabled={busy || !seatCheck || seatCheck.errors.length > 0 || seatCheck.rows.length === 0}
           onPress={() => void importSeats()}
-        >
-          <Text>Write seat assignments</Text>
-        </Pressable>
-      </View>
+        />
+      </Card>
       {log.map((l) => (
-        <Text key={l}>{l}</Text>
+        <Banner key={l} tone={messageTone(l)}>
+          {l}
+        </Banner>
       ))}
-    </ScrollView>
+    </Screen>
   );
 }

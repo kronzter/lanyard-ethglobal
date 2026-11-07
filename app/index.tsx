@@ -1,62 +1,117 @@
-import { Link } from "expo-router";
-import { Pressable, ScrollView, Text, View } from "react-native";
+import { View } from "react-native";
 import { providers } from "@/providers";
 import { DevWalletPicker } from "@/shell/DevWalletPicker";
 import { RolePanel } from "@/shell/RolePanel";
 import { ROUTES } from "@/shell/routes";
 import { useSession } from "@/shell/session";
-import { styles } from "@/shell/styles";
 import { useWallet } from "@/shell/wallet/useWallet";
+import {
+  Banner,
+  Button,
+  Card,
+  Disclosure,
+  IconBubble,
+  LinkRow,
+  Row,
+  Screen,
+  Txt,
+  routeCopy,
+  useTheme,
+} from "@/ui";
 
 export default function Home() {
   const { address } = useSession();
   const wallet = useWallet();
+  const { c } = useTheme();
   const mock = providers.flags.ens === "mock";
+  const edition = providers.config.edition;
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 16, gap: 16 }}>
-      <Text style={{ fontSize: 22, fontWeight: "600" }}>Lanyard · {providers.config.edition}</Text>
+    <Screen navTitle="Lanyard">
+      <View style={{ gap: 6, paddingTop: 8 }}>
+        <Row gap={10}>
+          <View
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              backgroundColor: c.accent,
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <Txt variant="h2" tone="onAccent">
+              L
+            </Txt>
+          </View>
+          <Txt variant="display">Lanyard</Txt>
+        </Row>
+        <Txt tone="muted">{edition} · shifts, help tickets and judging, signed by your wallet</Txt>
+      </View>
 
       {!address && (
-        <View style={styles.card}>
+        <Card>
+          <Row wrap={false} gap={12}>
+            <IconBubble name="wallet" />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Txt variant="h2">Get started</Txt>
+              <Txt variant="caption" tone="muted">
+                Connect the wallet that holds your event badge.
+              </Txt>
+            </View>
+          </Row>
           {wallet.status === "unavailable" ? (
-            <Text testID="wallet-unavailable" style={styles.muted}>
+            <Txt testID="wallet-unavailable" tone="muted">
               {wallet.reason}
-            </Text>
+            </Txt>
           ) : (
-            <Pressable
+            <Button
               testID="wallet-connect"
               accessibilityRole="button"
               onPress={wallet.connect}
-              style={styles.chip}
-            >
-              <Text>Connect wallet</Text>
-            </Pressable>
+              variant="primary"
+              size="lg"
+              full
+              icon="wallet"
+              label="Connect wallet"
+            />
           )}
-          {mock && <Text style={styles.muted}>or act as a test persona</Text>}
-        </View>
+          {mock && (
+            <Txt variant="caption" tone="muted" style={{ textAlign: "center" }}>
+              or act as a test persona below
+            </Txt>
+          )}
+        </Card>
       )}
       {!address && mock && <DevWalletPicker />}
       <RolePanel />
 
-      <View>
-        <Text style={styles.h3}>Open to everyone</Text>
-        <Link href={"/teams/zkpay" as never} style={styles.link}>
-          Public team page: zkpay
-        </Link>
-      </View>
+      <Card padded={false} style={{ padding: 6 }}>
+        <LinkRow
+          href="/teams/zkpay"
+          icon="link"
+          title="Public team page: zkpay"
+          subtitle="Open to everyone, no wallet needed"
+        />
+      </Card>
 
       {mock && (
-        <View>
-          <Text style={styles.h3}>All screens (mock mode)</Text>
-          {ROUTES.map((r) => (
-            <Link key={r.path} href={r.path as never} style={styles.link}>
-              {r.title}
-              {r.webOnly ? " (web only)" : ""}
-            </Link>
-          ))}
-        </View>
+        <Disclosure title="All screens (mock mode)" icon="list">
+          <Banner>Development shortcut: screens still check your role.</Banner>
+          {ROUTES.map((r) => {
+            const copy = routeCopy(r.path);
+            return (
+              <LinkRow
+                key={r.path}
+                href={r.path}
+                icon={copy.icon}
+                title={`${r.title}${r.webOnly ? " (web only)" : ""}`}
+                subtitle={copy.body}
+              />
+            );
+          })}
+        </Disclosure>
       )}
-    </ScrollView>
+    </Screen>
   );
 }

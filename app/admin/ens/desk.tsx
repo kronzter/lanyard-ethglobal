@@ -1,7 +1,6 @@
 // A4.3 onboarding desk (organizer): issue badges, register teams, then link each team's page `url`.
-import { Link } from "expo-router";
 import { useState } from "react";
-import { Linking, Text, View } from "react-native";
+import { Linking } from "react-native";
 import { ISSUABLE_BOOKS, decideBadge, parseBadgeArgs } from "@/ens/badge-plan";
 import { parseTeamArgs } from "@/ens/team-plan";
 import { registerBadgeData, registerTeamData, setTextData } from "@/consoles/calldata";
@@ -11,7 +10,7 @@ import { Btn, Choice, ConsoleFrame, Field, Log, useRunner } from "@/consoles/ui"
 import { useConsole } from "@/consoles/useConsole";
 import { eventConfig } from "@/shared/event.config";
 import { toFullName } from "@/shared/labels";
-import { styles } from "@/shell/styles";
+import { Button, Card, LinkRow, Pill, Row, Step, Txt } from "@/ui";
 
 type Book = (typeof ISSUABLE_BOOKS)[number];
 
@@ -108,13 +107,15 @@ export default function Desk() {
 
   return (
     <ConsoleFrame title="Onboarding desk">
-      <Text style={styles.muted}>Organizer wallet only. Dripping tGLM is a separate screen.</Text>
-      <Link href="/organizer/faucet" style={styles.link}>
-        Open the faucet
-      </Link>
+      <Row gap={12} wrap={false}>
+        <Txt tone="muted" style={{ flex: 1 }}>
+          Organizer wallet only. Dripping tGLM is a separate screen.
+        </Txt>
+        <LinkRow href="/organizer/faucet" icon="drop" title="Open the faucet" />
+      </Row>
 
-      <View style={styles.card}>
-        <Text style={styles.h2}>Issue a badge</Text>
+      <Card>
+        <Step n={1} title="Issue a badge" />
         <Field label="Holder address" value={holder} onChange={setHolder} placeholder="0x…" testID="holder" />
         <Field
           label="Badge label"
@@ -123,12 +124,13 @@ export default function Desk() {
           placeholder="priya"
           testID="badge-label"
         />
+        <Txt variant="h3">Book</Txt>
         <Choice options={ISSUABLE_BOOKS} value={book} onChange={setBook} />
         <Btn label="Issue badge" onPress={issue} disabled={busy} testID="issue" />
-      </View>
+      </Card>
 
-      <View style={styles.card}>
-        <Text style={styles.h2}>Register a team</Text>
+      <Card>
+        <Step n={2} title="Register a team" />
         <Field
           label="Team label"
           value={teamLabel}
@@ -137,26 +139,42 @@ export default function Desk() {
           testID="team-label"
         />
         <Field label="Lead address" value={lead} onChange={setLead} placeholder="0x…" testID="team-lead" />
-        <View style={styles.wrap}>
-          <Btn label="Check status" onPress={check} disabled={busy} />
+        <Row gap={8}>
+          <Button label="Check status" onPress={check} disabled={busy} icon="refresh" />
           <Btn label="1. Register team" onPress={register} disabled={busy} testID="register" />
           <Btn label="2. Link page url" onPress={link} disabled={busy} testID="link" />
-        </View>
+        </Row>
         {flow && (
-          <View testID="team-status">
-            <Text>Registration: {flow.registration}</Text>
-            <Text>Website link: {flow.link === "ready" ? "ready (read back)" : flow.link}</Text>
-            {flow.reason && <Text style={{ color: "#b91c1c" }}>{flow.reason}</Text>}
-          </View>
+          <Card tone="muted" testID="team-status">
+            <Row gap={8}>
+              <Pill
+                label={`Registration: ${flow.registration}`}
+                tone={flow.registration === "done" ? "success" : "muted"}
+                dot
+              />
+              <Pill
+                label={`Website link: ${flow.link === "ready" ? "ready (read back)" : flow.link}`}
+                tone={flow.link === "ready" ? "success" : "muted"}
+                dot
+              />
+            </Row>
+            {flow.reason && (
+              <Txt variant="caption" tone="danger">
+                {flow.reason}
+              </Txt>
+            )}
+          </Card>
         )}
         {flow?.link === "ready" && url && (
-          <View style={styles.wrap}>
-            <Text style={styles.mono}>{url}</Text>
-            <Btn label="Copy" onPress={copy} />
-            <Btn label="Open page" onPress={() => void Linking.openURL(url)} />
-          </View>
+          <Row gap={8}>
+            <Txt mono selectable style={{ flexShrink: 1 }}>
+              {url}
+            </Txt>
+            <Button label="Copy" size="sm" onPress={copy} icon="link" />
+            <Button label="Open page" size="sm" onPress={() => void Linking.openURL(url)} />
+          </Row>
         )}
-      </View>
+      </Card>
 
       <Log log={log} />
     </ConsoleFrame>

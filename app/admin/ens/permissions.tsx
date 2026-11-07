@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScrollView, Text, View } from "react-native";
 import { createPublicClient, http, type Address, type PublicClient } from "viem";
 import { sepolia } from "viem/chains";
 import { readPermissionMap, type PermissionMap } from "@/ens/permission-map";
 import { providers } from "@/providers";
-import { styles } from "@/shell/styles";
+import { Banner, Button, Card, Pill, Row, Screen, Stackv, Txt } from "@/ui";
 
 // Web-only through app/admin/ens/_layout.tsx (WebOnly).
 async function load(): Promise<PermissionMap> {
@@ -30,7 +29,7 @@ async function load(): Promise<PermissionMap> {
 type State =
   { status: "loading" } | { status: "ready"; map: PermissionMap } | { status: "error"; message: string };
 
-export default function Screen() {
+export default function PermissionMapScreen() {
   const [state, setState] = useState<State>({ status: "loading" });
   const run = useCallback(() => {
     setState({ status: "loading" });
@@ -46,20 +45,18 @@ export default function Screen() {
   useEffect(run, [run]);
 
   return (
-    <ScrollView contentContainerStyle={{ padding: 24, gap: 12 }}>
-      <Text style={{ fontSize: 22, fontWeight: "600" }}>Permission map</Text>
-      <Text style={styles.muted}>
-        Every role grant on Lanyard's contracts, read from EACRolesChanged events.
-      </Text>
-      <Text style={styles.link} onPress={run}>
-        Refresh
-      </Text>
-      {state.status === "loading" && <Text>Scanning Sepolia logs...</Text>}
+    <Screen
+      title="Permission map"
+      subtitle="Every role grant on Lanyard's contracts, read from EACRolesChanged events."
+      maxWidth={960}
+    >
+      <Button variant="ghost" icon="refresh" label="Refresh" onPress={run} />
+      {state.status === "loading" && <Banner icon="refresh">Scanning Sepolia logs...</Banner>}
       {state.status === "error" && (
-        <Text style={{ color: "#b91c1c" }}>Could not read the permission map: {state.message}</Text>
+        <Banner tone="danger">{`Could not read the permission map: ${state.message}`}</Banner>
       )}
       {state.status === "ready" && <MapView map={state.map} />}
-    </ScrollView>
+    </Screen>
   );
 }
 
@@ -71,53 +68,53 @@ function MapView({ map }: { map: PermissionMap }) {
     byContract.set(g.contract, resources);
   }
   return (
-    <View style={{ gap: 12 }}>
-      <Text style={styles.muted}>
+    <Stackv gap={12}>
+      <Txt variant="caption" tone="muted">
         Block {map.block.toString()} · {map.grants.length} grants across {byContract.size} contracts
-      </Text>
+      </Txt>
       {map.mismatches.length > 0 ? (
-        <View
-          style={{
-            backgroundColor: "#fee2e2",
-            borderColor: "#b91c1c",
-            borderWidth: 1,
-            borderRadius: 8,
-            padding: 12,
-            gap: 4,
-          }}
+        <Banner
+          tone="danger"
+          title={`Mismatch: ${map.mismatches.length} entries differ from direct on-chain reads`}
         >
-          <Text style={{ fontWeight: "700", color: "#7f1d1d" }}>
-            Mismatch: {map.mismatches.length} entries differ from direct on-chain reads
-          </Text>
-          {map.mismatches.map((m, i) => (
-            <Text key={i} style={[styles.mono, { color: "#7f1d1d" }]}>
-              {m.kind} {m.contract} {m.resource.slice(0, 12)}
-              {"account" in m ? ` ${m.account}` : ""}
-              {"folded" in m ? ` events=${m.folded.toString(16)}` : ""}
-              {"onchain" in m ? ` chain=${m.onchain.toString(16)}` : ""}
-            </Text>
-          ))}
-        </View>
+          <Stackv gap={2}>
+            {map.mismatches.map((m, i) => (
+              <Txt key={i} mono tone="danger">
+                {m.kind} {m.contract} {m.resource.slice(0, 12)}
+                {"account" in m ? ` ${m.account}` : ""}
+                {"folded" in m ? ` events=${m.folded.toString(16)}` : ""}
+                {"onchain" in m ? ` chain=${m.onchain.toString(16)}` : ""}
+              </Txt>
+            ))}
+          </Stackv>
+        </Banner>
       ) : (
-        <Text style={{ color: "#166534" }}>
+        <Banner tone="success" title="Verified">
           Verified: every entry matches roles, hasRoles and roleCount reads at this block.
-        </Text>
+        </Banner>
       )}
       {[...byContract].map(([contract, resources]) => (
-        <View key={contract} style={styles.card}>
-          <Text style={styles.h2}>{contract}</Text>
+        <Card key={contract}>
+          <Txt variant="h2">{contract}</Txt>
           {[...resources].map(([resource, grants]) => (
-            <View key={resource} style={{ gap: 2 }}>
-              <Text style={[styles.mono, styles.muted]}>resource {resource.slice(0, 18)}...</Text>
+            <Stackv key={resource} gap={4}>
+              <Txt variant="caption" mono tone="faint">
+                resource {resource.slice(0, 18)}...
+              </Txt>
               {grants.map((g) => (
-                <Text key={g.account} style={styles.mono}>
-                  {g.account}: {g.roleNames.join(", ")}
-                </Text>
+                <Row key={g.account} gap={6}>
+                  <Txt mono selectable>
+                    {g.account}:
+                  </Txt>
+                  {g.roleNames.map((n) => (
+                    <Pill key={n} label={n} tone="accent" />
+                  ))}
+                </Row>
               ))}
-            </View>
+            </Stackv>
           ))}
-        </View>
+        </Card>
       ))}
-    </View>
+    </Stackv>
   );
 }

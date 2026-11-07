@@ -1,6 +1,5 @@
 // A4.3 partner console: issue and revoke that partner's own judges and staff.
 import { useState } from "react";
-import { Text, View } from "react-native";
 import { registerPartnerBadgeData, unregisterData } from "@/consoles/calldata";
 import { ownerOf, partnerBookRegistry, statusOf } from "@/consoles/observe";
 import { Btn, Choice, ConsoleFrame, Field, Log, useRunner } from "@/consoles/ui";
@@ -8,7 +7,7 @@ import { useConsole } from "@/consoles/useConsole";
 import { decideBadge, parseBadgeArgs } from "@/ens/badge-plan";
 import { decideRevoke, SUBS } from "@/ens/revive-plan";
 import { eventConfig } from "@/shared/event.config";
-import { styles } from "@/shell/styles";
+import { Card, Row, Txt } from "@/ui";
 
 type Sub = (typeof SUBS)[number];
 const PARTNERS = eventConfig.partners.map((p) => p.id);
@@ -60,14 +59,14 @@ export default function Partner() {
 
   return (
     <ConsoleFrame title="Partner console">
-      <Text style={styles.muted}>
+      <Txt tone="muted">
         A partner wallet manages only its own judges and staff. Another partner's wallet is blocked before
         sending.
-      </Text>
-      <View style={styles.card}>
-        <Text style={styles.h3}>Partner</Text>
+      </Txt>
+      <Card>
+        <Txt variant="h3">Partner</Txt>
         <Choice options={PARTNERS} value={partner} onChange={setPartner} />
-        <Text style={styles.h3}>Sub-book</Text>
+        <Txt variant="h3">Sub-book</Txt>
         <Choice options={SUBS} value={sub} onChange={setSub} />
         <Field label="Label" value={label} onChange={setLabel} placeholder="ana" testID="partner-label" />
         <Field
@@ -77,11 +76,11 @@ export default function Partner() {
           placeholder="0x…"
           testID="partner-owner"
         />
-        <View style={styles.wrap}>
+        <Row gap={8}>
           <Btn label="Issue" onPress={issue} disabled={busy} testID="issue" />
           <Btn label="Revoke" onPress={revoke} disabled={busy} testID="revoke" />
-        </View>
-      </View>
+        </Row>
+      </Card>
       <Log log={log} />
     </ConsoleFrame>
   );
